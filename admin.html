@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Private Property Database | Brandy Renon</title>
+  <meta name="description" content="Private demonstration dashboard for property documents and internal listing assets.">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <main id="main-content">
+    <section class="page-hero">
+      <div class="container admin-shell">
+        <div class="security-banner" role="note" aria-label="Security notice">
+          <h1>Private Property Database</h1>
+          <p>This demonstration portal uses client-side storage only. Do not use it for live customer records, sensitive contracts, or confidential transaction data.</p>
+        </div>
+        <div class="admin-panel admin-topbar">
+          <div>
+            <p class="eyebrow">Restricted access</p>
+            <h2>Private Property Database</h2>
+            <p>Signed in as <strong id="logged-in-user"></strong></p>
+          </div>
+          <div class="cta-actions">
+            <span id="role-badge" class="role-badge"></span>
+            <button id="logout-button" class="btn-secondary" type="button">Logout</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container admin-shell">
+        <div id="admin-toolbar" class="admin-panel admin-toolbar">
+          <div>
+            <h3>Admin Controls</h3>
+            <p class="table-hint">Admins can upload, hide, unhide, and delete demo session records.</p>
+          </div>
+          <div class="filter-grid" aria-label="Admin filters">
+            <div class="form-group">
+              <label for="admin-filter-type">File Type</label>
+              <select id="admin-filter-type">
+                <option value="">All file types</option>
+                <option value="Document">Document</option>
+                <option value="Photo">Photo</option>
+                <option value="Contract">Contract</option>
+                <option value="Permit">Permit</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="admin-filter-visibility">Visibility</label>
+              <select id="admin-filter-visibility">
+                <option value="">All visibility</option>
+                <option value="visible">Visible only</option>
+                <option value="hidden">Hidden only</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="admin-filter-property">Property</label>
+              <select id="admin-filter-property">
+                <option value="">All properties</option>
+              </select>
+            </div>
+          </div>
+          <button id="open-upload-modal" class="btn-primary" type="button">Upload New Document</button>
+        </div>
+
+        <div class="table-card">
+          <div class="results-meta">
+            <div>
+              <h3>Stored Demo Entries</h3>
+              <p id="table-role-hint" class="table-hint">Admin access: action buttons are available for every row.</p>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Property Address</th>
+                <th scope="col">Property ID</th>
+                <th scope="col">File Name</th>
+                <th scope="col">File Type</th>
+                <th scope="col">Agent</th>
+                <th scope="col">Upload Date</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="private-db-body"></tbody>
+          </table>
+          <div id="admin-empty-state" class="admin-empty-state" hidden>
+            No demo entries match the current filters.
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="upload-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title">
+    <div class="modal-dialog">
+      <button class="modal-close" type="button" data-close-modal aria-label="Close upload form">×</button>
+      <h2 id="upload-modal-title">Upload New Document</h2>
+      <div class="upload-meta">
+        <p>This adds a placeholder record to sessionStorage only. Files are not uploaded to a secure server in this demo.</p>
+      </div>
+      <form id="upload-form" novalidate>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="upload-property-address">Property Address</label>
+            <input id="upload-property-address" name="propertyAddress" type="text" required>
+          </div>
+          <div class="form-group">
+            <label for="upload-property-id">Property ID</label>
+            <input id="upload-property-id" name="propertyId" type="text" placeholder="prop-006" required>
+          </div>
+          <div class="form-group">
+            <label for="upload-property-status">Property Status</label>
+            <select id="upload-property-status" name="propertyStatus">
+              <option value="Active">Active</option>
+              <option value="Pending">Pending</option>
+              <option value="Sold">Sold</option>
+              <option value="Coming Soon">Coming Soon</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="upload-file-type">File Type</label>
+            <select id="upload-file-type" name="fileType">
+              <option value="Document">Document</option>
+              <option value="Photo">Photo</option>
+              <option value="Contract">Contract</option>
+              <option value="Permit">Permit</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="upload-file-name">File Name</label>
+            <input id="upload-file-name" name="fileName" type="text" placeholder="Disclosure_Packet.pdf" required>
+          </div>
+          <div class="form-group">
+            <label for="upload-file-input">Optional File Upload</label>
+            <input id="upload-file-input" name="uploadFile" type="file" aria-describedby="upload-file-help">
+            <p id="upload-file-help" class="helper-text">Client-side demo only. The selected file name is used for display purposes.</p>
+          </div>
+          <div class="form-group">
+            <label for="upload-listing-agent">Listing Agent</label>
+            <input id="upload-listing-agent" name="listingAgent" type="text" value="Brandy Renon" required>
+          </div>
+          <div class="form-group">
+            <label for="upload-brokerage">Brokerage</label>
+            <input id="upload-brokerage" name="brokerage" type="text" value="Colorado Premier Realty" required>
+          </div>
+          <div class="form-group full-width">
+            <label for="upload-notes">Notes</label>
+            <textarea id="upload-notes" name="notes" placeholder="Internal notes for this demo record."></textarea>
+          </div>
+        </div>
+        <button class="btn-primary" type="submit">Save Demo Entry</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="security-footer-note">Security disclaimer: this dashboard is a static front-end demonstration and should not be used to manage live transactions or personally identifiable information.</div>
+  <div id="site-footer"></div>
+
+  <script src="js/properties-data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

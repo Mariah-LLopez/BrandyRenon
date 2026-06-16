@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Property Details | Brandy Renon</title>
+  <meta name="description" content="View Colorado property details, photo galleries, disclosures, and showing request options.">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="site-nav"></div>
+
+  <main id="main-content">
+    <div id="property-detail-content"></div>
+  </main>
+
+  <div id="showing-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="showing-modal-title">
+    <div class="modal-dialog">
+      <button class="modal-close" type="button" data-close-modal aria-label="Close showing request form">×</button>
+      <h2 id="showing-modal-title">Book a Showing</h2>
+      <p>Request a private tour and a representative will follow up promptly. <!-- DEVELOPER NOTE: Connect this form to a secure CRM or scheduling platform before production launch. --></p>
+      <form id="showing-form" data-form-type="showing" novalidate>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="showing-name">Name <span class="required" aria-hidden="true">*</span></label>
+            <input id="showing-name" name="name" type="text" required aria-required="true">
+            <span class="field-error" aria-live="polite"></span>
+          </div>
+          <div class="form-group">
+            <label for="showing-email">Email <span class="required" aria-hidden="true">*</span></label>
+            <input id="showing-email" name="email" type="email" required aria-required="true">
+            <span class="field-error" aria-live="polite"></span>
+          </div>
+          <div class="form-group">
+            <label for="showing-phone">Phone</label>
+            <input id="showing-phone" name="phone" type="tel" inputmode="tel" placeholder="(720) 555-0100">
+            <span class="field-error" aria-live="polite"></span>
+          </div>
+          <div class="form-group">
+            <label for="showing-property">Property of Interest</label>
+            <select id="showing-property" class="property-select" name="property">
+              <option value="">Select a property</option>
+            </select>
+            <span class="field-error" aria-live="polite"></span>
+          </div>
+          <div class="form-group full-width">
+            <label for="showing-message">Preferred Tour Details <span class="required" aria-hidden="true">*</span></label>
+            <textarea id="showing-message" name="message" required aria-required="true" placeholder="Share your preferred dates, timing, and any questions about the property."></textarea>
+            <span class="field-error" aria-live="polite"></span>
+          </div>
+        </div>
+        <p class="consent-text">By submitting this form, you consent to being contacted regarding your inquiry and agree to the <a href="privacy-policy.html">Privacy Policy</a>.</p>
+        <button class="btn-primary" type="submit">Submit Showing Request</button>
+        <div class="form-status" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="site-footer"></div>
+
+  <script src="js/properties-data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/forms.js"></script>
+</body>
+</html>
