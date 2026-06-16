@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Available Properties | Brandy Renon</title>
+  <meta name="description" content="Browse Colorado property listings with filtering by status, price, and bedrooms.">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="site-nav"></div>
+
+  <main id="main-content">
+    <section class="page-hero">
+      <div class="container">
+        <div class="section-header">
+          <span class="eyebrow">Listing catalog</span>
+          <h1>Available Properties</h1>
+          <p>Filter placeholder listings by status, price range, and number of bedrooms to match your Colorado home search goals.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="filter-bar form-card" aria-label="Property search and filter controls">
+          <div class="filter-grid">
+            <div class="form-group">
+              <label for="filter-status">Status</label>
+              <select id="filter-status" name="status">
+                <option>All</option>
+                <option>Active</option>
+                <option>Pending</option>
+                <option>Sold</option>
+                <option>Coming Soon</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="filter-min-price">Minimum Price</label>
+              <input id="filter-min-price" name="min-price" type="number" min="0" placeholder="250000">
+            </div>
+            <div class="form-group">
+              <label for="filter-max-price">Maximum Price</label>
+              <input id="filter-max-price" name="max-price" type="number" min="0" placeholder="900000">
+            </div>
+            <div class="form-group">
+              <label for="filter-bedrooms">Bedrooms</label>
+              <select id="filter-bedrooms" name="bedrooms">
+                <option value="0">Any</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+                <option value="5">5+</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <button class="btn-secondary" type="button" id="reset-filters">Reset Filters</button>
+            </div>
+          </div>
+        </div>
+        <div class="results-meta">
+          <p id="results-count" aria-live="polite"></p>
+          <p class="helper-text">Listing details are placeholder content for site buildout and compliance review.</p>
+        </div>
+        <div id="properties-grid" class="property-grid" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="js/properties-data.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
