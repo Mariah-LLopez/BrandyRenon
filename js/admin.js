@@ -7,10 +7,6 @@
 (function () {
   const SESSION_KEY = 'brandyAdminSession';
   const DB_KEY = 'brandyPrivateDb';
-  const CREDENTIALS = {
-    ColoradoAccess2026: { password: 'Murdock&Murphy2026', role: 'Admin', displayName: 'Colorado Access Admin' },
-    ColoradoAccessUser2026: { password: 'Murdock&Murphy26', role: 'Viewer', displayName: 'Colorado Access Viewer' }
-  };
   const MAX_UPLOAD_FILE_SIZE_MB = 5;
   const MAX_UPLOAD_FILE_SIZE_BYTES = MAX_UPLOAD_FILE_SIZE_MB * 1024 * 1024;
   const ALLOWED_FILE_MIME_TYPES = [
