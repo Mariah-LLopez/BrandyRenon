@@ -27,6 +27,7 @@
     'image/webp'
   ];
   const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.doc', '.docx', '.xls', '.xlsx', '.txt'];
+  let fallbackIdCounter = 0;
 
   const PRIVATE_DB = [
     {
@@ -143,6 +144,21 @@
     const mimeType = entry.fileMimeType || getDataUrlMimeType(entry.fileDataUrl);
     if (!isAllowedMimeType(mimeType)) return '';
     return entry.fileDataUrl;
+  }
+
+  function generateEntryId() {
+    if (typeof crypto !== 'undefined') {
+      if (typeof crypto.randomUUID === 'function') {
+        return `doc-${crypto.randomUUID()}`;
+      }
+      if (typeof crypto.getRandomValues === 'function') {
+        const values = new Uint32Array(4);
+        crypto.getRandomValues(values);
+        return `doc-${Array.from(values, (value) => value.toString(16).padStart(8, '0')).join('')}`;
+      }
+    }
+    fallbackIdCounter += 1;
+    return `doc-${Date.now()}-${fallbackIdCounter}-${Math.floor(Math.random() * 1000000)}`;
   }
 
   function getSession() {
@@ -428,7 +444,7 @@
           }
         }
         const entry = {
-          id: typeof crypto !== 'undefined' && crypto.randomUUID ? `doc-${crypto.randomUUID()}` : `doc-${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
+          id: generateEntryId(),
           propertyId: uploadForm.propertyId.value.trim(),
           propertyAddress: uploadForm.propertyAddress.value.trim(),
           propertyStatus: uploadForm.propertyStatus.value,
