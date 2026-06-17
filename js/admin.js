@@ -129,7 +129,7 @@
   }
 
   function isAllowedFileType(mimeType, fileName) {
-    return isAllowedMimeType(mimeType) || hasAllowedFileExtension(fileName);
+    return isAllowedMimeType(mimeType) && hasAllowedFileExtension(fileName);
   }
 
   function getDataUrlMimeType(dataUrl) {
@@ -392,7 +392,7 @@
         const fileInput = uploadForm.querySelector('[name="uploadFile"]');
         const selectedFile = fileInput && fileInput.files ? fileInput.files[0] : null;
         if (selectedFile && selectedFile.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
-          window.alert(`Please upload a file smaller than ${MAX_UPLOAD_FILE_SIZE_MB} MB for this demo database.`);
+          window.alert(`File size must not exceed ${MAX_UPLOAD_FILE_SIZE_MB} MB for this demo database.`);
           return;
         }
         if (selectedFile && !isAllowedFileType(selectedFile.type, selectedFile.name)) {
@@ -411,7 +411,7 @@
                 resolve(typeof reader.result === 'string' ? reader.result : '');
               };
               reader.onerror = function () {
-                reject(new Error('Unable to read selected file. Please try selecting the file again or choose a different file.'));
+                reject(new Error('Unable to read file. Please try a different file.'));
               };
               reader.readAsDataURL(selectedFile);
             });
@@ -422,13 +422,13 @@
           }
 
           fileMimeType = getDataUrlMimeType(fileDataUrl) || selectedFile.type || '';
-          if (!isAllowedMimeType(fileMimeType)) {
+          if (!isAllowedFileType(fileMimeType, selectedFile.name)) {
             window.alert('Unsupported file content detected. Please upload a PDF, supported image, Word, Excel, or text file.');
             return;
           }
         }
         const entry = {
-          id: `doc-${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
+          id: typeof crypto !== 'undefined' && crypto.randomUUID ? `doc-${crypto.randomUUID()}` : `doc-${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
           propertyId: uploadForm.propertyId.value.trim(),
           propertyAddress: uploadForm.propertyAddress.value.trim(),
           propertyStatus: uploadForm.propertyStatus.value,
