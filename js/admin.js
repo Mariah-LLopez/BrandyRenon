@@ -155,45 +155,38 @@
     sessionStorage.removeItem(SESSION_KEY);
   }
 
-  async function handleLoginPage() {
-    const loginForm = document.getElementById('login-form');
-    if (!loginForm) return;
+    async function handleLoginPage() {
+      const loginForm = document.getElementById('login-form');
+      const loginButton = document.getElementById('login-button');
 
-    const errorBox = document.getElementById('login-error');
+      if (!loginForm || !loginButton) return;
 
-    const { data: sessionData } = await supabaseClient.auth.getSession();
+      const errorBox = document.getElementById('login-error');
 
-    if (sessionData.session && window.location.pathname.includes('login.html')) {
-      window.location.href = 'admin.html';
-      return;
+      loginButton.addEventListener('click', async function () {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) {
+          errorBox.textContent = 'Invalid email or password.';
+          errorBox.className = 'error-message';
+          return;
+        }
+
+        setSession({
+          email: data.user.email,
+          role: 'Admin',
+          displayName: data.user.email
+        });
+
+        window.location.href = 'admin.html';
+      });
     }
-
-    loginForm.addEventListener('submit', async function (event) {
-      event.preventDefault();
-
-      const email = loginForm.email.value.trim();
-      const password = loginForm.password.value;
-
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        errorBox.textContent = 'Invalid email or password.';
-        errorBox.className = 'error-message';
-        return;
-      }
-
-      setSession({
-        email: data.user.email,
-        role: 'Admin',
-        displayName: data.user.email
-      });
-
-      window.location.href = 'admin.html';
-    });
-  }
 
     async function renderAdminPage() {
       const tableBody = document.getElementById('private-db-body');

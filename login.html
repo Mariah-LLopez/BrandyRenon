@@ -19,7 +19,7 @@
         <h1 id="login-title">Admin Portal</h1>
         <p>Authorized users only. Session data is stored.</p>
       </div>
-      <form id="login-form" novalidate>
+      <form id="login-form" action="javascript:void(0);" novalidate>
         <div class="form-group">
           <label for="login-email">Email</label>
           <input id="login-email" name="email" type="email" autocomplete="email" required>
@@ -28,7 +28,7 @@
           <label for="login-password">Password</label>
           <input id="login-password" name="password" type="password" autocomplete="current-password" required>
         </div>
-        <button class="btn-primary" type="submit">Login</button>
+        <button id="login-button" class="btn-primary" type="button">Login</button>
         <div id="login-error" aria-live="assertive"></div>
       </form>
     </section>
