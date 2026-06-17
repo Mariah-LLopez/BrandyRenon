@@ -155,38 +155,31 @@
     sessionStorage.removeItem(SESSION_KEY);
   }
 
-    async function handleLoginPage() {
-      const loginForm = document.getElementById('login-form');
-      const loginButton = document.getElementById('login-button');
+  function handleLoginPage() {
+    const loginButton = document.getElementById('login-button');
+    if (!loginButton) return;
 
-      if (!loginForm || !loginButton) return;
+    loginButton.addEventListener('click', async function () {
+      alert('Login button clicked');
 
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
       const errorBox = document.getElementById('login-error');
 
-      loginButton.addEventListener('click', async function () {
-        const email = document.getElementById('login-email').value.trim();
-        const password = document.getElementById('login-password').value;
-
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-          email,
-          password
-        });
-
-        if (error) {
-          errorBox.textContent = 'Invalid email or password.';
-          errorBox.className = 'error-message';
-          return;
-        }
-
-        setSession({
-          email: data.user.email,
-          role: 'Admin',
-          displayName: data.user.email
-        });
-
-        window.location.href = 'admin.html';
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
       });
-    }
+
+      if (error) {
+        errorBox.textContent = error.message;
+        errorBox.className = 'error-message';
+        return;
+      }
+
+      window.location.href = 'admin.html';
+    });
+  }
 
     async function renderAdminPage() {
       const tableBody = document.getElementById('private-db-body');
