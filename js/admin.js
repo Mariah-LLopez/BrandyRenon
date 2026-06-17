@@ -156,29 +156,42 @@
     sessionStorage.removeItem(SESSION_KEY);
   }
 
-  function handleLoginPage() {
+  async function handleLoginPage() {
     const loginForm = document.getElementById('login-form');
     if (!loginForm) return;
-    const existingSession = getSession();
-    if (existingSession) {
+
+    const errorBox = document.getElementById('login-error');
+
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+
+    if (sessionData.session) {
       window.location.href = 'admin.html';
       return;
     }
-    const errorBox = document.getElementById('login-error');
 
-    loginForm.addEventListener('submit', function (event) {
+    loginForm.addEventListener('submit', async function (event) {
       event.preventDefault();
+
       const email = loginForm.email.value.trim();
       const password = loginForm.password.value;
-      const account = CREDENTIALS[email];
 
-      if (!account || account.password !== password) {
-        errorBox.textContent = 'Invalid email or password. Please verify the credentials.';
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        errorBox.textContent = 'Invalid email or password.';
         errorBox.className = 'error-message';
         return;
       }
 
-      setSession({ email, role: account.role, displayName: account.displayName });
+      setSession({
+        email: data.user.email,
+        role: 'Admin',
+        displayName: data.user.email
+      });
+
       window.location.href = 'admin.html';
     });
   }
