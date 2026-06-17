@@ -196,15 +196,22 @@
     });
   }
 
-  function renderAdminPage() {
+  async function renderAdminPage() {
     const tableBody = document.getElementById('private-db-body');
     if (!tableBody) return;
 
-    const session = getSession();
-    if (!session) {
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+
+    if (!sessionData.session) {
       window.location.href = 'login.html';
       return;
     }
+
+    const session = {
+      email: sessionData.session.user.email,
+      role: 'Admin',
+      displayName: sessionData.session.user.email
+    };
 
     seedDb();
     const isAdmin = session.role === 'Admin';
@@ -362,7 +369,8 @@
     }
 
     if (logoutButton) {
-      logoutButton.addEventListener('click', function () {
+      logoutButton.addEventListener('click', async function () {
+        await supabaseClient.auth.signOut();
         clearSession();
         window.location.href = 'login.html';
       });
