@@ -189,14 +189,16 @@
       }
 
       const originalButtonLabel = loginButton.textContent;
-      const resetLoginButton = function () {
-        loginButton.disabled = false;
+      const setLoginButtonState = (isLoading) => {
+        loginButton.disabled = isLoading;
+        loginButton.textContent = isLoading ? 'Logging in...' : originalButtonLabel;
+        if (isLoading) {
+          loginButton.setAttribute('aria-busy', 'true');
+          return;
+        }
         loginButton.removeAttribute('aria-busy');
-        loginButton.textContent = originalButtonLabel;
       };
-      loginButton.disabled = true;
-      loginButton.setAttribute('aria-busy', 'true');
-      loginButton.textContent = 'Logging in...';
+      setLoginButtonState(true);
 
       try {
         const { error } = await supabaseClient.auth.signInWithPassword({
@@ -209,7 +211,7 @@
             errorBox.textContent = error.message;
             errorBox.className = 'error-message';
           }
-          resetLoginButton();
+          setLoginButtonState(false);
           return;
         }
 
@@ -220,7 +222,7 @@
           errorBox.className = 'error-message';
         }
         console.error('Login failed:', error);
-        resetLoginButton();
+        setLoginButtonState(false);
       }
     });
   }
