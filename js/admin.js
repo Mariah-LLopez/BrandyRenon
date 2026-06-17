@@ -468,8 +468,8 @@
     renderRows();
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
-    handleLoginPage();
-    renderAdminPage();
+  document.addEventListener('DOMContentLoaded', async function () {
+    await handleLoginPage();
+    await renderAdminPage();
   });
 })();
