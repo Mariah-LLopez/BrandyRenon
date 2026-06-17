@@ -91,7 +91,6 @@
   }
 
   function getDb() {
-   //seedDb();
     return JSON.parse(sessionStorage.getItem(DB_KEY) || '[]');
   }
 
@@ -164,7 +163,7 @@
 
     const { data: sessionData } = await supabaseClient.auth.getSession();
 
-    if (sessionData.session) {
+    if (sessionData.session && window.location.pathname.includes('login.html')) {
       window.location.href = 'admin.html';
       return;
     }
@@ -216,26 +215,17 @@
       const isAdmin = session.role === 'Admin';
       const userDisplay = document.getElementById('logged-in-user');
       const roleBadge = document.getElementById('role-badge');
-
-    seedDb();
-    const isAdmin = session.role === 'Admin';
-    const userDisplay = document.getElementById('logged-in-user');
-    const roleBadge = document.getElementById('role-badge');
-    const toolbar = document.getElementById('admin-toolbar');
-    const uploadButton = document.getElementById('open-upload-modal');
-    const logoutButton = document.getElementById('logout-button');
-    const modal = document.getElementById('upload-modal');
-    const modalCloseButtons = modal ? modal.querySelectorAll('[data-close-modal]') : [];
-    const uploadForm = document.getElementById('upload-form');
-    const filterType = document.getElementById('admin-filter-type');
-    const filterVisibility = document.getElementById('admin-filter-visibility');
-    const filterProperty = document.getElementById('admin-filter-property');
-    const tableHint = document.getElementById('table-role-hint');
-    const emptyState = document.getElementById('admin-empty-state');
-
-    userDisplay.textContent = session.displayName;
-    roleBadge.textContent = session.role;
-    roleBadge.className = `role-badge ${isAdmin ? 'role-admin' : 'role-viewer'}`;
+      const toolbar = document.getElementById('admin-toolbar');
+      const uploadButton = document.getElementById('open-upload-modal');
+      const logoutButton = document.getElementById('logout-button');
+      const modal = document.getElementById('upload-modal');
+      const modalCloseButtons = modal ? modal.querySelectorAll('[data-close-modal]') : [];
+      const uploadForm = document.getElementById('upload-form');
+      const filterType = document.getElementById('admin-filter-type');
+      const filterVisibility = document.getElementById('admin-filter-visibility');
+      const filterProperty = document.getElementById('admin-filter-property');
+      const tableHint = document.getElementById('table-role-hint');
+      const emptyState = document.getElementById('admin-empty-state');
     toolbar.hidden = !isAdmin;
     if (!isAdmin && tableHint) {
       tableHint.textContent = 'Viewer access: you can review visible records but cannot upload, hide, or delete entries.';
