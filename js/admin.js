@@ -12,6 +12,22 @@
     ColoradoAccess2026: { password: 'Murdock&Murphy2026', role: 'Admin', displayName: 'Colorado Access Admin' },
     ColoradoAccessUser2026: { password: 'Murdock&Murphy26', role: 'Viewer', displayName: 'Colorado Access Viewer' }
   };
+  const MAX_UPLOAD_FILE_SIZE_MB = 5;
+  const MAX_UPLOAD_FILE_SIZE_BYTES = MAX_UPLOAD_FILE_SIZE_MB * 1024 * 1024;
+  const ALLOWED_FILE_MIME_TYPES = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain',
+    'image/png',
+    'image/jpeg',
+    'image/gif',
+    'image/webp'
+  ];
+  const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.doc', '.docx', '.xls', '.xlsx', '.txt'];
+  let fallbackIdCounter = 0;
 
   const PRIVATE_DB = [
     {
@@ -99,6 +115,50 @@
 
   function saveDb(data) {
     sessionStorage.setItem(DB_KEY, JSON.stringify(data));
+  }
+
+  function hasAllowedFileExtension(fileName) {
+    if (typeof fileName !== 'string') return false;
+    const lowerCaseName = fileName.toLowerCase();
+    return ALLOWED_FILE_EXTENSIONS.some((extension) => lowerCaseName.endsWith(extension));
+  }
+
+  function isAllowedMimeType(mimeType) {
+    if (typeof mimeType !== 'string' || !mimeType) return false;
+    const normalizedMimeType = mimeType.toLowerCase();
+    return ALLOWED_FILE_MIME_TYPES.includes(normalizedMimeType);
+  }
+
+  function isAllowedFileType(mimeType, fileName) {
+    return isAllowedMimeType(mimeType) && hasAllowedFileExtension(fileName);
+  }
+
+  function getDataUrlMimeType(dataUrl) {
+    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) return '';
+    const match = dataUrl.match(/^data:([^;,]+)[;,]/i);
+    return match && match[1] ? match[1].toLowerCase() : '';
+  }
+
+  function getEntryLink(entry) {
+    if (typeof entry.fileDataUrl !== 'string' || !entry.fileDataUrl.startsWith('data:')) return '';
+    const mimeType = entry.fileMimeType || getDataUrlMimeType(entry.fileDataUrl);
+    if (!isAllowedMimeType(mimeType)) return '';
+    return entry.fileDataUrl;
+  }
+
+  function generateEntryId() {
+    if (typeof crypto !== 'undefined') {
+      if (typeof crypto.randomUUID === 'function') {
+        return `doc-${crypto.randomUUID()}`;
+      }
+      if (typeof crypto.getRandomValues === 'function') {
+        const values = new Uint32Array(4);
+        crypto.getRandomValues(values);
+        return `doc-${Array.from(values, (value) => value.toString(16).padStart(8, '0')).join('')}`;
+      }
+    }
+    fallbackIdCounter += 1;
+    return `doc-${Date.now()}-${fallbackIdCounter}-${Math.floor(Math.random() * 1000000)}`;
   }
 
   function getSession() {
@@ -199,25 +259,91 @@
       }
 
       if (emptyState) emptyState.hidden = true;
-      tableBody.innerHTML = entries.map((entry) => `
-        <tr>
-          <td>${entry.propertyAddress}</td>
-          <td>${entry.propertyId}</td>
-          <td>${entry.fileName}</td>
-          <td>${entry.fileType}</td>
-          <td>${entry.listingAgent}</td>
-          <td>${entry.uploadDate}</td>
-          <td><span class="${entry.hidden ? 'badge-hidden' : 'badge-visible'}">${entry.hidden ? 'Hidden' : 'Visible'}</span></td>
-          <td>
-            ${isAdmin ? `
-              <div class="table-actions">
-                <button type="button" class="action-link" data-action="toggle" data-id="${entry.id}">${entry.hidden ? 'Unhide' : 'Hide'}</button>
-                <button type="button" class="action-link" data-action="delete" data-id="${entry.id}">Delete</button>
-              </div>
-            ` : '<span class="helper-text">View only</span>'}
-          </td>
-        </tr>
-      `).join('');
+      tableBody.innerHTML = '';
+      const tableFragment = document.createDocumentFragment();
+
+      entries.forEach((entry) => {
+        const row = document.createElement('tr');
+
+        const propertyAddressCell = document.createElement('td');
+        propertyAddressCell.textContent = entry.propertyAddress || '';
+        row.appendChild(propertyAddressCell);
+
+        const propertyIdCell = document.createElement('td');
+        propertyIdCell.textContent = entry.propertyId || '';
+        row.appendChild(propertyIdCell);
+
+        const fileNameCell = document.createElement('td');
+        const fileLink = getEntryLink(entry);
+        if (fileLink) {
+          const fileAnchor = document.createElement('a');
+          fileAnchor.href = '#';
+          fileAnchor.target = '_blank';
+          fileAnchor.rel = 'noopener noreferrer';
+          fileAnchor.textContent = entry.fileName || 'Open file';
+          fileAnchor.addEventListener('click', function (openEvent) {
+            openEvent.preventDefault();
+            window.open(fileLink, '_blank', 'noopener,noreferrer');
+          });
+          fileNameCell.appendChild(fileAnchor);
+        } else {
+          fileNameCell.textContent = entry.fileName || '';
+        }
+        row.appendChild(fileNameCell);
+
+        const fileTypeCell = document.createElement('td');
+        fileTypeCell.textContent = entry.fileType || '';
+        row.appendChild(fileTypeCell);
+
+        const listingAgentCell = document.createElement('td');
+        listingAgentCell.textContent = entry.listingAgent || '';
+        row.appendChild(listingAgentCell);
+
+        const uploadDateCell = document.createElement('td');
+        uploadDateCell.textContent = entry.uploadDate || '';
+        row.appendChild(uploadDateCell);
+
+        const statusCell = document.createElement('td');
+        const statusBadge = document.createElement('span');
+        statusBadge.className = entry.hidden ? 'badge-hidden' : 'badge-visible';
+        statusBadge.textContent = entry.hidden ? 'Hidden' : 'Visible';
+        statusCell.appendChild(statusBadge);
+        row.appendChild(statusCell);
+
+        const actionsCell = document.createElement('td');
+        if (isAdmin) {
+          const actionsWrapper = document.createElement('div');
+          actionsWrapper.className = 'table-actions';
+
+          const toggleButton = document.createElement('button');
+          toggleButton.type = 'button';
+          toggleButton.className = 'action-link';
+          toggleButton.setAttribute('data-action', 'toggle');
+          toggleButton.setAttribute('data-id', entry.id);
+          toggleButton.textContent = entry.hidden ? 'Unhide' : 'Hide';
+          actionsWrapper.appendChild(toggleButton);
+
+          const deleteButton = document.createElement('button');
+          deleteButton.type = 'button';
+          deleteButton.className = 'action-link';
+          deleteButton.setAttribute('data-action', 'delete');
+          deleteButton.setAttribute('data-id', entry.id);
+          deleteButton.textContent = 'Delete';
+          actionsWrapper.appendChild(deleteButton);
+
+          actionsCell.appendChild(actionsWrapper);
+        } else {
+          const helperText = document.createElement('span');
+          helperText.className = 'helper-text';
+          helperText.textContent = 'View only';
+          actionsCell.appendChild(helperText);
+        }
+        row.appendChild(actionsCell);
+
+        tableFragment.appendChild(row);
+      });
+
+      tableBody.appendChild(tableFragment);
     }
 
     function openModal() {
@@ -276,19 +402,56 @@
     });
 
     if (uploadForm) {
-      uploadForm.addEventListener('submit', function (event) {
+      uploadForm.addEventListener('submit', async function (event) {
         event.preventDefault();
         if (!isAdmin) return;
         const fileInput = uploadForm.querySelector('[name="uploadFile"]');
+        const selectedFile = fileInput && fileInput.files ? fileInput.files[0] : null;
+        if (selectedFile && selectedFile.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
+          window.alert(`File size must not exceed ${MAX_UPLOAD_FILE_SIZE_MB} MB for this demo database.`);
+          return;
+        }
+        if (selectedFile && !isAllowedFileType(selectedFile.type, selectedFile.name)) {
+          window.alert('Unsupported file type. Upload a PDF, image, Word, Excel, or text file.');
+          return;
+        }
         const today = new Date().toISOString().slice(0, 10);
         const db = getDb();
+        let fileDataUrl = '';
+        let fileMimeType = '';
+        if (selectedFile) {
+          try {
+            fileDataUrl = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = function () {
+                resolve(typeof reader.result === 'string' ? reader.result : '');
+              };
+              reader.onerror = function () {
+                reject(new Error('Unable to read file. Please try a different file.'));
+              };
+              reader.readAsDataURL(selectedFile);
+            });
+          } catch (error) {
+            console.error('File read failed:', error);
+            window.alert('Unable to read selected file. Please try again with a different file.');
+            return;
+          }
+
+          fileMimeType = getDataUrlMimeType(fileDataUrl) || selectedFile.type || '';
+          if (!isAllowedFileType(fileMimeType, selectedFile.name)) {
+            window.alert('Unsupported file content detected. Please upload a PDF, supported image, Word, Excel, or text file.');
+            return;
+          }
+        }
         const entry = {
-          id: `doc-${String(Date.now()).slice(-6)}`,
+          id: generateEntryId(),
           propertyId: uploadForm.propertyId.value.trim(),
           propertyAddress: uploadForm.propertyAddress.value.trim(),
           propertyStatus: uploadForm.propertyStatus.value,
           fileType: uploadForm.fileType.value,
-          fileName: fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0].name : uploadForm.fileName.value.trim(),
+          fileName: selectedFile ? selectedFile.name : uploadForm.fileName.value.trim(),
+          fileMimeType,
+          fileDataUrl,
           uploadDate: today,
           lastUpdated: today,
           listingAgent: uploadForm.listingAgent.value.trim(),
