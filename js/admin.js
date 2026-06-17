@@ -162,6 +162,15 @@
     const loginButton = document.getElementById('login-button');
     if (!loginForm || !loginButton) return;
     const originalButtonLabel = loginButton.textContent;
+    const setLoginButtonState = (isLoading) => {
+      loginButton.disabled = isLoading;
+      loginButton.textContent = isLoading ? 'Logging in...' : originalButtonLabel;
+      if (isLoading) {
+        loginButton.setAttribute('aria-busy', 'true');
+        return;
+      }
+      loginButton.removeAttribute('aria-busy');
+    };
 
     loginForm.addEventListener('submit', async function (event) {
       event.preventDefault();
@@ -189,15 +198,6 @@
         return;
       }
 
-      const setLoginButtonState = (isLoading) => {
-        loginButton.disabled = isLoading;
-        loginButton.textContent = isLoading ? 'Logging in...' : originalButtonLabel;
-        if (isLoading) {
-          loginButton.setAttribute('aria-busy', 'true');
-          return;
-        }
-        loginButton.removeAttribute('aria-busy');
-      };
       setLoginButtonState(true);
 
       try {
