@@ -12,7 +12,8 @@
     ColoradoAccess2026: { password: 'Murdock&Murphy2026', role: 'Admin', displayName: 'Colorado Access Admin' },
     ColoradoAccessUser2026: { password: 'Murdock&Murphy26', role: 'Viewer', displayName: 'Colorado Access Viewer' }
   };
-  const MAX_UPLOAD_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+  const MAX_UPLOAD_FILE_SIZE_MB = 5;
+  const MAX_UPLOAD_FILE_SIZE_BYTES = MAX_UPLOAD_FILE_SIZE_MB * 1024 * 1024;
   const ALLOWED_FILE_MIME_PREFIXES = ['image/'];
   const ALLOWED_FILE_MIME_TYPES = [
     'application/pdf',
@@ -138,7 +139,7 @@
   function getEntryLink(entry) {
     if (typeof entry.fileDataUrl !== 'string' || !entry.fileDataUrl.startsWith('data:')) return '';
     const mimeType = entry.fileMimeType || getDataUrlMimeType(entry.fileDataUrl);
-    if (!isAllowedFileType(mimeType, entry.fileName)) return '';
+    if (!isAllowedMimeType(mimeType)) return '';
     return entry.fileDataUrl;
   }
 
@@ -258,10 +259,14 @@
         const fileLink = getEntryLink(entry);
         if (fileLink) {
           const fileAnchor = document.createElement('a');
-          fileAnchor.href = fileLink;
+          fileAnchor.href = '#';
           fileAnchor.target = '_blank';
           fileAnchor.rel = 'noopener noreferrer';
           fileAnchor.textContent = entry.fileName || 'Open file';
+          fileAnchor.addEventListener('click', function (openEvent) {
+            openEvent.preventDefault();
+            window.open(fileLink, '_blank', 'noopener,noreferrer');
+          });
           fileNameCell.appendChild(fileAnchor);
         } else {
           fileNameCell.textContent = entry.fileName || '';
@@ -385,7 +390,7 @@
         const fileInput = uploadForm.querySelector('[name="uploadFile"]');
         const selectedFile = fileInput && fileInput.files ? fileInput.files[0] : null;
         if (selectedFile && selectedFile.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
-          window.alert('Please upload a file smaller than 5 MB for this demo database.');
+          window.alert(`Please upload a file smaller than ${MAX_UPLOAD_FILE_SIZE_MB} MB for this demo database.`);
           return;
         }
         if (selectedFile && !isAllowedFileType(selectedFile.type, selectedFile.name)) {
@@ -402,10 +407,11 @@
               resolve(typeof reader.result === 'string' ? reader.result : '');
             };
             reader.onerror = function () {
-              reject(new Error('Unable to read selected file.'));
+              reject(new Error('Unable to read selected file. Please try selecting the file again or choose a different file.'));
             };
             reader.readAsDataURL(selectedFile);
-          }).catch(function () {
+          }).catch(function (error) {
+            console.error('File read failed:', error);
             return '';
           });
         }
