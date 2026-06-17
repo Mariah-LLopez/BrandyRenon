@@ -4,9 +4,6 @@
   a secure framework (e.g., Node.js/Express with bcrypt, Firebase Auth, etc.).
   Passwords must be hashed. Use HTTPS. Implement proper session management.
 */
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-
 (function () {
   const SESSION_KEY = 'brandyAdminSession';
   const DB_KEY = 'brandyPrivateDb';
