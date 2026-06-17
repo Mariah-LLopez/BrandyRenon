@@ -21,7 +21,8 @@
   const uploadForm = document.getElementById("upload-form");
   const fileInput = document.getElementById("upload-file-input");
 
-  uploadForm.addEventListener("submit", async function (event) {
+  if (uploadForm && fileInput) {
+    uploadForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
     const file = fileInput.files[0];
@@ -82,7 +83,8 @@
     }
 
     alert("File uploaded successfully.");
-  });
+      });
+    }
 
   function seedDb() {
     if (!sessionStorage.getItem(DB_KEY)) {
