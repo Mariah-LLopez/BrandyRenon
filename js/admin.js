@@ -158,28 +158,64 @@
   }
 
   function handleLoginPage() {
+    const loginForm = document.getElementById('login-form');
     const loginButton = document.getElementById('login-button');
-    if (!loginButton) return;
+    if (!loginForm || !loginButton) return;
 
-    loginButton.addEventListener('click', async function () {
-      alert('Login button clicked');
-
+    loginForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value;
       const errorBox = document.getElementById('login-error');
+      if (errorBox) {
+        errorBox.textContent = '';
+        errorBox.className = '';
+      }
 
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        errorBox.textContent = error.message;
-        errorBox.className = 'error-message';
+      if (!email || !password) {
+        if (errorBox) {
+          errorBox.textContent = 'Enter both your email and password.';
+          errorBox.className = 'error-message';
+        }
         return;
       }
 
-      window.location.href = 'admin.html';
+      if (typeof supabaseClient === 'undefined' || !supabaseClient.auth) {
+        if (errorBox) {
+          errorBox.textContent = 'Login is temporarily unavailable. Please refresh and try again.';
+          errorBox.className = 'error-message';
+        }
+        return;
+      }
+
+      loginButton.disabled = true;
+      loginButton.setAttribute('aria-busy', 'true');
+
+      try {
+        const { error } = await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) {
+          if (errorBox) {
+            errorBox.textContent = error.message;
+            errorBox.className = 'error-message';
+          }
+          return;
+        }
+
+        window.location.href = 'admin.html';
+      } catch (error) {
+        if (errorBox) {
+          errorBox.textContent = 'Unable to sign in right now. Please try again.';
+          errorBox.className = 'error-message';
+        }
+        console.error('Login failed:', error);
+      } finally {
+        loginButton.disabled = false;
+        loginButton.removeAttribute('aria-busy');
+      }
     });
   }
 
