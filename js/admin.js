@@ -4,6 +4,8 @@
   a secure framework (e.g., Node.js/Express with bcrypt, Firebase Auth, etc.).
   Passwords must be hashed. Use HTTPS. Implement proper session management.
 */
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
 
 (function () {
   const SESSION_KEY = 'brandyAdminSession';
@@ -29,78 +31,71 @@
   const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.doc', '.docx', '.xls', '.xlsx', '.txt'];
   let fallbackIdCounter = 0;
 
-  const PRIVATE_DB = [
-    {
-      id: 'doc-001',
-      propertyId: 'prop-001',
-      propertyAddress: '1234 Rocky Mountain Road, Denver, CO 80201',
-      propertyStatus: 'Active',
-      fileType: 'Document',
-      fileName: 'Listing_Agreement_prop001.pdf',
-      uploadDate: '2024-01-15',
-      lastUpdated: '2024-01-15',
-      listingAgent: 'Brandy Renon',
-      brokerage: 'Colorado Premier Realty',
-      notes: 'Signed listing agreement',
-      hidden: false
-    },
-    {
-      id: 'doc-002',
-      propertyId: 'prop-002',
-      propertyAddress: '5678 Aspen Lane, Boulder, CO 80302',
-      propertyStatus: 'Pending',
-      fileType: 'Contract',
-      fileName: 'Offer_Summary_prop002.pdf',
-      uploadDate: '2024-02-01',
-      lastUpdated: '2024-02-03',
-      listingAgent: 'Brandy Renon',
-      brokerage: 'Colorado Premier Realty',
-      notes: 'Pending contract packet for internal review',
-      hidden: false
-    },
-    {
-      id: 'doc-003',
-      propertyId: 'prop-003',
-      propertyAddress: '910 Ponderosa Drive, Colorado Springs, CO 80903',
-      propertyStatus: 'Active',
-      fileType: 'Permit',
-      fileName: 'Primary_Suite_Addition_Permit.pdf',
-      uploadDate: '2024-02-12',
-      lastUpdated: '2024-02-12',
-      listingAgent: 'Brandy Renon',
-      brokerage: 'Colorado Premier Realty',
-      notes: 'Permit package for 2021 addition',
-      hidden: false
-    },
-    {
-      id: 'doc-004',
-      propertyId: 'prop-004',
-      propertyAddress: '222 Pearl Street #4B, Fort Collins, CO 80524',
-      propertyStatus: 'Coming Soon',
-      fileType: 'Photo',
-      fileName: 'Staging_Set_01.jpg',
-      uploadDate: '2024-03-08',
-      lastUpdated: '2024-03-08',
-      listingAgent: 'Brandy Renon',
-      brokerage: 'Colorado Premier Realty',
-      notes: 'Preview staging photos awaiting marketing approval',
-      hidden: true
-    },
-    {
-      id: 'doc-005',
-      propertyId: 'prop-005',
-      propertyAddress: '789 Evergreen Circle, Lakewood, CO 80226',
-      propertyStatus: 'Sold',
-      fileType: 'Document',
-      fileName: 'Closing_Summary_prop005.pdf',
-      uploadDate: '2024-03-21',
-      lastUpdated: '2024-03-25',
-      listingAgent: 'Brandy Renon',
-      brokerage: 'Colorado Premier Realty',
-      notes: 'Sold file archive summary',
-      hidden: false
+  const uploadForm = document.getElementById("upload-form");
+  const fileInput = document.getElementById("upload-file-input");
+
+  uploadForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const file = fileInput.files[0];
+
+    if (!file) {
+      alert("Please choose a file first.");
+      return;
     }
-  ];
+
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp"
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      alert("Only PDF, DOC, DOCX, JPG, JPEG, PNG, and WEBP files are allowed.");
+      return;
+    }
+
+    const bucketName = file.type.startsWith("image/")
+      ? "property-images"
+      : "property-documents";
+
+    const filePath = `${Date.now()}-${file.name}`;
+
+    const { error: uploadError } = await supabaseClient.storage
+      .from(bucketName)
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error(uploadError);
+      alert("Upload failed.");
+      return;
+    }
+
+    const { error: dbError } = await supabaseClient
+      .from("documents")
+      .insert([
+        {
+          file_name: file.name,
+          file_type: file.type,
+          bucket_name: bucketName,
+          file_path: filePath,
+          file_size: file.size,
+          uploaded_by: "Brandy Renon"
+        }
+      ]);
+
+    if (dbError) {
+      console.error(dbError);
+      alert("File uploaded, but database record failed.");
+      return;
+    }
+
+    alert("File uploaded successfully.");
+  });
 
   function seedDb() {
     if (!sessionStorage.getItem(DB_KEY)) {
