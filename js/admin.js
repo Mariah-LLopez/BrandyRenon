@@ -101,6 +101,22 @@
     sessionStorage.setItem(DB_KEY, JSON.stringify(data));
   }
 
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function getEntryLink(entry) {
+    if (typeof entry.fileDataUrl === 'string' && entry.fileDataUrl.startsWith('data:')) {
+      return entry.fileDataUrl;
+    }
+    return '';
+  }
+
   function getSession() {
     const raw = sessionStorage.getItem(SESSION_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -201,12 +217,16 @@
       if (emptyState) emptyState.hidden = true;
       tableBody.innerHTML = entries.map((entry) => `
         <tr>
-          <td>${entry.propertyAddress}</td>
-          <td>${entry.propertyId}</td>
-          <td>${entry.fileName}</td>
-          <td>${entry.fileType}</td>
-          <td>${entry.listingAgent}</td>
-          <td>${entry.uploadDate}</td>
+          <td>${escapeHtml(entry.propertyAddress)}</td>
+          <td>${escapeHtml(entry.propertyId)}</td>
+          <td>
+            ${getEntryLink(entry)
+              ? `<a href="${getEntryLink(entry)}" target="_blank" rel="noopener noreferrer">${escapeHtml(entry.fileName)}</a>`
+              : escapeHtml(entry.fileName)}
+          </td>
+          <td>${escapeHtml(entry.fileType)}</td>
+          <td>${escapeHtml(entry.listingAgent)}</td>
+          <td>${escapeHtml(entry.uploadDate)}</td>
           <td><span class="${entry.hidden ? 'badge-hidden' : 'badge-visible'}">${entry.hidden ? 'Hidden' : 'Visible'}</span></td>
           <td>
             ${isAdmin ? `
@@ -276,19 +296,36 @@
     });
 
     if (uploadForm) {
-      uploadForm.addEventListener('submit', function (event) {
+      uploadForm.addEventListener('submit', async function (event) {
         event.preventDefault();
         if (!isAdmin) return;
         const fileInput = uploadForm.querySelector('[name="uploadFile"]');
+        const selectedFile = fileInput && fileInput.files ? fileInput.files[0] : null;
         const today = new Date().toISOString().slice(0, 10);
         const db = getDb();
+        let fileDataUrl = '';
+        if (selectedFile) {
+          fileDataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function () {
+              resolve(typeof reader.result === 'string' ? reader.result : '');
+            };
+            reader.onerror = function () {
+              reject(new Error('Unable to read selected file.'));
+            };
+            reader.readAsDataURL(selectedFile);
+          }).catch(function () {
+            return '';
+          });
+        }
         const entry = {
           id: `doc-${String(Date.now()).slice(-6)}`,
           propertyId: uploadForm.propertyId.value.trim(),
           propertyAddress: uploadForm.propertyAddress.value.trim(),
           propertyStatus: uploadForm.propertyStatus.value,
           fileType: uploadForm.fileType.value,
-          fileName: fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0].name : uploadForm.fileName.value.trim(),
+          fileName: selectedFile ? selectedFile.name : uploadForm.fileName.value.trim(),
+          fileDataUrl,
           uploadDate: today,
           lastUpdated: today,
           listingAgent: uploadForm.listingAgent.value.trim(),
