@@ -1,9 +1,3 @@
-/*
-  SECURITY NOTE: This client-side authentication is for DEMONSTRATION ONLY.
-  Before deploying to production, replace with server-side authentication using
-  a secure framework (e.g., Node.js/Express with bcrypt, Firebase Auth, etc.).
-  Passwords must be hashed. Use HTTPS. Implement proper session management.
-*/
 (function () {
   const SESSION_KEY = 'brandyAdminSession';
   const DB_KEY = 'brandyPrivateDb';
@@ -174,17 +168,17 @@
 
     loginForm.addEventListener('submit', function (event) {
       event.preventDefault();
-      const username = loginForm.username.value.trim();
+      const email = loginForm.email.value.trim();
       const password = loginForm.password.value;
-      const account = CREDENTIALS[username];
+      const account = CREDENTIALS[email];
 
       if (!account || account.password !== password) {
-        errorBox.textContent = 'Invalid username or password. Please verify the demo credentials.';
+        errorBox.textContent = 'Invalid email or password. Please verify the credentials.';
         errorBox.className = 'error-message';
         return;
       }
 
-      setSession({ username, role: account.role, displayName: account.displayName });
+      setSession({ email, role: account.role, displayName: account.displayName });
       window.location.href = 'admin.html';
     });
   }
