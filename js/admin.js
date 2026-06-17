@@ -14,14 +14,17 @@
   };
   const MAX_UPLOAD_FILE_SIZE_MB = 5;
   const MAX_UPLOAD_FILE_SIZE_BYTES = MAX_UPLOAD_FILE_SIZE_MB * 1024 * 1024;
-  const ALLOWED_FILE_MIME_PREFIXES = ['image/'];
   const ALLOWED_FILE_MIME_TYPES = [
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'text/plain'
+    'text/plain',
+    'image/png',
+    'image/jpeg',
+    'image/gif',
+    'image/webp'
   ];
   const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.doc', '.docx', '.xls', '.xlsx', '.txt'];
 
@@ -122,8 +125,7 @@
   function isAllowedMimeType(mimeType) {
     if (typeof mimeType !== 'string' || !mimeType) return false;
     const normalizedMimeType = mimeType.toLowerCase();
-    return ALLOWED_FILE_MIME_TYPES.includes(normalizedMimeType)
-      || ALLOWED_FILE_MIME_PREFIXES.some((prefix) => normalizedMimeType.startsWith(prefix));
+    return ALLOWED_FILE_MIME_TYPES.includes(normalizedMimeType);
   }
 
   function isAllowedFileType(mimeType, fileName) {
@@ -400,29 +402,39 @@
         const today = new Date().toISOString().slice(0, 10);
         const db = getDb();
         let fileDataUrl = '';
+        let fileMimeType = '';
         if (selectedFile) {
-          fileDataUrl = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = function () {
-              resolve(typeof reader.result === 'string' ? reader.result : '');
-            };
-            reader.onerror = function () {
-              reject(new Error('Unable to read selected file. Please try selecting the file again or choose a different file.'));
-            };
-            reader.readAsDataURL(selectedFile);
-          }).catch(function (error) {
+          try {
+            fileDataUrl = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = function () {
+                resolve(typeof reader.result === 'string' ? reader.result : '');
+              };
+              reader.onerror = function () {
+                reject(new Error('Unable to read selected file. Please try selecting the file again or choose a different file.'));
+              };
+              reader.readAsDataURL(selectedFile);
+            });
+          } catch (error) {
             console.error('File read failed:', error);
-            return '';
-          });
+            window.alert('Unable to read selected file. Please try again with a different file.');
+            return;
+          }
+
+          fileMimeType = getDataUrlMimeType(fileDataUrl) || selectedFile.type || '';
+          if (!isAllowedMimeType(fileMimeType)) {
+            window.alert('Unsupported file content detected. Please upload a PDF, supported image, Word, Excel, or text file.');
+            return;
+          }
         }
         const entry = {
-          id: `doc-${String(Date.now()).slice(-6)}`,
+          id: `doc-${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
           propertyId: uploadForm.propertyId.value.trim(),
           propertyAddress: uploadForm.propertyAddress.value.trim(),
           propertyStatus: uploadForm.propertyStatus.value,
           fileType: uploadForm.fileType.value,
           fileName: selectedFile ? selectedFile.name : uploadForm.fileName.value.trim(),
-          fileMimeType: selectedFile ? selectedFile.type : '',
+          fileMimeType,
           fileDataUrl,
           uploadDate: today,
           lastUpdated: today,
