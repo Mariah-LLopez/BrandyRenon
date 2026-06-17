@@ -188,8 +188,10 @@
         return;
       }
 
+      const originalButtonLabel = loginButton.textContent;
       loginButton.disabled = true;
       loginButton.setAttribute('aria-busy', 'true');
+      loginButton.textContent = 'Logging in...';
 
       try {
         const { error } = await supabaseClient.auth.signInWithPassword({
@@ -215,6 +217,7 @@
       } finally {
         loginButton.disabled = false;
         loginButton.removeAttribute('aria-busy');
+        loginButton.textContent = originalButtonLabel;
       }
     });
   }
