@@ -189,6 +189,11 @@
       }
 
       const originalButtonLabel = loginButton.textContent;
+      const resetLoginButton = function () {
+        loginButton.disabled = false;
+        loginButton.removeAttribute('aria-busy');
+        loginButton.textContent = originalButtonLabel;
+      };
       loginButton.disabled = true;
       loginButton.setAttribute('aria-busy', 'true');
       loginButton.textContent = 'Logging in...';
@@ -204,6 +209,7 @@
             errorBox.textContent = error.message;
             errorBox.className = 'error-message';
           }
+          resetLoginButton();
           return;
         }
 
@@ -214,10 +220,7 @@
           errorBox.className = 'error-message';
         }
         console.error('Login failed:', error);
-      } finally {
-        loginButton.disabled = false;
-        loginButton.removeAttribute('aria-busy');
-        loginButton.textContent = originalButtonLabel;
+        resetLoginButton();
       }
     });
   }
