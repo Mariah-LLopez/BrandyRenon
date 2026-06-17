@@ -161,6 +161,7 @@
     const loginForm = document.getElementById('login-form');
     const loginButton = document.getElementById('login-button');
     if (!loginForm || !loginButton) return;
+    const originalButtonLabel = loginButton.textContent;
 
     loginForm.addEventListener('submit', async function (event) {
       event.preventDefault();
@@ -188,7 +189,6 @@
         return;
       }
 
-      const originalButtonLabel = loginButton.textContent;
       const setLoginButtonState = (isLoading) => {
         loginButton.disabled = isLoading;
         loginButton.textContent = isLoading ? 'Logging in...' : originalButtonLabel;
