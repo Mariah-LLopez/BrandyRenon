@@ -91,7 +91,7 @@
   }
 
   function getDb() {
-    seedDb();
+   //seedDb();
     return JSON.parse(sessionStorage.getItem(DB_KEY) || '[]');
   }
 
@@ -196,22 +196,26 @@
     });
   }
 
-  async function renderAdminPage() {
-    const tableBody = document.getElementById('private-db-body');
-    if (!tableBody) return;
+    async function renderAdminPage() {
+      const tableBody = document.getElementById('private-db-body');
+      if (!tableBody) return;
 
-    const { data: sessionData } = await supabaseClient.auth.getSession();
+      const { data: sessionData } = await supabaseClient.auth.getSession();
 
-    if (!sessionData.session) {
-      window.location.href = 'login.html';
-      return;
-    }
+      if (!sessionData.session) {
+        window.location.href = 'login.html';
+        return;
+      }
 
-    const session = {
-      email: sessionData.session.user.email,
-      role: 'Admin',
-      displayName: sessionData.session.user.email
-    };
+      const session = {
+        email: sessionData.session.user.email,
+        role: 'Admin',
+        displayName: sessionData.session.user.email
+      };
+
+      const isAdmin = session.role === 'Admin';
+      const userDisplay = document.getElementById('logged-in-user');
+      const roleBadge = document.getElementById('role-badge');
 
     seedDb();
     const isAdmin = session.role === 'Admin';
