@@ -269,11 +269,21 @@ create policy "contractor_admin_all" on public.contractor_inquiries
 -- insert into storage.buckets (id, name, public) values ('property-documents', 'property-documents', false) on conflict do nothing;
 -- insert into storage.buckets (id, name, public) values ('property-images', 'property-images', true) on conflict do nothing;
 
--- -- property-documents: clients can read files in their own folder (auth.uid as first path segment)
+-- -- property-documents: clients can read files in their own folder.
+-- -- Covers two path structures:
+-- --   {client_id}/{uuid}-{file}            ← client self-uploads
+-- --   admin/users/{client_id}/{uuid}-{file} ← admin uploads to a client
 -- create policy "doc_storage_client_select" on storage.objects
 --   for select using (
 --     bucket_id = 'property-documents'
---     and auth.uid()::text = (string_to_array(name, '/'))[1]
+--     and (
+--       auth.uid()::text = (string_to_array(name, '/'))[1]
+--       or (
+--         (string_to_array(name, '/'))[1] = 'admin'
+--         and (string_to_array(name, '/'))[2] = 'users'
+--         and auth.uid()::text = (string_to_array(name, '/'))[3]
+--       )
+--     )
 --   );
 
 -- -- property-documents: clients can upload to their own folder

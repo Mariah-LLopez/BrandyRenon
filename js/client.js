@@ -306,7 +306,10 @@
     if (uploadBtn) uploadBtn.disabled = true;
 
     const safeFilename = sanitizeFilename(file.name);
-    const filePath = `${userId}/${Date.now()}-${safeFilename}`;
+    const uniquePrefix = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    const filePath = `${userId}/${uniquePrefix}-${safeFilename}`;
 
     const { error: storageError } = await supabaseClient.storage
       .from('property-documents')

@@ -383,14 +383,17 @@
       return;
     }
 
+    const safeFilename = sanitizeFilename(file.name);
     const clientId = form.querySelector('[name="client_id"]').value || null;
     const propertyId = form.querySelector('[name="property_id"]').value || null;
-    const safeFilename = sanitizeFilename(file.name);
+    const uniquePrefix = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : Date.now() + '-' + Math.random().toString(36).slice(2, 8);
     const filePath = clientId
-      ? `admin/users/${clientId}/${Date.now()}-${safeFilename}`
+      ? `admin/users/${clientId}/${uniquePrefix}-${safeFilename}`
       : propertyId
-        ? `admin/${propertyId}/${Date.now()}-${safeFilename}`
-        : `admin/${Date.now()}-${safeFilename}`;
+        ? `admin/${propertyId}/${uniquePrefix}-${safeFilename}`
+        : `admin/${uniquePrefix}-${safeFilename}`;
 
     const bucketName = file.type.startsWith('image/') ? 'property-images' : 'property-documents';
 
