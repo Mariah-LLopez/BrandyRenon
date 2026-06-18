@@ -207,6 +207,18 @@
   white-space: normal;
 }
 
+.dashboard-editor-cell {
+  min-width: 190px;
+}
+
+.dashboard-inline-select {
+  min-width: 170px;
+}
+
+.dashboard-inline-notes {
+  min-height: 7rem;
+}
+
 /* ==========================================================================
    Document upload progress bar
    ========================================================================== */

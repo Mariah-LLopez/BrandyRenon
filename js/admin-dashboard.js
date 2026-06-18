@@ -1,4 +1,10 @@
 (function () {
+  const LEAD_STATUS_OPTIONS = [
+    { value: 'not_viewed', label: 'Not Viewed Yet' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'complete', label: 'Complete' }
+  ];
+
   const DASHBOARD_SECTIONS = [
     {
       key: 'contact',
@@ -8,8 +14,13 @@
         { field: 'name' },
         { field: 'email' },
         { field: 'phone' },
+        { field: 'inquiry_type', formatter: formatInquiryType },
+        { field: 'property_interest', wrap: true },
         { field: 'message', wrap: true },
-        { field: 'created_at', formatter: formatDateTime }
+        { field: 'created_at', formatter: formatDateTime },
+        { type: 'status' },
+        { type: 'notes' },
+        { type: 'actions' }
       ]
     },
     {
@@ -24,7 +35,10 @@
         { field: 'preferred_date', formatter: formatDateOnly },
         { field: 'preferred_time', formatter: formatTimeString },
         { field: 'message', wrap: true },
-        { field: 'created_at', formatter: formatDateTime }
+        { field: 'created_at', formatter: formatDateTime },
+        { type: 'status' },
+        { type: 'notes' },
+        { type: 'actions' }
       ]
     },
     {
@@ -39,7 +53,10 @@
         { field: 'service_type' },
         { field: 'service_area', wrap: true },
         { field: 'project_description', wrap: true },
-        { field: 'created_at', formatter: formatDateTime }
+        { field: 'created_at', formatter: formatDateTime },
+        { type: 'status' },
+        { type: 'notes' },
+        { type: 'actions' }
       ]
     },
     {
@@ -54,10 +71,36 @@
         { field: 'property_condition' },
         { field: 'estimated_value' },
         { field: 'project_description', wrap: true },
-        { field: 'created_at', formatter: formatDateTime }
+        { field: 'created_at', formatter: formatDateTime },
+        { type: 'status' },
+        { type: 'notes' },
+        { type: 'actions' }
       ]
     }
   ];
+
+  function sanitizeLeadStatus(value) {
+    return LEAD_STATUS_OPTIONS.some((option) => option.value === value) ? value : 'not_viewed';
+  }
+
+  function formatInquiryType(value) {
+    // Keep these labels aligned with contact.html field options and the schema constraint.
+    const labels = {
+      general_inquiry: 'General Inquiry',
+      rental_help: 'Help Finding a Rental',
+      buyer_agent_request: 'Request Brandy as My Agent',
+      property_inquiry: 'Property Inquiry',
+      showing_request: 'Request for a Showing',
+      renovation_help: 'Help Renovating',
+      maintenance_request: 'Maintenance / Property Manager Request',
+      seller_help: 'Help Selling My House'
+    };
+    return escapeHtml(labels[value] || value || '—');
+  }
+
+  function getLeadLabel(row) {
+    return escapeHtml(row.name || row.full_name || row.email || row.company_name || 'this inquiry');
+  }
 
   function formatDateTime(value) {
     if (!value) return '—';
@@ -97,6 +140,35 @@
     }
 
     return escapeHtml(normalized);
+  }
+
+  function getSectionByKey(sectionKey) {
+    return DASHBOARD_SECTIONS.find((section) => section.key === sectionKey) || null;
+  }
+
+  function getSectionSelectFields(section) {
+    const fields = new Set(['id', 'admin_status', 'admin_notes']);
+    section.columns.forEach((column) => {
+      if (column.field) fields.add(column.field);
+    });
+    return Array.from(fields).join(', ');
+  }
+
+  function renderStatusEditor(sectionKey, row) {
+    const current = sanitizeLeadStatus(row.admin_status);
+    const options = LEAD_STATUS_OPTIONS.map((option) => {
+      const selected = option.value === current ? ' selected' : '';
+      return `<option value="${escapeHtml(option.value)}"${selected}>${escapeHtml(option.label)}</option>`;
+    }).join('');
+    return `<select class="dashboard-inline-select" data-status-input="${escapeHtml(sectionKey)}" aria-label="Lead status for ${getLeadLabel(row)}">${options}</select>`;
+  }
+
+  function renderNotesEditor(sectionKey, row) {
+    return `<textarea class="dashboard-inline-notes" data-notes-input="${escapeHtml(sectionKey)}" rows="4" aria-label="Admin notes for ${getLeadLabel(row)}">${escapeHtml(row.admin_notes || '')}</textarea>`;
+  }
+
+  function renderSaveAction(sectionKey, row) {
+    return `<button class="action-link" data-action="save-lead" data-section="${escapeHtml(sectionKey)}" data-id="${escapeHtml(row.id)}" type="button">Save</button>`;
   }
 
   function initTabs() {
@@ -146,6 +218,16 @@
 
     tbody.innerHTML = rows.map((row) => {
       const cells = section.columns.map((column) => {
+        if (column.type === 'status') {
+          return `<td class="dashboard-editor-cell">${renderStatusEditor(section.key, row)}</td>`;
+        }
+        if (column.type === 'notes') {
+          return `<td class="dashboard-cell-wrap dashboard-editor-cell">${renderNotesEditor(section.key, row)}</td>`;
+        }
+        if (column.type === 'actions') {
+          return `<td>${renderSaveAction(section.key, row)}</td>`;
+        }
+
         const rawValue = row[column.field];
         const renderedValue = column.formatter
           ? column.formatter(rawValue, row)
@@ -156,7 +238,7 @@
         return `<td${cellClass}>${renderedValue}</td>`;
       }).join('');
 
-      return `<tr>${cells}</tr>`;
+      return `<tr data-row-id="${escapeHtml(row.id)}" data-current-status="${escapeHtml(sanitizeLeadStatus(row.admin_status))}">${cells}</tr>`;
     }).join('');
   }
 
@@ -175,7 +257,7 @@
 
     const { data, error } = await supabaseClient
       .from(section.table)
-      .select(section.columns.map((column) => column.field).join(', '))
+      .select(getSectionSelectFields(section))
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -207,6 +289,43 @@
       empty: false,
       emptyMessage: section.emptyMessage
     });
+  }
+
+  async function saveLeadUpdate(sectionKey, rowId, button) {
+    const section = getSectionByKey(sectionKey);
+    const tbody = document.getElementById(`${sectionKey}-tbody`);
+    const row = tbody ? tbody.querySelector(`tr[data-row-id="${rowId}"]`) : null;
+    if (!section || !row) return;
+
+    const statusInput = row.querySelector(`[data-status-input="${sectionKey}"]`);
+    const notesInput = row.querySelector(`[data-notes-input="${sectionKey}"]`);
+    const adminStatus = sanitizeLeadStatus(statusInput ? statusInput.value : row.getAttribute('data-current-status'));
+    const adminNotes = notesInput ? notesInput.value.trim() : '';
+
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Saving…';
+    }
+
+    const { error } = await supabaseClient
+      .from(section.table)
+      .update({
+        admin_status: adminStatus,
+        admin_notes: adminNotes || null
+      })
+      .eq('id', rowId);
+
+    if (error) {
+      console.error(`${section.table} update failed:`, error);
+      window.alert(`Unable to save lead details: ${error.message}`);
+      if (button) {
+        button.disabled = false;
+        button.textContent = 'Save';
+      }
+      return;
+    }
+
+    await loadSection(section);
   }
 
   async function guardDashboardAccess() {
@@ -254,6 +373,15 @@
 
     setupLogout();
     initTabs();
+    DASHBOARD_SECTIONS.forEach((section) => {
+      const tbody = document.getElementById(`${section.key}-tbody`);
+      if (!tbody) return;
+      tbody.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-action="save-lead"]');
+        if (!button) return;
+        saveLeadUpdate(button.getAttribute('data-section'), button.getAttribute('data-id'), button);
+      });
+    });
     await Promise.all(DASHBOARD_SECTIONS.map(loadSection));
   }
 

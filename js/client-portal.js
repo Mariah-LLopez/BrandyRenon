@@ -187,6 +187,7 @@
     if (empty) empty.hidden = true;
 
     tbody.innerHTML = allDocuments.map((doc) => {
+      const openBtn = `<button class="action-link" data-action="open" data-id="${escapeHtml(doc.id)}" type="button">Open</button>`;
       const downloadable = doc.visibility === 'client_downloadable';
       const downloadBtn = downloadable
         ? `<button class="action-link" data-action="download" data-id="${escapeHtml(doc.id)}" type="button" aria-label="Download ${escapeHtml(doc.file_name)} (opens in new window)">Download</button>`
@@ -199,25 +200,53 @@
         <td>${escapeHtml(doc.category) || '&mdash;'}</td>
         <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0, 10)) : '&mdash;'}</td>
         <td>${sigBadge(doc)}</td>
-        <td><div class="table-actions">${downloadBtn}${signBtn}</div></td>
+        <td><div class="table-actions">${openBtn}${downloadBtn}${signBtn}</div></td>
       </tr>`;
     }).join('');
   }
 
-  // ── Download a document ───────────────────────────────────────────────────
-  async function downloadDocument(docId) {
+  // ── Document access helpers ───────────────────────────────────────────────
+  async function getDocumentSignedUrl(docId) {
     const doc = allDocuments.find((d) => d.id === docId);
-    if (!doc) return;
+    if (!doc) return null;
 
     const { data, error } = await supabaseClient.storage
       .from(doc.bucket_name || 'property-documents')
       .createSignedUrl(doc.file_path, 300);
 
     if (error) {
-      console.error('Download error:', error);
+      console.error('Document link error:', error);
+      return null;
+    }
+
+    return { doc, signedUrl: data.signedUrl };
+  }
+
+  async function openDocument(docId) {
+    const result = await getDocumentSignedUrl(docId);
+    if (!result) return;
+    window.open(result.signedUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  async function downloadDocument(docId) {
+    const result = await getDocumentSignedUrl(docId);
+    if (!result) return;
+
+    const response = await fetch(result.signedUrl);
+    if (!response.ok) {
+      console.error('Download error:', response.status, response.statusText);
       return;
     }
-    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+
+    const blob = await response.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = result.doc.file_name || 'document';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(objectUrl);
   }
 
   // ── Signature modal ───────────────────────────────────────────────────────
@@ -441,6 +470,7 @@
         const action = e.target.getAttribute('data-action');
         const id = e.target.getAttribute('data-id');
         if (!action || !id) return;
+        if (action === 'open') await openDocument(id);
         if (action === 'download') await downloadDocument(id);
         if (action === 'sign') openSignatureModal(id);
       });

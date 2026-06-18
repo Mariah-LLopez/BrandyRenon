@@ -352,12 +352,30 @@
         <td>${sigBadge(doc)}</td>
         <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0,10)) : '—'}</td>
         <td><div class="table-actions">
+          <button class="action-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">Open</button>
           <button class="action-link" data-action="toggle-doc" data-id="${escapeHtml(doc.id)}" type="button">${doc.hidden ? 'Unhide' : 'Hide'}</button>
           <button class="action-link" data-action="delete-doc" data-id="${escapeHtml(doc.id)}" type="button">Delete</button>
           ${doc.requires_signature && !doc.signed ? `<button class="action-link" data-action="require-sig" data-id="${escapeHtml(doc.id)}" type="button">Req. Sig.</button>` : ''}
         </div></td>
       </tr>`;
     }).join('');
+  }
+
+  async function openDocument(docId) {
+    const doc = allDocuments.find((item) => item.id === docId);
+    if (!doc) return;
+
+    const { data, error } = await supabaseClient.storage
+      .from(doc.bucket_name || 'property-documents')
+      .createSignedUrl(doc.file_path, 300);
+
+    if (error) {
+      console.error('Open document error:', error);
+      window.alert(`Unable to open document: ${error.message}`);
+      return;
+    }
+
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
   }
 
   // ── Upload document ───────────────────────────────────────────────────────
@@ -438,6 +456,10 @@
       const { error } = await supabaseClient.from('documents').update({ hidden: !doc.hidden }).eq('id', id);
       if (error) { alert('Failed: ' + error.message); return; }
       await loadDocuments();
+    }
+
+    if (action === 'open-doc') {
+      await openDocument(id);
     }
 
     if (action === 'delete-doc') {
