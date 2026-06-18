@@ -185,14 +185,13 @@
         <div id="tab-leads" class="tab-panel" hidden>
           <div class="admin-panel" style="margin-bottom:1.5rem">
             <h2>Leads</h2>
-            <p class="table-hint">Manage all contact requests, showing requests, contractor inquiries, and house flip inquiries from one location.</p>
+            <p class="table-hint">Manage all contact requests, showing requests, and renovation client inquiries from one location.</p>
           </div>
 
           <nav class="portal-tab-bar leads-sub-tabs" aria-label="Lead type">
             <button class="portal-tab active" data-lead-tab="contact" type="button">Contact Requests</button>
             <button class="portal-tab" data-lead-tab="showing" type="button">Showing Requests</button>
-            <button class="portal-tab" data-lead-tab="contractor" type="button">Contractor Inquiries</button>
-            <button class="portal-tab" data-lead-tab="flip" type="button">House Flip Inquiries</button>
+            <button class="portal-tab" data-lead-tab="renovation" type="button">Renovation Clients</button>
           </nav>
 
           <div id="lead-tab-contact" class="lead-tab-panel">
@@ -203,12 +202,8 @@
             <div class="table-card"><div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property</th><th scope="col">Preferred Date</th><th scope="col">Preferred Time</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-showing-tbody"></tbody></table></div><div id="lead-showing-empty" class="admin-empty-state" hidden>No showing requests yet.</div></div>
           </div>
 
-          <div id="lead-tab-contractor" class="lead-tab-panel" hidden>
-            <div class="table-card"><div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Company</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Service</th><th scope="col">Area</th><th scope="col">Details</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-contractor-tbody"></tbody></table></div><div id="lead-contractor-empty" class="admin-empty-state" hidden>No contractor inquiries yet.</div></div>
-          </div>
-
-          <div id="lead-tab-flip" class="lead-tab-panel" hidden>
-            <div class="table-card"><div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property</th><th scope="col">Condition</th><th scope="col">Est. Value</th><th scope="col">Details</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-flip-tbody"></tbody></table></div><div id="lead-flip-empty" class="admin-empty-state" hidden>No house flip inquiries yet.</div></div>
+          <div id="lead-tab-renovation" class="lead-tab-panel" hidden>
+            <div class="table-card"><div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Full Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property Address</th><th scope="col">Service Needed</th><th scope="col">Project Type</th><th scope="col">Project Description</th><th scope="col">Timeline</th><th scope="col">Budget Range</th><th scope="col">Status</th><th scope="col">Created At</th></tr></thead><tbody id="lead-renovation-tbody"></tbody></table></div><div id="lead-renovation-empty" class="admin-empty-state" hidden>No renovation clients yet.</div></div>
           </div>
         </div>
       </div>
