@@ -300,3 +300,12 @@ create policy "contractor_admin_all" on public.contractor_inquiries
 --     bucket_id = 'property-images'
 --     and public.is_admin()
 --   );
+
+-- -------------------------------------------------------------------------
+-- Performance indexes
+-- -------------------------------------------------------------------------
+create index if not exists idx_transactions_client_id    on public.transactions (client_id);
+create index if not exists idx_transactions_property_id  on public.transactions (property_id);
+create index if not exists idx_documents_client_id       on public.documents (client_id);
+create index if not exists idx_documents_property_id     on public.documents (property_id);
+create index if not exists idx_profiles_role             on public.profiles (role);

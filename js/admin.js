@@ -120,11 +120,11 @@
     if (empty) empty.hidden = true;
 
     tbody.innerHTML = allUsers.map((u) => `<tr>
-      <td>${u.full_name || '—'}</td>
-      <td>${u.email}</td>
-      <td>${u.phone || '—'}</td>
-      <td><span class="role-badge ${u.role === 'admin' ? 'role-admin' : 'role-client'}">${u.role}</span></td>
-      <td>${u.created_at ? u.created_at.slice(0,10) : '—'}</td>
+      <td>${escapeHtml(u.full_name) || '—'}</td>
+      <td>${escapeHtml(u.email)}</td>
+      <td>${escapeHtml(u.phone) || '—'}</td>
+      <td><span class="role-badge ${u.role === 'admin' ? 'role-admin' : 'role-client'}">${escapeHtml(u.role)}</span></td>
+      <td>${u.created_at ? escapeHtml(u.created_at.slice(0,10)) : '—'}</td>
     </tr>`).join('');
   }
 
@@ -133,7 +133,7 @@
     const current = select.value;
     select.innerHTML = '<option value="">No specific client</option>' +
       allUsers.filter((u) => u.role === 'client').map((u) =>
-        `<option value="${u.id}">${u.full_name || u.email}</option>`
+        `<option value="${escapeHtml(u.id)}">${escapeHtml(u.full_name || u.email)}</option>`
       ).join('');
     if (current) select.value = current;
   }
@@ -153,13 +153,10 @@
       return;
     }
 
-    // Use signUp with email/password approach — the invited user will set their own password via magic link or password reset.
-    // This creates a user with a temporary random password and marks them as needing password reset.
-    const tempPassword = 'Temp!' + Math.random().toString(36).slice(2, 12);
-    const { data, error } = await supabaseClient.auth.signUp({
+    // Use a magic link (OTP) to invite the client — no temporary password needed.
+    const { error } = await supabaseClient.auth.signInWithOtp({
       email,
-      password: tempPassword,
-      options: { data: { full_name: fullName, role: 'client' } }
+      options: { data: { full_name: fullName, role: 'client' }, shouldCreateUser: true }
     });
 
     if (error) {
@@ -190,13 +187,13 @@
     if (empty) empty.hidden = true;
 
     tbody.innerHTML = allProperties.map((p) => `<tr>
-      <td>${p.property_address}</td>
+      <td>${escapeHtml(p.property_address)}</td>
       <td>${statusBadge(p.property_status)}</td>
       <td>${p.purchase_price ? '$' + Number(p.purchase_price).toLocaleString() : '—'}</td>
       <td>${p.sale_price ? '$' + Number(p.sale_price).toLocaleString() : '—'}</td>
-      <td>${p.created_at ? p.created_at.slice(0,10) : '—'}</td>
+      <td>${p.created_at ? escapeHtml(p.created_at.slice(0,10)) : '—'}</td>
       <td><div class="table-actions">
-        <button class="action-link" data-action="delete-property" data-id="${p.id}" type="button">Delete</button>
+        <button class="action-link" data-action="delete-property" data-id="${escapeHtml(p.id)}" type="button">Delete</button>
       </div></td>
     </tr>`).join('');
   }
@@ -206,8 +203,8 @@
     const current = select.value;
     const hasNone = select.querySelector('option[value=""]');
     const noneText = hasNone ? hasNone.textContent : 'No specific property';
-    select.innerHTML = `<option value="">${noneText}</option>` +
-      allProperties.map((p) => `<option value="${p.id}">${p.property_address}</option>`).join('');
+    select.innerHTML = `<option value="">${escapeHtml(noneText)}</option>` +
+      allProperties.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.property_address)}</option>`).join('');
     if (current) select.value = current;
   }
 
@@ -264,13 +261,13 @@
       const prop = t.properties ? t.properties.property_address : '—';
       const client = t.profiles ? (t.profiles.full_name || t.profiles.email) : '—';
       return `<tr>
-        <td>${prop}</td>
-        <td>${client}</td>
-        <td style="text-transform:capitalize">${t.transaction_type}</td>
+        <td>${escapeHtml(prop)}</td>
+        <td>${escapeHtml(client)}</td>
+        <td style="text-transform:capitalize">${escapeHtml(t.transaction_type)}</td>
         <td>${statusBadge(t.status)}</td>
-        <td>${t.created_at ? t.created_at.slice(0,10) : '—'}</td>
+        <td>${t.created_at ? escapeHtml(t.created_at.slice(0,10)) : '—'}</td>
         <td><div class="table-actions">
-          <button class="action-link" data-action="delete-txn" data-id="${t.id}" type="button">Delete</button>
+          <button class="action-link" data-action="delete-txn" data-id="${escapeHtml(t.id)}" type="button">Delete</button>
         </div></td>
       </tr>`;
     }).join('');
@@ -348,16 +345,16 @@
     tbody.innerHTML = filtered.map((doc) => {
       const clientInfo = doc.profiles ? (doc.profiles.full_name || doc.profiles.email) : '—';
       return `<tr>
-        <td>${doc.file_name}</td>
-        <td>${doc.category || '—'}</td>
-        <td>${clientInfo}</td>
-        <td>${visibilityLabel(doc.visibility)}</td>
+        <td>${escapeHtml(doc.file_name)}</td>
+        <td>${escapeHtml(doc.category) || '—'}</td>
+        <td>${escapeHtml(clientInfo)}</td>
+        <td>${escapeHtml(visibilityLabel(doc.visibility))}</td>
         <td>${sigBadge(doc)}</td>
-        <td>${doc.created_at ? doc.created_at.slice(0,10) : '—'}</td>
+        <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0,10)) : '—'}</td>
         <td><div class="table-actions">
-          <button class="action-link" data-action="toggle-doc" data-id="${doc.id}" type="button">${doc.hidden ? 'Unhide' : 'Hide'}</button>
-          <button class="action-link" data-action="delete-doc" data-id="${doc.id}" type="button">Delete</button>
-          ${doc.requires_signature && !doc.signed ? `<button class="action-link" data-action="require-sig" data-id="${doc.id}" type="button">Req. Sig.</button>` : ''}
+          <button class="action-link" data-action="toggle-doc" data-id="${escapeHtml(doc.id)}" type="button">${doc.hidden ? 'Unhide' : 'Hide'}</button>
+          <button class="action-link" data-action="delete-doc" data-id="${escapeHtml(doc.id)}" type="button">Delete</button>
+          ${doc.requires_signature && !doc.signed ? `<button class="action-link" data-action="require-sig" data-id="${escapeHtml(doc.id)}" type="button">Req. Sig.</button>` : ''}
         </div></td>
       </tr>`;
     }).join('');
@@ -388,11 +385,12 @@
 
     const clientId = form.querySelector('[name="client_id"]').value || null;
     const propertyId = form.querySelector('[name="property_id"]').value || null;
+    const safeFilename = sanitizeFilename(file.name);
     const filePath = clientId
-      ? `admin/users/${clientId}/${Date.now()}-${file.name}`
+      ? `admin/users/${clientId}/${Date.now()}-${safeFilename}`
       : propertyId
-        ? `admin/${propertyId}/${Date.now()}-${file.name}`
-        : `admin/${Date.now()}-${file.name}`;
+        ? `admin/${propertyId}/${Date.now()}-${safeFilename}`
+        : `admin/${Date.now()}-${safeFilename}`;
 
     const bucketName = file.type.startsWith('image/') ? 'property-images' : 'property-documents';
 
@@ -407,8 +405,7 @@
       property_id: propertyId,
       uploaded_by: adminUserId,
       file_name: file.name,
-      file_path: filePath,
-      bucket_name: bucketName,
+      file_path: filePath,      bucket_name: bucketName,
       file_type: file.type,
       file_size: file.size,
       category: form.querySelector('[name="category"]').value || null,
@@ -495,12 +492,12 @@
     if (empty) empty.hidden = true;
 
     tbody.innerHTML = rows.map((r) => `<tr>
-      <td>${r.full_name}</td>
-      <td>${r.email}</td>
-      <td>${r.phone || '—'}</td>
-      <td>${r.property_address || '—'}</td>
-      <td>${r.estimated_value || '—'}</td>
-      <td>${r.created_at ? r.created_at.slice(0,10) : '—'}</td>
+      <td>${escapeHtml(r.full_name)}</td>
+      <td>${escapeHtml(r.email)}</td>
+      <td>${escapeHtml(r.phone) || '—'}</td>
+      <td>${escapeHtml(r.property_address) || '—'}</td>
+      <td>${escapeHtml(r.estimated_value) || '—'}</td>
+      <td>${r.created_at ? escapeHtml(r.created_at.slice(0,10)) : '—'}</td>
     </tr>`).join('');
   }
 
@@ -517,12 +514,12 @@
     if (empty) empty.hidden = true;
 
     tbody.innerHTML = rows.map((r) => `<tr>
-      <td>${r.full_name}</td>
-      <td>${r.company_name || '—'}</td>
-      <td>${r.email}</td>
-      <td>${r.service_type || '—'}</td>
-      <td>${r.service_area || '—'}</td>
-      <td>${r.created_at ? r.created_at.slice(0,10) : '—'}</td>
+      <td>${escapeHtml(r.full_name)}</td>
+      <td>${escapeHtml(r.company_name) || '—'}</td>
+      <td>${escapeHtml(r.email)}</td>
+      <td>${escapeHtml(r.service_type) || '—'}</td>
+      <td>${escapeHtml(r.service_area) || '—'}</td>
+      <td>${r.created_at ? escapeHtml(r.created_at.slice(0,10)) : '—'}</td>
     </tr>`).join('');
   }
 

@@ -182,10 +182,15 @@
       .from(doc.bucket_name || 'property-documents')
       .createSignedUrl(doc.file_path, 300); // 5-minute signed URL
 
+    const statusEl = document.getElementById('documents-empty');
     if (error) {
-      alert('Unable to generate download link: ' + error.message);
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.textContent = 'Unable to generate download link. Please try again.';
+      }
       return;
     }
+    if (statusEl) statusEl.hidden = true;
     window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
   }
 
@@ -300,7 +305,8 @@
 
     if (uploadBtn) uploadBtn.disabled = true;
 
-    const filePath = `${userId}/${Date.now()}-${file.name}`;
+    const safeFilename = sanitizeFilename(file.name);
+    const filePath = `${userId}/${Date.now()}-${safeFilename}`;
 
     const { error: storageError } = await supabaseClient.storage
       .from('property-documents')

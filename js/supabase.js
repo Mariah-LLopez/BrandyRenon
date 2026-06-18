@@ -13,9 +13,33 @@ try {
 }
 
 /**
- * Returns the current session, or null if the user is not signed in.
- * @returns {Promise<import('@supabase/supabase-js').Session|null>}
+ * Escapes HTML special characters to prevent XSS when inserting
+ * user-supplied content via innerHTML.
+ * @param {unknown} value
+ * @returns {string}
  */
+function escapeHtml(value) {
+  const str = value == null ? '' : String(value);
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Sanitizes a filename for use in a storage path.
+ * Removes path traversal sequences and replaces unsafe characters.
+ * @param {string} name
+ * @returns {string}
+ */
+function sanitizeFilename(name) {
+  return String(name || 'upload')
+    .replace(/\.\.[/\\]/g, '')    // strip ../
+    .replace(/[/\\]/g, '_')       // replace directory separators
+    .replace(/[^a-zA-Z0-9._-]/g, '_'); // keep safe chars only
+}
 async function getSession() {
   if (!supabaseClient) return null;
   const { data } = await supabaseClient.auth.getSession();
