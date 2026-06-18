@@ -44,7 +44,7 @@
           <div class="admin-panel dashboard-panel-stack">
             <div>
               <h2>Contact Requests</h2>
-              <p class="table-hint">Messages submitted through the contact form.</p>
+              <p class="table-hint">Messages submitted through the contact form. Status updates and notes remain visible only on the admin side.</p>
             </div>
             <div id="contact-loading" class="dashboard-state" aria-live="polite">Loading contact requests…</div>
             <div id="contact-error" class="form-status error-message" aria-live="assertive" hidden></div>
@@ -57,8 +57,13 @@
                     <th scope="col">Name</th>
                     <th scope="col">Email</th>
                     <th scope="col">Phone</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Property</th>
                     <th scope="col">Message</th>
                     <th scope="col">Submitted</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Admin Notes</th>
+                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="contact-tbody"></tbody>
@@ -72,7 +77,7 @@
           <div class="admin-panel dashboard-panel-stack">
             <div>
               <h2>Showing Requests</h2>
-              <p class="table-hint">Viewing requests submitted for listed properties.</p>
+              <p class="table-hint">Viewing requests submitted for listed properties. Status updates and notes remain visible only on the admin side.</p>
             </div>
             <div id="showing-loading" class="dashboard-state" aria-live="polite">Loading showing requests…</div>
             <div id="showing-error" class="form-status error-message" aria-live="assertive" hidden></div>
@@ -90,6 +95,9 @@
                     <th scope="col">Preferred Time</th>
                     <th scope="col">Message</th>
                     <th scope="col">Submitted</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Admin Notes</th>
+                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="showing-tbody"></tbody>
@@ -103,7 +111,7 @@
           <div class="admin-panel dashboard-panel-stack">
             <div>
               <h2>Contractor Inquiries</h2>
-              <p class="table-hint">Vendor submissions from the contractor application form.</p>
+              <p class="table-hint">Vendor submissions from the contractor application form. Status updates and notes remain visible only on the admin side.</p>
             </div>
             <div id="contractor-loading" class="dashboard-state" aria-live="polite">Loading contractor inquiries…</div>
             <div id="contractor-error" class="form-status error-message" aria-live="assertive" hidden></div>
@@ -121,6 +129,9 @@
                     <th scope="col">Service Area</th>
                     <th scope="col">Project Description</th>
                     <th scope="col">Submitted</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Admin Notes</th>
+                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="contractor-tbody"></tbody>
@@ -134,7 +145,7 @@
           <div class="admin-panel dashboard-panel-stack">
             <div>
               <h2>House Flip Inquiries</h2>
-              <p class="table-hint">Potential seller submissions from the house flip form.</p>
+              <p class="table-hint">Potential seller submissions from the house flip form. Status updates and notes remain visible only on the admin side.</p>
             </div>
             <div id="flip-loading" class="dashboard-state" aria-live="polite">Loading house flip inquiries…</div>
             <div id="flip-error" class="form-status error-message" aria-live="assertive" hidden></div>
@@ -152,6 +163,9 @@
                     <th scope="col">Estimated Value</th>
                     <th scope="col">Project Description</th>
                     <th scope="col">Submitted</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Admin Notes</th>
+                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="flip-tbody"></tbody>

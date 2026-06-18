@@ -211,6 +211,75 @@ create policy "doc_perms_client_select" on public.document_permissions
   for select using (client_id = auth.uid());
 
 -- -------------------------------------------------------------------------
+-- contact_requests  (public — no auth required to insert)
+-- -------------------------------------------------------------------------
+create table if not exists public.contact_requests (
+  id                uuid primary key default gen_random_uuid(),
+  name              text not null,
+  email             text not null,
+  phone             text,
+  inquiry_type      text not null default 'general_inquiry'
+                      check (inquiry_type in ('general_inquiry','rental_help','buyer_agent_request','property_inquiry','showing_request','renovation_help','maintenance_request','seller_help')),
+  property_interest text,
+  message           text not null,
+  admin_status      text not null default 'not_viewed'
+                      check (admin_status in ('not_viewed','in_progress','complete')),
+  admin_notes       text,
+  created_at        timestamptz not null default now()
+);
+
+alter table public.contact_requests enable row level security;
+
+create policy "contact_requests_insert_public" on public.contact_requests
+  for insert with check (true);
+
+create policy "contact_requests_admin_all" on public.contact_requests
+  for all using (public.is_admin());
+
+alter table public.contact_requests add column if not exists inquiry_type text;
+alter table public.contact_requests add column if not exists property_interest text;
+alter table public.contact_requests add column if not exists admin_status text not null default 'not_viewed';
+alter table public.contact_requests add column if not exists admin_notes text;
+update public.contact_requests
+set inquiry_type = 'general_inquiry'
+where inquiry_type is null or btrim(inquiry_type) = '';
+update public.contact_requests
+set admin_status = 'not_viewed'
+where admin_status is null or btrim(admin_status) = '';
+
+-- -------------------------------------------------------------------------
+-- showing_requests  (public — no auth required to insert)
+-- -------------------------------------------------------------------------
+create table if not exists public.showing_requests (
+  id               uuid primary key default gen_random_uuid(),
+  name             text not null,
+  email            text not null,
+  phone            text,
+  property_address text,
+  preferred_date   text,
+  preferred_time   text,
+  message          text not null,
+  admin_status     text not null default 'not_viewed'
+                     check (admin_status in ('not_viewed','in_progress','complete')),
+  admin_notes      text,
+  created_at       timestamptz not null default now()
+);
+
+alter table public.showing_requests enable row level security;
+
+create policy "showing_requests_insert_public" on public.showing_requests
+  for insert with check (true);
+
+create policy "showing_requests_admin_all" on public.showing_requests
+  for all using (public.is_admin());
+
+alter table public.showing_requests add column if not exists admin_status text not null default 'not_viewed';
+alter table public.showing_requests add column if not exists admin_notes text;
+update public.showing_requests
+set admin_status = 'not_viewed'
+where admin_status is null or btrim(admin_status) = '';
+
+-- -------------------------------------------------------------------------
 -- house_flip_inquiries  (public — no auth required to insert)
 -- -------------------------------------------------------------------------
 create table if not exists public.house_flip_inquiries (
@@ -222,6 +291,9 @@ create table if not exists public.house_flip_inquiries (
   estimated_value     text,
   property_condition  text,
   project_description text,
+  admin_status        text not null default 'not_viewed'
+                        check (admin_status in ('not_viewed','in_progress','complete')),
+  admin_notes         text,
   created_at          timestamptz not null default now()
 );
 
@@ -232,6 +304,12 @@ create policy "flip_insert_public" on public.house_flip_inquiries
 
 create policy "flip_admin_all" on public.house_flip_inquiries
   for all using (public.is_admin());
+
+alter table public.house_flip_inquiries add column if not exists admin_status text not null default 'not_viewed';
+alter table public.house_flip_inquiries add column if not exists admin_notes text;
+update public.house_flip_inquiries
+set admin_status = 'not_viewed'
+where admin_status is null or btrim(admin_status) = '';
 
 -- -------------------------------------------------------------------------
 -- contractor_inquiries  (public — no auth required to insert)
@@ -245,6 +323,9 @@ create table if not exists public.contractor_inquiries (
   service_type        text,
   service_area        text,
   project_description text,
+  admin_status        text not null default 'not_viewed'
+                        check (admin_status in ('not_viewed','in_progress','complete')),
+  admin_notes         text,
   created_at          timestamptz not null default now()
 );
 
@@ -255,6 +336,12 @@ create policy "contractor_insert_public" on public.contractor_inquiries
 
 create policy "contractor_admin_all" on public.contractor_inquiries
   for all using (public.is_admin());
+
+alter table public.contractor_inquiries add column if not exists admin_status text not null default 'not_viewed';
+alter table public.contractor_inquiries add column if not exists admin_notes text;
+update public.contractor_inquiries
+set admin_status = 'not_viewed'
+where admin_status is null or btrim(admin_status) = '';
 
 -- -------------------------------------------------------------------------
 -- Storage bucket setup instructions

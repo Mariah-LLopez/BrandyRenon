@@ -1,5 +1,10 @@
 (function () {
   const PHONE_REGEX = /^[0-9()+\-\s.]{7,20}$/;
+  const CONTACT_TYPES_REQUIRING_PROPERTY = ['property_inquiry', 'showing_request'];
+
+  function inquiryNeedsProperty(type) {
+    return CONTACT_TYPES_REQUIRING_PROPERTY.includes(type);
+  }
 
   function populatePropertySelects() {
     const selects = document.querySelectorAll('.property-select');
@@ -39,6 +44,8 @@
     const email = form.querySelector('[name="email"]');
     const phone = form.querySelector('[name="phone"]');
     const message = form.querySelector('[name="message"]') || form.querySelector('[name="project_description"]');
+    const inquiryType = form.querySelector('[name="inquiry_type"]');
+    const property = form.querySelector('[name="property"]');
 
     if (name && !name.value.trim()) {
       valid = false;
@@ -63,7 +70,49 @@
       setError(message, 'Please include a description.');
     }
 
+    if (inquiryType && !inquiryType.value) {
+      valid = false;
+      setError(inquiryType, 'Please select the type of message.');
+    }
+
+    if (property && inquiryType && inquiryNeedsProperty(inquiryType.value) && !property.value) {
+      valid = false;
+      setError(property, 'Please select the property you are asking about.');
+    }
+
     return valid;
+  }
+
+  function syncContactPropertyField(form) {
+    const inquiryType = form.querySelector('[name="inquiry_type"]');
+    const propertyGroup = form.querySelector('[data-contact-property-group]');
+    const propertySelect = form.querySelector('[name="property"]');
+    if (!inquiryType || !propertyGroup || !propertySelect) return;
+
+    if (propertySelect.value && !inquiryType.value) {
+      inquiryType.value = 'property_inquiry';
+    }
+
+    const shouldShow = inquiryNeedsProperty(inquiryType.value);
+    propertyGroup.hidden = !shouldShow;
+    propertySelect.required = shouldShow;
+    propertySelect.setAttribute('aria-required', shouldShow ? 'true' : 'false');
+
+    if (!shouldShow) {
+      propertySelect.value = '';
+      propertySelect.classList.remove('input-error');
+      const error = propertyGroup.querySelector('.field-error');
+      if (error) error.textContent = '';
+    }
+  }
+
+  function initContactFormFields(form) {
+    const inquiryType = form.querySelector('[name="inquiry_type"]');
+    if (!inquiryType) return;
+    syncContactPropertyField(form);
+    inquiryType.addEventListener('change', function () {
+      syncContactPropertyField(form);
+    });
   }
 
   async function submitContactForm(form) {
@@ -78,14 +127,34 @@
     const email = form.querySelector('[name="email"]').value.trim();
     const phoneEl = form.querySelector('[name="phone"]');
     const phone = phoneEl ? phoneEl.value.trim() : '';
+    const inquiryTypeEl = form.querySelector('[name="inquiry_type"]');
+    const inquiryType = inquiryTypeEl ? inquiryTypeEl.value : '';
+    const propertySelect = form.querySelector('[name="property"]');
     const message = form.querySelector('[name="message"]').value.trim();
+    let propertyInterest = null;
+
+    if (propertySelect && propertySelect.value) {
+      const property = window.PROPERTIES
+        ? window.PROPERTIES.find((item) => item.id === propertySelect.value)
+        : null;
+      propertyInterest = property
+        ? `${property.title} — ${property.address}`
+        : propertySelect.options[propertySelect.selectedIndex]?.textContent || propertySelect.value;
+    }
 
     if (typeof supabaseClient === 'undefined' || !supabaseClient) {
       if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Unable to submit. Please refresh and try again.'; }
       return;
     }
 
-    const { error } = await supabaseClient.from('contact_requests').insert([{ name, email, phone, message }]);
+    const { error } = await supabaseClient.from('contact_requests').insert([{
+      name,
+      email,
+      phone,
+      inquiry_type: inquiryType || null,
+      property_interest: propertyInterest,
+      message
+    }]);
 
     if (error) {
       console.error('Contact form error:', error);
@@ -95,6 +164,7 @@
 
     form.reset();
     populatePropertySelects();
+    syncContactPropertyField(form);
     if (messageBox) { messageBox.className = 'form-status success-message'; messageBox.textContent = 'Thank you! Your message has been received.'; }
   }
 
@@ -253,6 +323,9 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     populatePropertySelects();
-    document.querySelectorAll('form[data-form-type]').forEach(handleFormSubmission);
+    document.querySelectorAll('form[data-form-type]').forEach((form) => {
+      if (form.getAttribute('data-form-type') === 'contact') initContactFormFields(form);
+      handleFormSubmission(form);
+    });
   });
 })();
