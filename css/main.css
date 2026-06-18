@@ -662,6 +662,10 @@ p {
   transition: transform var(--transition), opacity var(--transition);
 }
 
+.form-group[hidden] {
+  display: none;
+}
+
 .form-group:focus-within {
   transform: translateY(-2px);
 }
