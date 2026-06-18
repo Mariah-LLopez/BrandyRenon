@@ -41,6 +41,10 @@
   word-break: break-word;
 }
 
+#login-form .login-submit {
+  margin-top: 1rem;
+}
+
 @media (max-width: 768px) {
   .admin-toolbar,
   .admin-toolbar .filter-grid {
