@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Portal | Brandy Renon</title>
+  <meta name="description" content="Secure client portal for real estate transaction documents and property management.">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <!-- Prevent flash of protected content before auth guard runs -->
+  <style id="auth-guard-style">body { visibility: hidden; }</style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <main id="main-content">
+
+    <!-- Top bar -->
+    <section class="page-hero">
+      <div class="container admin-shell">
+        <div class="admin-panel admin-topbar">
+          <div>
+            <p class="eyebrow">Client dashboard</p>
+            <h1>Welcome, <span id="client-name">&mdash;</span></h1>
+            <p>Signed in as <strong id="client-email"></strong></p>
+          </div>
+          <div class="cta-actions">
+            <span id="client-role-badge" class="role-badge role-client">Client</span>
+            <button id="client-logout" class="btn-secondary" type="button">Logout</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dashboard tabs -->
+    <section class="section">
+      <div class="container admin-shell">
+        <nav class="portal-tab-bar" aria-label="Dashboard sections">
+          <button class="portal-tab active" data-tab="properties" type="button">Properties</button>
+          <button class="portal-tab" data-tab="transactions" type="button">Transactions</button>
+          <button class="portal-tab" data-tab="documents" type="button">Documents</button>
+          <button class="portal-tab" data-tab="upload" type="button">Upload</button>
+        </nav>
+
+        <!-- Properties tab -->
+        <div id="tab-properties" class="tab-panel">
+          <div class="admin-panel" style="margin-bottom:1.5rem">
+            <h2>Your Properties</h2>
+            <p class="table-hint">Properties linked to your transaction files.</p>
+          </div>
+          <div id="properties-grid-client" class="dashboard-cards"></div>
+          <div id="properties-empty" class="admin-empty-state" hidden>No properties are currently assigned to your account.</div>
+        </div>
+
+        <!-- Transactions tab -->
+        <div id="tab-transactions" class="tab-panel" hidden>
+          <div class="admin-panel" style="margin-bottom:1.5rem">
+            <h2>Transaction Status</h2>
+            <p class="table-hint">Current status of your real estate transactions.</p>
+          </div>
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Property</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Started</th>
+                </tr>
+              </thead>
+              <tbody id="transactions-tbody"></tbody>
+            </table>
+            <div id="transactions-empty" class="admin-empty-state" hidden>No transactions found.</div>
+          </div>
+        </div>
+
+        <!-- Documents tab -->
+        <div id="tab-documents" class="tab-panel" hidden>
+          <div class="admin-panel" style="margin-bottom:1.5rem">
+            <div>
+              <h2>Your Documents</h2>
+              <p class="table-hint">Documents shared with you by your agent. Items marked <strong>Signature Required</strong> need your electronic acknowledgement.</p>
+            </div>
+          </div>
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">File Name</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Signature</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="documents-tbody"></tbody>
+            </table>
+            <div id="documents-empty" class="admin-empty-state" hidden>No documents have been shared with you yet.</div>
+          </div>
+        </div>
+
+        <!-- Upload tab -->
+        <div id="tab-upload" class="tab-panel" hidden>
+          <div class="admin-panel" style="margin-bottom:1.5rem">
+            <h2>Upload Documents</h2>
+            <p class="table-hint">Upload required documents securely. Accepted: PDF, Word, Excel, images (max 10 MB each).</p>
+          </div>
+          <div class="form-card">
+            <form id="client-upload-form" novalidate>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="client-upload-category">Document Category <span class="required" aria-hidden="true">*</span></label>
+                  <select id="client-upload-category" name="category" required>
+                    <option value="">Select category&hellip;</option>
+                    <option value="Paystub">Paystub</option>
+                    <option value="W-2">W-2 Form</option>
+                    <option value="Tax Return">Tax Return</option>
+                    <option value="ID">Driver's License / ID</option>
+                    <option value="Bank Statement">Bank Statement</option>
+                    <option value="Insurance">Insurance Document</option>
+                    <option value="Title">Title</option>
+                    <option value="Closing Document">Closing Document</option>
+                    <option value="Contract">Contract</option>
+                    <option value="Inspection Report">Inspection Report</option>
+                    <option value="Appraisal">Appraisal</option>
+                    <option value="HOA Document">HOA Document</option>
+                    <option value="Renovation Document">Renovation Document</option>
+                    <option value="Property Photo">Property Photo</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="client-upload-file">File <span class="required" aria-hidden="true">*</span></label>
+                  <input id="client-upload-file" name="file" type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp"
+                    required aria-describedby="upload-hint">
+                  <span id="upload-hint" class="helper-text">PDF, Word, Excel, or image &mdash; max 10 MB.</span>
+                </div>
+                <div class="form-group full-width">
+                  <label for="client-upload-notes">Notes (optional)</label>
+                  <textarea id="client-upload-notes" name="notes" placeholder="Describe the document if needed."></textarea>
+                </div>
+              </div>
+              <button id="client-upload-btn" class="btn-primary" type="submit">Upload Document</button>
+              <div id="upload-status" class="form-status" aria-live="polite"></div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Signature modal -->
+  <div id="signature-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="sig-modal-title">
+    <div class="modal-dialog">
+      <button class="modal-close" type="button" id="sig-modal-close" aria-label="Close">&times;</button>
+      <h2 id="sig-modal-title">Electronic Acknowledgement</h2>
+      <p>By checking the box below you electronically acknowledge that you have read and understood the document. This acknowledgement is legally binding and will be time-stamped.</p>
+      <p><strong id="sig-doc-name"></strong></p>
+      <div class="form-group signature-check-group">
+        <label class="signature-label">
+          <input type="checkbox" id="sig-checkbox">
+          I have read and acknowledge this document.
+        </label>
+      </div>
+      <button id="sig-confirm-btn" class="btn-primary" type="button" disabled>Confirm Acknowledgement</button>
+      <div id="sig-status" class="form-status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div id="site-footer"></div>
+
+  <script src="js/properties-data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/client-portal.js"></script>
+</body>
+</html>

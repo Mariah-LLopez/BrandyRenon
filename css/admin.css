@@ -1,4 +1,6 @@
-/* DEVELOPER NOTE: Replace this demo-only admin experience with a secure server-side portal before launch. */
+/* ==========================================================================
+   Admin / Client Portal — shared styles
+   ========================================================================== */
 
 .admin-shell {
   display: grid;
@@ -43,6 +45,20 @@
 
 #login-form .login-submit {
   margin-top: 1rem;
+}
+
+.forgot-password-link {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.875rem;
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.forgot-password-link:hover {
+  color: var(--color-primary-dark, var(--color-primary));
+  text-decoration: none;
 }
 
 @media (max-width: 768px) {

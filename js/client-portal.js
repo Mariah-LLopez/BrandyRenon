@@ -1,3 +1,6 @@
+// client-portal.js — Client portal page logic.
+// Queries only the signed-in client's own data (transactions, documents, properties).
+
 (function () {
   const MAX_FILE_SIZE_MB = 10;
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -21,7 +24,14 @@
     return ALLOWED_MIME_TYPES.includes((mime || '').toLowerCase());
   }
 
-  // ── Tab navigation ──────────────────────────────────────────────────────
+  // ── Reveal body after auth guard passes ───────────────────────────────────
+  function revealPage() {
+    const style = document.getElementById('auth-guard-style');
+    if (style) style.remove();
+    document.body.style.visibility = 'visible';
+  }
+
+  // ── Tab navigation ────────────────────────────────────────────────────────
   function initTabs() {
     const buttons = document.querySelectorAll('.portal-tab-bar .portal-tab');
     buttons.forEach((btn) => {
@@ -40,7 +50,7 @@
     });
   }
 
-  // ── Render helpers ───────────────────────────────────────────────────────
+  // ── Render helpers ────────────────────────────────────────────────────────
   function statusBadge(status) {
     const map = {
       Active: 'badge-active',
@@ -48,27 +58,48 @@
       Closed: 'badge-sold',
       Cancelled: 'badge-hidden'
     };
-    return `<span class="status-badge ${map[status] || 'badge-coming-soon'}">${status}</span>`;
+    return `<span class="status-badge ${map[status] || 'badge-coming-soon'}">${escapeHtml(status)}</span>`;
   }
 
   function sigBadge(doc) {
-    if (!doc.requires_signature) return '<span class="badge-doc-none">—</span>';
+    if (!doc.requires_signature) return '<span class="badge-doc-none">&mdash;</span>';
     if (doc.signed) {
       const ts = doc.signed_at ? new Date(doc.signed_at).toLocaleDateString() : '';
-      return `<span class="badge-doc-signed">Signed ${ts}</span>`;
+      return `<span class="badge-doc-signed">Signed ${escapeHtml(ts)}</span>`;
     }
     return '<span class="badge-doc-required">Signature Required</span>';
   }
 
-  // ── Load properties ──────────────────────────────────────────────────────
+  function formatCurrency(value) {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value || 0);
+  }
+
+  // ── Load properties (only those linked to the client's transactions) ───────
   async function loadProperties(userId) {
     const grid = document.getElementById('properties-grid-client');
     const empty = document.getElementById('properties-empty');
     if (!grid) return;
 
+    // Get property IDs from the client's transactions
+    const { data: txnData, error: txnErr } = await supabaseClient
+      .from('transactions')
+      .select('property_id')
+      .eq('client_id', userId);
+
+    if (txnErr) { console.error('Properties (via transactions) error:', txnErr); return; }
+
+    const propertyIds = (txnData || []).map((t) => t.property_id).filter(Boolean);
+
+    if (!propertyIds.length) {
+      if (empty) empty.hidden = false;
+      grid.innerHTML = '';
+      return;
+    }
+
     const { data, error } = await supabaseClient
       .from('properties')
       .select('*')
+      .in('id', propertyIds)
       .order('created_at', { ascending: false });
 
     if (error) { console.error('Properties error:', error); return; }
@@ -90,12 +121,8 @@
     `).join('');
   }
 
-  function formatCurrency(value) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value || 0);
-  }
-
-  // ── Load transactions ────────────────────────────────────────────────────
-  async function loadTransactions() {
+  // ── Load transactions (client's own only) ─────────────────────────────────
+  async function loadTransactions(userId) {
     const tbody = document.getElementById('transactions-tbody');
     const empty = document.getElementById('transactions-empty');
     if (!tbody) return;
@@ -103,6 +130,7 @@
     const { data, error } = await supabaseClient
       .from('transactions')
       .select('*, properties(property_address)')
+      .eq('client_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) { console.error('Transactions error:', error); return; }
@@ -114,17 +142,17 @@
     }
     if (empty) empty.hidden = true;
     tbody.innerHTML = data.map((t) => {
-      const addr = t.properties ? t.properties.property_address : t.property_id || '—';
+      const addr = t.properties ? t.properties.property_address : t.property_id || '&mdash;';
       return `<tr>
         <td>${escapeHtml(addr)}</td>
         <td style="text-transform:capitalize">${escapeHtml(t.transaction_type)}</td>
         <td>${statusBadge(t.status)}</td>
-        <td>${t.created_at ? escapeHtml(t.created_at.slice(0, 10)) : '—'}</td>
+        <td>${t.created_at ? escapeHtml(t.created_at.slice(0, 10)) : '&mdash;'}</td>
       </tr>`;
     }).join('');
   }
 
-  // ── Load documents ───────────────────────────────────────────────────────
+  // ── Load documents (client's own only) ────────────────────────────────────
   let allDocuments = [];
 
   async function loadDocuments(userId) {
@@ -135,6 +163,9 @@
     const { data, error } = await supabaseClient
       .from('documents')
       .select('*')
+      .eq('client_id', userId)
+      .neq('visibility', 'admin_only')
+      .eq('hidden', false)
       .order('created_at', { ascending: false });
 
     if (error) { console.error('Documents error:', error); return; }
@@ -165,36 +196,31 @@
         : '';
       return `<tr>
         <td>${escapeHtml(doc.file_name)}</td>
-        <td>${escapeHtml(doc.category) || '—'}</td>
-        <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0, 10)) : '—'}</td>
+        <td>${escapeHtml(doc.category) || '&mdash;'}</td>
+        <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0, 10)) : '&mdash;'}</td>
         <td>${sigBadge(doc)}</td>
         <td><div class="table-actions">${downloadBtn}${signBtn}</div></td>
       </tr>`;
     }).join('');
   }
 
-  // ── Download a document ─────────────────────────────────────────────────
+  // ── Download a document ───────────────────────────────────────────────────
   async function downloadDocument(docId) {
     const doc = allDocuments.find((d) => d.id === docId);
     if (!doc) return;
 
     const { data, error } = await supabaseClient.storage
       .from(doc.bucket_name || 'property-documents')
-      .createSignedUrl(doc.file_path, 300); // 5-minute signed URL
+      .createSignedUrl(doc.file_path, 300);
 
-    const statusEl = document.getElementById('documents-empty');
     if (error) {
-      if (statusEl) {
-        statusEl.hidden = false;
-        statusEl.textContent = 'Unable to generate download link. Please try again.';
-      }
+      console.error('Download error:', error);
       return;
     }
-    if (statusEl) statusEl.hidden = true;
     window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
   }
 
-  // ── Signature modal ──────────────────────────────────────────────────────
+  // ── Signature modal ───────────────────────────────────────────────────────
   let pendingSignDocId = null;
 
   function openSignatureModal(docId) {
@@ -271,7 +297,7 @@
     }, 1500);
   }
 
-  // ── Document upload ──────────────────────────────────────────────────────
+  // ── Document upload ───────────────────────────────────────────────────────
   async function handleUpload(event, userId) {
     event.preventDefault();
     const form = document.getElementById('client-upload-form');
@@ -335,7 +361,8 @@
         file_size: file.size,
         category: category,
         visibility: 'client_visible',
-        notes: notes || null
+        notes: notes || null,
+        hidden: false
       }]);
 
     if (dbError) {
@@ -344,31 +371,35 @@
       return;
     }
 
-    form.reset();
+    if (form) form.reset();
     if (uploadBtn) uploadBtn.disabled = false;
     if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Document uploaded successfully.'; }
     await loadDocuments(userId);
   }
 
-  // ── Initialisation ───────────────────────────────────────────────────────
+  // ── Initialisation ────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', async function () {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) {
-      window.location.href = 'login.html';
+      window.location.replace('login.html');
       return;
     }
 
     const session = await getSession();
     if (!session) {
-      window.location.href = 'login.html';
+      window.location.replace('login.html');
       return;
     }
 
     const role = await getCurrentUserRole();
     if (role !== 'client') {
-      if (role === 'admin') { window.location.href = 'admin.html'; return; }
-      window.location.href = 'login.html';
+      // Admins who land here are redirected to their dashboard
+      if (role === 'admin') { window.location.replace('admin.html'); return; }
+      window.location.replace('login.html');
       return;
     }
+
+    // Auth passed — reveal page
+    revealPage();
 
     const userId = session.user.id;
     const userEmail = session.user.email;
@@ -396,10 +427,10 @@
 
     initTabs();
 
-    // Load initial data
+    // Load data scoped to this user
     await Promise.all([
       loadProperties(userId),
-      loadTransactions(),
+      loadTransactions(userId),
       loadDocuments(userId)
     ]);
 
