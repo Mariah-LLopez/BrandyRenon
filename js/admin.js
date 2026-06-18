@@ -1,114 +1,658 @@
 (function () {
-  const MAX_UPLOAD_FILE_SIZE_MB = 5;
-  const MAX_UPLOAD_FILE_SIZE_BYTES = MAX_UPLOAD_FILE_SIZE_MB * 1024 * 1024;
-  const ALLOWED_FILE_MIME_TYPES = [
+  const MAX_FILE_SIZE_MB = 10;
+  const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+  const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.png', '.jpg', '.jpeg', '.gif', '.webp'];
+  const ALLOWED_MIME_TYPES = [
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'text/plain',
-    'image/png',
-    'image/jpeg',
-    'image/gif',
-    'image/webp'
+    'image/png', 'image/jpeg', 'image/gif', 'image/webp'
   ];
-  const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.doc', '.docx', '.xls', '.xlsx', '.txt'];
 
-  function hasAllowedFileExtension(fileName) {
-    if (typeof fileName !== 'string') return false;
-    const lowerCaseName = fileName.toLowerCase();
-    return ALLOWED_FILE_EXTENSIONS.some((extension) => lowerCaseName.endsWith(extension));
+  function hasAllowedExtension(name) {
+    const lower = (name || '').toLowerCase();
+    return ALLOWED_EXTENSIONS.some((ext) => lower.endsWith(ext));
+  }
+  function isAllowedMime(mime) {
+    return ALLOWED_MIME_TYPES.includes((mime || '').toLowerCase());
   }
 
-  function isAllowedMimeType(mimeType) {
-    if (typeof mimeType !== 'string' || !mimeType) return false;
-    return ALLOWED_FILE_MIME_TYPES.includes(mimeType.toLowerCase());
+  // ── Modal helpers ─────────────────────────────────────────────────────────
+  function openModal(id) {
+    const m = document.getElementById(id + '-modal');
+    if (!m) return;
+    m.classList.add('is-open');
+    m.setAttribute('aria-hidden', 'false');
   }
-
-  function isAllowedFileType(mimeType, fileName) {
-    return isAllowedMimeType(mimeType) && hasAllowedFileExtension(fileName);
+  function closeModal(id) {
+    const m = document.getElementById(id + '-modal');
+    if (!m) return;
+    m.classList.remove('is-open');
+    m.setAttribute('aria-hidden', 'true');
   }
-
-  function handleLoginPage() {
-    const loginForm = document.getElementById('login-form');
-    const loginButton = document.getElementById('login-button');
-    if (!loginForm || !loginButton) return;
-
-    const originalButtonLabel = loginButton.textContent;
-    const setLoginButtonState = (isLoading) => {
-      loginButton.disabled = isLoading;
-      loginButton.textContent = isLoading ? 'Logging in...' : originalButtonLabel;
-      if (isLoading) {
-        loginButton.setAttribute('aria-busy', 'true');
-      } else {
-        loginButton.removeAttribute('aria-busy');
-      }
-    };
-
-    loginForm.addEventListener('submit', async function (event) {
-      event.preventDefault();
-      const email = document.getElementById('login-email').value.trim();
-      const password = document.getElementById('login-password').value;
-      const errorBox = document.getElementById('login-error');
-
-      if (errorBox) {
-        errorBox.textContent = '';
-        errorBox.className = '';
-      }
-
-      if (!email || !password) {
-        if (errorBox) {
-          errorBox.textContent = 'Enter both your email and password.';
-          errorBox.className = 'error-message';
+  function setupModalClose() {
+    document.querySelectorAll('[data-close-modal]').forEach((btn) => {
+      btn.addEventListener('click', function () {
+        closeModal(btn.getAttribute('data-close-modal'));
+      });
+    });
+    document.querySelectorAll('.modal').forEach((modal) => {
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) {
+          const id = modal.id.replace('-modal', '');
+          closeModal(id);
         }
-        return;
-      }
-
-      if (typeof supabaseClient === 'undefined' || !supabaseClient || !supabaseClient.auth) {
-        if (errorBox) {
-          errorBox.textContent = 'Login is temporarily unavailable. Please refresh and try again.';
-          errorBox.className = 'error-message';
-        }
-        console.error('supabaseClient is not initialized');
-        return;
-      }
-
-      setLoginButtonState(true);
-
-      try {
-        console.log('Attempting sign in for:', email);
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-          email,
-          password
+      });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal.is-open').forEach((modal) => {
+          const id = modal.id.replace('-modal', '');
+          closeModal(id);
         });
-
-        console.log('Sign in result — data:', data, 'error:', error);
-
-        if (error) {
-          if (errorBox) {
-            errorBox.textContent = error.message;
-            errorBox.className = 'error-message';
-          }
-          console.error('Sign in error:', error);
-          setLoginButtonState(false);
-          return;
-        }
-
-        window.location.href = 'admin.html';
-      } catch (err) {
-        if (errorBox) {
-          errorBox.textContent = 'Unable to sign in right now. Please try again.';
-          errorBox.className = 'error-message';
-        }
-        console.error('Login failed:', err);
-        setLoginButtonState(false);
       }
     });
   }
 
+  // ── Tab navigation ────────────────────────────────────────────────────────
+  function initTabs() {
+    const mainTabs = document.querySelectorAll('.portal-tab-bar:not(.leads-sub-tabs) .portal-tab');
+    mainTabs.forEach((btn) => {
+      btn.addEventListener('click', function () {
+        mainTabs.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-panel').forEach((p) => { p.hidden = true; });
+        const target = document.getElementById('tab-' + btn.getAttribute('data-tab'));
+        if (target) target.hidden = false;
+      });
+    });
+
+    const leadTabs = document.querySelectorAll('.leads-sub-tabs .portal-tab');
+    leadTabs.forEach((btn) => {
+      btn.addEventListener('click', function () {
+        leadTabs.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.lead-tab-panel').forEach((p) => { p.hidden = true; });
+        const target = document.getElementById('lead-tab-' + btn.getAttribute('data-lead-tab'));
+        if (target) target.hidden = false;
+      });
+    });
+  }
+
+  // ── Status badges ─────────────────────────────────────────────────────────
+  function statusBadge(status) {
+    const map = { Active: 'badge-active', Pending: 'badge-pending', Sold: 'badge-sold', 'Coming Soon': 'badge-coming-soon', Closed: 'badge-sold', Cancelled: 'badge-hidden' };
+    return `<span class="status-badge ${map[status] || 'badge-coming-soon'}">${status}</span>`;
+  }
+
+  function visibilityLabel(v) {
+    return { admin_only: 'Admin Only', client_visible: 'Client View', client_downloadable: 'Downloadable' }[v] || v;
+  }
+
+  function sigBadge(doc) {
+    if (!doc.requires_signature) return '—';
+    if (doc.signed) return `<span class="badge-doc-signed">Signed ${doc.signed_at ? doc.signed_at.slice(0,10) : ''}</span>`;
+    return '<span class="badge-doc-required">Pending</span>';
+  }
+
+  // ── Cache for selects ─────────────────────────────────────────────────────
+  let allUsers = [];
+  let allProperties = [];
+  let allDocuments = [];
+
+  // ── Load users ────────────────────────────────────────────────────────────
+  async function loadUsers() {
+    const tbody = document.getElementById('users-tbody');
+    const empty = document.getElementById('users-empty');
+    if (!tbody) return;
+
+    const { data, error } = await supabaseClient.from('profiles').select('*').order('created_at', { ascending: false });
+    if (error) { console.error('Users error:', error); return; }
+
+    allUsers = data || [];
+    populateUserSelect(document.getElementById('upload-client'));
+    populateUserSelect(document.getElementById('txn-client'));
+
+    if (!allUsers.length) { if (empty) empty.hidden = false; tbody.innerHTML = ''; return; }
+    if (empty) empty.hidden = true;
+
+    tbody.innerHTML = allUsers.map((u) => `<tr>
+      <td>${escapeHtml(u.full_name) || '—'}</td>
+      <td>${escapeHtml(u.email)}</td>
+      <td>${escapeHtml(u.phone) || '—'}</td>
+      <td><span class="role-badge ${u.role === 'admin' ? 'role-admin' : 'role-client'}">${escapeHtml(u.role)}</span></td>
+      <td>${u.created_at ? escapeHtml(u.created_at.slice(0,10)) : '—'}</td>
+    </tr>`).join('');
+  }
+
+  function populateUserSelect(select) {
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = '<option value="">No specific client</option>' +
+      allUsers.filter((u) => u.role === 'client').map((u) =>
+        `<option value="${escapeHtml(u.id)}">${escapeHtml(u.full_name || u.email)}</option>`
+      ).join('');
+    if (current) select.value = current;
+  }
+
+  // ── Invite client ─────────────────────────────────────────────────────────
+  async function handleInvite(event) {
+    event.preventDefault();
+    const form = document.getElementById('invite-form');
+    const statusEl = document.getElementById('invite-status');
+    const email = form.querySelector('[name="email"]').value.trim();
+    const fullName = form.querySelector('[name="full_name"]').value.trim();
+
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
+
+    if (!email) {
+      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Email is required.'; }
+      return;
+    }
+
+    // Use a magic link (OTP) to invite the client — no temporary password needed.
+    const { error } = await supabaseClient.auth.signInWithOtp({
+      email,
+      options: { data: { full_name: fullName, role: 'client' }, shouldCreateUser: true }
+    });
+
+    if (error) {
+      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Invitation failed: ' + error.message; }
+      return;
+    }
+
+    if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = `Invitation sent to ${email}. The client will receive a confirmation email.`; }
+    form.reset();
+    await loadUsers();
+    setTimeout(() => closeModal('invite'), 2500);
+  }
+
+  // ── Load properties ───────────────────────────────────────────────────────
+  async function loadProperties() {
+    const tbody = document.getElementById('properties-tbody');
+    const empty = document.getElementById('properties-empty');
+    if (!tbody) return;
+
+    const { data, error } = await supabaseClient.from('properties').select('*').order('created_at', { ascending: false });
+    if (error) { console.error('Properties error:', error); return; }
+
+    allProperties = data || [];
+    populatePropertySelect(document.getElementById('upload-property'));
+    populatePropertySelect(document.getElementById('txn-property'));
+
+    if (!allProperties.length) { if (empty) empty.hidden = false; tbody.innerHTML = ''; return; }
+    if (empty) empty.hidden = true;
+
+    tbody.innerHTML = allProperties.map((p) => `<tr>
+      <td>${escapeHtml(p.property_address)}</td>
+      <td>${statusBadge(p.property_status)}</td>
+      <td>${p.purchase_price ? '$' + Number(p.purchase_price).toLocaleString() : '—'}</td>
+      <td>${p.sale_price ? '$' + Number(p.sale_price).toLocaleString() : '—'}</td>
+      <td>${p.created_at ? escapeHtml(p.created_at.slice(0,10)) : '—'}</td>
+      <td><div class="table-actions">
+        <button class="action-link" data-action="delete-property" data-id="${escapeHtml(p.id)}" type="button">Delete</button>
+      </div></td>
+    </tr>`).join('');
+  }
+
+  function populatePropertySelect(select) {
+    if (!select) return;
+    const current = select.value;
+    const hasNone = select.querySelector('option[value=""]');
+    const noneText = hasNone ? hasNone.textContent : 'No specific property';
+    select.innerHTML = `<option value="">${escapeHtml(noneText)}</option>` +
+      allProperties.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.property_address)}</option>`).join('');
+    if (current) select.value = current;
+  }
+
+  // ── Add property ──────────────────────────────────────────────────────────
+  async function handleAddProperty(event) {
+    event.preventDefault();
+    const form = document.getElementById('property-form');
+    const statusEl = document.getElementById('property-status');
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
+
+    const address = form.querySelector('[name="property_address"]').value.trim();
+    if (!address) {
+      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Address is required.'; }
+      return;
+    }
+
+    const { error } = await supabaseClient.from('properties').insert([{
+      property_address: address,
+      property_status: form.querySelector('[name="property_status"]').value,
+      purchase_price: form.querySelector('[name="purchase_price"]').value || null,
+      sale_price: form.querySelector('[name="sale_price"]').value || null,
+      notes: form.querySelector('[name="notes"]').value.trim() || null
+    }]);
+
+    if (error) {
+      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Failed: ' + error.message; }
+      return;
+    }
+
+    if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Property saved.'; }
+    form.reset();
+    await loadProperties();
+    setTimeout(() => closeModal('property'), 1500);
+  }
+
+  // ── Load transactions ─────────────────────────────────────────────────────
+  async function loadTransactions() {
+    const tbody = document.getElementById('transactions-tbody');
+    const empty = document.getElementById('transactions-empty');
+    if (!tbody) return;
+
+    const { data, error } = await supabaseClient
+      .from('transactions')
+      .select('*, properties(property_address), profiles(full_name, email)')
+      .order('created_at', { ascending: false });
+
+    if (error) { console.error('Transactions error:', error); return; }
+
+    const txns = data || [];
+    if (!txns.length) { if (empty) empty.hidden = false; tbody.innerHTML = ''; return; }
+    if (empty) empty.hidden = true;
+
+    tbody.innerHTML = txns.map((t) => {
+      const prop = t.properties ? t.properties.property_address : '—';
+      const client = t.profiles ? (t.profiles.full_name || t.profiles.email) : '—';
+      return `<tr>
+        <td>${escapeHtml(prop)}</td>
+        <td>${escapeHtml(client)}</td>
+        <td style="text-transform:capitalize">${escapeHtml(t.transaction_type)}</td>
+        <td>${statusBadge(t.status)}</td>
+        <td>${t.created_at ? escapeHtml(t.created_at.slice(0,10)) : '—'}</td>
+        <td><div class="table-actions">
+          <button class="action-link" data-action="delete-txn" data-id="${escapeHtml(t.id)}" type="button">Delete</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Add transaction ───────────────────────────────────────────────────────
+  async function handleAddTransaction(event) {
+    event.preventDefault();
+    const form = document.getElementById('transaction-form');
+    const statusEl = document.getElementById('transaction-status');
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
+
+    const propertyId = form.querySelector('[name="property_id"]').value;
+    const clientId = form.querySelector('[name="client_id"]').value;
+
+    if (!propertyId || !clientId) {
+      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Property and client are required.'; }
+      return;
+    }
+
+    const { error } = await supabaseClient.from('transactions').insert([{
+      property_id: propertyId,
+      client_id: clientId,
+      transaction_type: form.querySelector('[name="transaction_type"]').value,
+      status: form.querySelector('[name="status"]').value,
+      notes: form.querySelector('[name="notes"]').value.trim() || null
+    }]);
+
+    if (error) {
+      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Failed: ' + error.message; }
+      return;
+    }
+
+    if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Transaction created.'; }
+    form.reset();
+    await loadTransactions();
+    setTimeout(() => closeModal('transaction'), 1500);
+  }
+
+  // ── Load documents ────────────────────────────────────────────────────────
+  async function loadDocuments() {
+    const tbody = document.getElementById('documents-tbody');
+    const empty = document.getElementById('documents-empty');
+    if (!tbody) return;
+
+    const { data, error } = await supabaseClient
+      .from('documents')
+      .select('*, profiles!documents_client_id_fkey(full_name, email)')
+      .order('created_at', { ascending: false });
+
+    if (error) { console.error('Docs error:', error); return; }
+    allDocuments = data || [];
+    renderDocuments();
+  }
+
+  function renderDocuments() {
+    const tbody = document.getElementById('documents-tbody');
+    const empty = document.getElementById('documents-empty');
+    if (!tbody) return;
+
+    const visFilter = document.getElementById('admin-filter-visibility');
+    const sigFilter = document.getElementById('admin-filter-signed');
+    const visVal = visFilter ? visFilter.value : '';
+    const sigVal = sigFilter ? sigFilter.value : '';
+
+    let filtered = allDocuments.slice();
+    if (visVal) filtered = filtered.filter((d) => d.visibility === visVal);
+    if (sigVal === 'required') filtered = filtered.filter((d) => d.requires_signature);
+    if (sigVal === 'signed') filtered = filtered.filter((d) => d.signed);
+    if (sigVal === 'unsigned') filtered = filtered.filter((d) => d.requires_signature && !d.signed);
+
+    if (!filtered.length) { tbody.innerHTML = ''; if (empty) empty.hidden = false; return; }
+    if (empty) empty.hidden = true;
+
+    tbody.innerHTML = filtered.map((doc) => {
+      const clientInfo = doc.profiles ? (doc.profiles.full_name || doc.profiles.email) : '—';
+      return `<tr>
+        <td>${escapeHtml(doc.file_name)}</td>
+        <td>${escapeHtml(doc.category) || '—'}</td>
+        <td>${escapeHtml(clientInfo)}</td>
+        <td>${escapeHtml(visibilityLabel(doc.visibility))}</td>
+        <td>${sigBadge(doc)}</td>
+        <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0,10)) : '—'}</td>
+        <td><div class="table-actions">
+          <button class="action-link" data-action="toggle-doc" data-id="${escapeHtml(doc.id)}" type="button">${doc.hidden ? 'Unhide' : 'Hide'}</button>
+          <button class="action-link" data-action="delete-doc" data-id="${escapeHtml(doc.id)}" type="button">Delete</button>
+          ${doc.requires_signature && !doc.signed ? `<button class="action-link" data-action="require-sig" data-id="${escapeHtml(doc.id)}" type="button">Req. Sig.</button>` : ''}
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Upload document ───────────────────────────────────────────────────────
+  async function handleUpload(event, adminUserId) {
+    event.preventDefault();
+    const form = document.getElementById('upload-form');
+    const statusEl = document.getElementById('upload-status');
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
+
+    const fileInput = document.getElementById('upload-file');
+    const file = fileInput ? fileInput.files[0] : null;
+
+    if (!file) {
+      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Please select a file.'; }
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = `File must be under ${MAX_FILE_SIZE_MB} MB.`; }
+      return;
+    }
+    if (!isAllowedMime(file.type) || !hasAllowedExtension(file.name)) {
+      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Unsupported file type.'; }
+      return;
+    }
+
+    const safeFilename = sanitizeFilename(file.name);
+    const clientId = form.querySelector('[name="client_id"]').value || null;
+    const propertyId = form.querySelector('[name="property_id"]').value || null;
+    const uniquePrefix = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    const filePath = clientId
+      ? `admin/users/${clientId}/${uniquePrefix}-${safeFilename}`
+      : propertyId
+        ? `admin/${propertyId}/${uniquePrefix}-${safeFilename}`
+        : `admin/${uniquePrefix}-${safeFilename}`;
+
+    const bucketName = file.type.startsWith('image/') ? 'property-images' : 'property-documents';
+
+    const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
+    if (storageError) {
+      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Upload failed: ' + storageError.message; }
+      return;
+    }
+
+    const { error: dbError } = await supabaseClient.from('documents').insert([{
+      client_id: clientId,
+      property_id: propertyId,
+      uploaded_by: adminUserId,
+      file_name: file.name,
+      file_path: filePath,      bucket_name: bucketName,
+      file_type: file.type,
+      file_size: file.size,
+      category: form.querySelector('[name="category"]').value || null,
+      visibility: form.querySelector('[name="visibility"]').value,
+      requires_signature: document.getElementById('upload-requires-sig').checked,
+      notes: form.querySelector('[name="notes"]').value.trim() || null,
+      hidden: false
+    }]);
+
+    if (dbError) {
+      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'File saved but record failed: ' + dbError.message; }
+      return;
+    }
+
+    if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Document uploaded successfully.'; }
+    form.reset();
+    await loadDocuments();
+    setTimeout(() => closeModal('upload'), 1500);
+  }
+
+  // ── Document table actions ────────────────────────────────────────────────
+  async function handleDocumentAction(action, id) {
+    const doc = allDocuments.find((d) => d.id === id);
+    if (!doc) return;
+
+    if (action === 'toggle-doc') {
+      const { error } = await supabaseClient.from('documents').update({ hidden: !doc.hidden }).eq('id', id);
+      if (error) { alert('Failed: ' + error.message); return; }
+      await loadDocuments();
+    }
+
+    if (action === 'delete-doc') {
+      if (!window.confirm('Delete this document? This cannot be undone.')) return;
+      if (doc.bucket_name && doc.file_path) {
+        await supabaseClient.storage.from(doc.bucket_name).remove([doc.file_path]);
+      }
+      const { error } = await supabaseClient.from('documents').delete().eq('id', id);
+      if (error) { alert('Delete failed: ' + error.message); return; }
+      await loadDocuments();
+    }
+
+    if (action === 'require-sig') {
+      const { error } = await supabaseClient.from('documents').update({ requires_signature: true }).eq('id', id);
+      if (error) { alert('Failed: ' + error.message); return; }
+      await loadDocuments();
+    }
+  }
+
+  // ── Property table actions ────────────────────────────────────────────────
+  async function handlePropertyAction(action, id) {
+    if (action === 'delete-property') {
+      if (!window.confirm('Delete this property? This cannot be undone.')) return;
+      const { error } = await supabaseClient.from('properties').delete().eq('id', id);
+      if (error) { alert('Delete failed: ' + error.message); return; }
+      await loadProperties();
+    }
+  }
+
+  // ── Transaction table actions ─────────────────────────────────────────────
+  async function handleTransactionAction(action, id) {
+    if (action === 'delete-txn') {
+      if (!window.confirm('Delete this transaction? This cannot be undone.')) return;
+      const { error } = await supabaseClient.from('transactions').delete().eq('id', id);
+      if (error) { alert('Delete failed: ' + error.message); return; }
+      await loadTransactions();
+    }
+  }
+
+  // ── Leads ─────────────────────────────────────────────────────────────────
+  async function loadLeads() {
+    await Promise.all([loadFlipLeads(), loadContractorLeads()]);
+  }
+
+  async function loadFlipLeads() {
+    const tbody = document.getElementById('flip-leads-tbody');
+    const empty = document.getElementById('flip-leads-empty');
+    if (!tbody) return;
+
+    const { data, error } = await supabaseClient.from('house_flip_inquiries').select('*').order('created_at', { ascending: false });
+    if (error) { console.error('Flip leads error:', error); return; }
+
+    const rows = data || [];
+    if (!rows.length) { if (empty) empty.hidden = false; tbody.innerHTML = ''; return; }
+    if (empty) empty.hidden = true;
+
+    tbody.innerHTML = rows.map((r) => `<tr>
+      <td>${escapeHtml(r.full_name)}</td>
+      <td>${escapeHtml(r.email)}</td>
+      <td>${escapeHtml(r.phone) || '—'}</td>
+      <td>${escapeHtml(r.property_address) || '—'}</td>
+      <td>${escapeHtml(r.estimated_value) || '—'}</td>
+      <td>${r.created_at ? escapeHtml(r.created_at.slice(0,10)) : '—'}</td>
+    </tr>`).join('');
+  }
+
+  async function loadContractorLeads() {
+    const tbody = document.getElementById('contractor-leads-tbody');
+    const empty = document.getElementById('contractor-leads-empty');
+    if (!tbody) return;
+
+    const { data, error } = await supabaseClient.from('contractor_inquiries').select('*').order('created_at', { ascending: false });
+    if (error) { console.error('Contractor leads error:', error); return; }
+
+    const rows = data || [];
+    if (!rows.length) { if (empty) empty.hidden = false; tbody.innerHTML = ''; return; }
+    if (empty) empty.hidden = true;
+
+    tbody.innerHTML = rows.map((r) => `<tr>
+      <td>${escapeHtml(r.full_name)}</td>
+      <td>${escapeHtml(r.company_name) || '—'}</td>
+      <td>${escapeHtml(r.email)}</td>
+      <td>${escapeHtml(r.service_type) || '—'}</td>
+      <td>${escapeHtml(r.service_area) || '—'}</td>
+      <td>${r.created_at ? escapeHtml(r.created_at.slice(0,10)) : '—'}</td>
+    </tr>`).join('');
+  }
+
+  // ── Login page ────────────────────────────────────────────────────────────
+  function handleLoginPage() {
+    // Tab switching
+    const tabSignin = document.getElementById('tab-signin');
+    const tabRegister = document.getElementById('tab-register');
+    const panelSignin = document.getElementById('panel-signin');
+    const panelRegister = document.getElementById('panel-register');
+
+    if (tabSignin && tabRegister) {
+      tabSignin.addEventListener('click', function () {
+        tabSignin.classList.add('active');
+        tabSignin.setAttribute('aria-selected', 'true');
+        tabRegister.classList.remove('active');
+        tabRegister.setAttribute('aria-selected', 'false');
+        if (panelSignin) panelSignin.hidden = false;
+        if (panelRegister) panelRegister.hidden = true;
+      });
+      tabRegister.addEventListener('click', function () {
+        tabRegister.classList.add('active');
+        tabRegister.setAttribute('aria-selected', 'true');
+        tabSignin.classList.remove('active');
+        tabSignin.setAttribute('aria-selected', 'false');
+        if (panelRegister) panelRegister.hidden = false;
+        if (panelSignin) panelSignin.hidden = true;
+      });
+    }
+
+    // Sign-in form
+    const loginForm = document.getElementById('login-form');
+    const loginBtn = document.getElementById('login-button');
+    if (loginForm && loginBtn) {
+      loginForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        const errorBox = document.getElementById('login-error');
+        if (errorBox) { errorBox.textContent = ''; errorBox.className = 'form-status'; }
+
+        if (!email || !password) {
+          if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Enter both your email and password.'; }
+          return;
+        }
+        if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+          if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Login is temporarily unavailable.'; }
+          return;
+        }
+
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Signing in…';
+
+        try {
+          const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) {
+            if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = error.message; }
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Sign In';
+            return;
+          }
+          // Route based on role
+          const role = await getCurrentUserRole();
+          window.location.href = role === 'admin' ? 'admin.html' : 'client.html';
+        } catch (err) {
+          if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Unable to sign in. Please try again.'; }
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Sign In';
+        }
+      });
+    }
+
+    // Register form
+    const registerForm = document.getElementById('register-form');
+    const registerBtn = document.getElementById('register-button');
+    if (registerForm && registerBtn) {
+      registerForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const fullName = registerForm.querySelector('[name="full_name"]').value.trim();
+        const email = registerForm.querySelector('[name="email"]').value.trim();
+        const password = registerForm.querySelector('[name="password"]').value;
+        const statusEl = document.getElementById('register-status');
+        if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
+
+        if (!email || !password) {
+          if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Email and password are required.'; }
+          return;
+        }
+        if (password.length < 8) {
+          if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Password must be at least 8 characters.'; }
+          return;
+        }
+        if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+          if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Registration is temporarily unavailable.'; }
+          return;
+        }
+
+        registerBtn.disabled = true;
+        registerBtn.textContent = 'Creating account…';
+
+        try {
+          const { error } = await supabaseClient.auth.signUp({
+            email,
+            password,
+            options: { data: { full_name: fullName, role: 'client' } }
+          });
+
+          if (error) {
+            if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = error.message; }
+            registerBtn.disabled = false;
+            registerBtn.textContent = 'Create Account';
+            return;
+          }
+
+          if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Account created! Check your email to confirm your address, then sign in.'; }
+          registerForm.reset();
+          registerBtn.disabled = false;
+          registerBtn.textContent = 'Create Account';
+        } catch (err) {
+          if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Registration failed. Please try again.'; }
+          registerBtn.disabled = false;
+          registerBtn.textContent = 'Create Account';
+        }
+      });
+    }
+  }
+
+  // ── Admin page ────────────────────────────────────────────────────────────
   async function renderAdminPage() {
-    const tableBody = document.getElementById('private-db-body');
+    const tableBody = document.getElementById('documents-tbody');
     if (!tableBody) return;
 
     if (typeof supabaseClient === 'undefined' || !supabaseClient) {
@@ -116,312 +660,102 @@
       return;
     }
 
-    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const session = await getSession();
+    if (!session) { window.location.href = 'login.html'; return; }
 
-    if (!sessionData.session) {
-      window.location.href = 'login.html';
+    const role = await getCurrentUserRole();
+    if (role !== 'admin') {
+      window.location.href = role === 'client' ? 'client.html' : 'login.html';
       return;
     }
 
-    const userEmail = sessionData.session.user.email;
-    const isAdmin = true;
+    const adminUserId = session.user.id;
+    const userEmail = session.user.email;
 
     const userDisplay = document.getElementById('logged-in-user');
-    const roleBadge = document.getElementById('role-badge');
-    const toolbar = document.getElementById('admin-toolbar');
-    const uploadButton = document.getElementById('open-upload-modal');
-    const logoutButton = document.getElementById('logout-button');
-    const modal = document.getElementById('upload-modal');
-    const modalCloseButtons = modal ? modal.querySelectorAll('[data-close-modal]') : [];
-    const uploadForm = document.getElementById('upload-form');
-    const fileInput = document.getElementById('upload-file-input');
-    const filterType = document.getElementById('admin-filter-type');
-    const filterVisibility = document.getElementById('admin-filter-visibility');
-    const filterProperty = document.getElementById('admin-filter-property');
-    const tableHint = document.getElementById('table-role-hint');
-    const emptyState = document.getElementById('admin-empty-state');
-
     if (userDisplay) userDisplay.textContent = userEmail;
-    if (roleBadge) roleBadge.textContent = 'Admin';
-    if (toolbar) toolbar.hidden = false;
 
-    let allEntries = [];
-
-    async function loadEntries() {
-      const { data, error } = await supabaseClient
-        .from('documents')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Failed to load documents:', error);
-        return [];
-      }
-      return data || [];
-    }
-
-    function getPublicUrl(entry) {
-      if (!entry.bucket_name || !entry.file_path) return '';
-      const { data } = supabaseClient.storage
-        .from(entry.bucket_name)
-        .getPublicUrl(entry.file_path);
-      return data ? data.publicUrl : '';
-    }
-
-    function populatePropertyFilter() {
-      if (!filterProperty || !window.PROPERTIES) return;
-      filterProperty.innerHTML = '<option value="">All properties</option>' +
-        window.PROPERTIES.map((p) => `<option value="${p.id}">${p.title}</option>`).join('');
-    }
-
-    function renderRows(entries) {
-      const fileTypeValue = filterType ? filterType.value : '';
-      const visibilityValue = filterVisibility ? filterVisibility.value : '';
-      const propertyValue = filterProperty ? filterProperty.value : '';
-
-      let filtered = entries.slice();
-
-      if (fileTypeValue) filtered = filtered.filter((e) => e.file_type === fileTypeValue);
-      if (visibilityValue === 'visible') filtered = filtered.filter((e) => !e.hidden);
-      if (visibilityValue === 'hidden') filtered = filtered.filter((e) => e.hidden);
-      if (propertyValue) filtered = filtered.filter((e) => e.property_id === propertyValue);
-
-      if (!filtered.length) {
-        tableBody.innerHTML = '';
-        if (emptyState) emptyState.hidden = false;
-        return;
-      }
-
-      if (emptyState) emptyState.hidden = true;
-      tableBody.innerHTML = '';
-      const tableFragment = document.createDocumentFragment();
-
-      filtered.forEach((entry) => {
-        const row = document.createElement('tr');
-
-        const propertyAddressCell = document.createElement('td');
-        propertyAddressCell.textContent = entry.property_address || '';
-        row.appendChild(propertyAddressCell);
-
-        const propertyIdCell = document.createElement('td');
-        propertyIdCell.textContent = entry.property_id || '';
-        row.appendChild(propertyIdCell);
-
-        const fileNameCell = document.createElement('td');
-        const publicUrl = getPublicUrl(entry);
-        if (publicUrl) {
-          const fileAnchor = document.createElement('a');
-          fileAnchor.href = '#';
-          fileAnchor.target = '_blank';
-          fileAnchor.rel = 'noopener noreferrer';
-          fileAnchor.textContent = entry.file_name || 'Open file';
-          fileAnchor.addEventListener('click', function (openEvent) {
-            openEvent.preventDefault();
-            window.open(publicUrl, '_blank', 'noopener,noreferrer');
-          });
-          fileNameCell.appendChild(fileAnchor);
-        } else {
-          fileNameCell.textContent = entry.file_name || '';
-        }
-        row.appendChild(fileNameCell);
-
-        const fileTypeCell = document.createElement('td');
-        fileTypeCell.textContent = entry.file_type || '';
-        row.appendChild(fileTypeCell);
-
-        const listingAgentCell = document.createElement('td');
-        listingAgentCell.textContent = entry.uploaded_by || '';
-        row.appendChild(listingAgentCell);
-
-        const uploadDateCell = document.createElement('td');
-        uploadDateCell.textContent = entry.created_at ? entry.created_at.slice(0, 10) : '';
-        row.appendChild(uploadDateCell);
-
-        const statusCell = document.createElement('td');
-        const statusBadge = document.createElement('span');
-        statusBadge.className = entry.hidden ? 'badge-hidden' : 'badge-visible';
-        statusBadge.textContent = entry.hidden ? 'Hidden' : 'Visible';
-        statusCell.appendChild(statusBadge);
-        row.appendChild(statusCell);
-
-        const actionsCell = document.createElement('td');
-        const actionsWrapper = document.createElement('div');
-        actionsWrapper.className = 'table-actions';
-
-        const toggleButton = document.createElement('button');
-        toggleButton.type = 'button';
-        toggleButton.className = 'action-link';
-        toggleButton.setAttribute('data-action', 'toggle');
-        toggleButton.setAttribute('data-id', String(entry.id));
-        toggleButton.textContent = entry.hidden ? 'Unhide' : 'Hide';
-        actionsWrapper.appendChild(toggleButton);
-
-        const deleteButton = document.createElement('button');
-        deleteButton.type = 'button';
-        deleteButton.className = 'action-link';
-        deleteButton.setAttribute('data-action', 'delete');
-        deleteButton.setAttribute('data-id', String(entry.id));
-        deleteButton.textContent = 'Delete';
-        actionsWrapper.appendChild(deleteButton);
-
-        actionsCell.appendChild(actionsWrapper);
-        row.appendChild(actionsCell);
-
-        tableFragment.appendChild(row);
-      });
-
-      tableBody.appendChild(tableFragment);
-    }
-
-    async function refreshTable() {
-      allEntries = await loadEntries();
-      renderRows(allEntries);
-    }
-
-    function openModal() {
-      if (!modal) return;
-      modal.classList.add('is-open');
-      modal.setAttribute('aria-hidden', 'false');
-    }
-
-    function closeModal() {
-      if (!modal) return;
-      modal.classList.remove('is-open');
-      modal.setAttribute('aria-hidden', 'true');
-    }
-
-    if (uploadButton) uploadButton.addEventListener('click', openModal);
-    modalCloseButtons.forEach((button) => button.addEventListener('click', closeModal));
-    if (modal) {
-      modal.addEventListener('click', function (event) {
-        if (event.target === modal) closeModal();
-      });
-    }
-
-    if (logoutButton) {
-      logoutButton.addEventListener('click', async function () {
+    // Logout
+    const logoutBtn = document.getElementById('logout-button');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async function () {
         await supabaseClient.auth.signOut();
         window.location.href = 'login.html';
       });
     }
 
-    [filterType, filterVisibility, filterProperty].forEach((field) => {
-      if (field) field.addEventListener('change', function () { renderRows(allEntries); });
-    });
+    initTabs();
+    setupModalClose();
 
-    tableBody.addEventListener('click', async function (event) {
-      const action = event.target.getAttribute('data-action');
-      const id = event.target.getAttribute('data-id');
-      if (!action || !id) return;
+    // Load all data
+    await Promise.all([loadUsers(), loadProperties(), loadTransactions(), loadDocuments(), loadLeads()]);
 
-      const entry = allEntries.find((e) => String(e.id) === id);
-      if (!entry) return;
+    // Modal openers
+    const inviteBtn = document.getElementById('open-invite-modal');
+    if (inviteBtn) inviteBtn.addEventListener('click', () => openModal('invite'));
 
-      if (action === 'toggle') {
-        const { error } = await supabaseClient
-          .from('documents')
-          .update({ hidden: !entry.hidden })
-          .eq('id', id);
+    const propBtn = document.getElementById('open-property-modal');
+    if (propBtn) propBtn.addEventListener('click', () => openModal('property'));
 
-        if (error) {
-          console.error('Toggle failed:', error);
-          alert('Failed to update visibility: ' + error.message);
-          return;
-        }
-        await refreshTable();
-      }
+    const txnBtn = document.getElementById('open-transaction-modal');
+    if (txnBtn) txnBtn.addEventListener('click', () => openModal('transaction'));
 
-      if (action === 'delete') {
-        const confirmed = window.confirm('Delete this document? This cannot be undone.');
-        if (!confirmed) return;
+    const uploadBtn = document.getElementById('open-upload-modal');
+    if (uploadBtn) uploadBtn.addEventListener('click', () => openModal('upload'));
 
-        if (entry.bucket_name && entry.file_path) {
-          const { error: storageError } = await supabaseClient.storage
-            .from(entry.bucket_name)
-            .remove([entry.file_path]);
-          if (storageError) {
-            console.error('Storage delete failed:', storageError);
-          }
-        }
+    // Form submissions
+    const inviteForm = document.getElementById('invite-form');
+    if (inviteForm) inviteForm.addEventListener('submit', handleInvite);
 
-        const { error } = await supabaseClient
-          .from('documents')
-          .delete()
-          .eq('id', id);
+    const propertyForm = document.getElementById('property-form');
+    if (propertyForm) propertyForm.addEventListener('submit', handleAddProperty);
 
-        if (error) {
-          console.error('Delete failed:', error);
-          alert('Failed to delete document: ' + error.message);
-          return;
-        }
-        await refreshTable();
-      }
-    });
+    const txnForm = document.getElementById('transaction-form');
+    if (txnForm) txnForm.addEventListener('submit', handleAddTransaction);
 
-    if (uploadForm && fileInput) {
-      uploadForm.addEventListener('submit', async function (event) {
-        event.preventDefault();
+    const uploadForm = document.getElementById('upload-form');
+    if (uploadForm) uploadForm.addEventListener('submit', (e) => handleUpload(e, adminUserId));
 
-        const selectedFile = fileInput.files[0];
-
-        if (!selectedFile) {
-          alert('Please choose a file first.');
-          return;
-        }
-
-        if (selectedFile.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
-          alert(`File size must not exceed ${MAX_UPLOAD_FILE_SIZE_MB} MB.`);
-          return;
-        }
-
-        if (!isAllowedFileType(selectedFile.type, selectedFile.name)) {
-          alert('Unsupported file type. Upload a PDF, image, Word, Excel, or text file.');
-          return;
-        }
-
-        const bucketName = selectedFile.type.startsWith('image/') ? 'property-images' : 'property-documents';
-        const filePath = `${Date.now()}-${selectedFile.name}`;
-
-        const { error: uploadError } = await supabaseClient.storage
-          .from(bucketName)
-          .upload(filePath, selectedFile);
-
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          alert('Upload failed: ' + uploadError.message);
-          return;
-        }
-
-        const { error: dbError } = await supabaseClient
-          .from('documents')
-          .insert([{
-            file_name: selectedFile.name,
-            file_type: uploadForm.fileType ? uploadForm.fileType.value : selectedFile.type,
-            bucket_name: bucketName,
-            file_path: filePath,
-            file_size: selectedFile.size,
-            uploaded_by: uploadForm.listingAgent ? uploadForm.listingAgent.value.trim() : userEmail,
-            property_address: uploadForm.propertyAddress ? uploadForm.propertyAddress.value.trim() : '',
-            property_id: uploadForm.propertyId ? uploadForm.propertyId.value.trim() : '',
-            hidden: false
-          }]);
-
-        if (dbError) {
-          console.error('DB insert error:', dbError);
-          alert('File uploaded but database record failed: ' + dbError.message);
-          return;
-        }
-
-        uploadForm.reset();
-        closeModal();
-        await refreshTable();
+    // Document table delegation
+    const docsTbody = document.getElementById('documents-tbody');
+    if (docsTbody) {
+      docsTbody.addEventListener('click', function (e) {
+        const action = e.target.getAttribute('data-action');
+        const id = e.target.getAttribute('data-id');
+        if (!action || !id) return;
+        handleDocumentAction(action, id);
       });
     }
 
-    populatePropertyFilter();
-    await refreshTable();
+    // Properties table delegation
+    const propTbody = document.getElementById('properties-tbody');
+    if (propTbody) {
+      propTbody.addEventListener('click', function (e) {
+        const action = e.target.getAttribute('data-action');
+        const id = e.target.getAttribute('data-id');
+        if (!action || !id) return;
+        handlePropertyAction(action, id);
+      });
+    }
+
+    // Transactions table delegation
+    const txnTbody = document.getElementById('transactions-tbody');
+    if (txnTbody) {
+      txnTbody.addEventListener('click', function (e) {
+        const action = e.target.getAttribute('data-action');
+        const id = e.target.getAttribute('data-id');
+        if (!action || !id) return;
+        handleTransactionAction(action, id);
+      });
+    }
+
+    // Document filters
+    [document.getElementById('admin-filter-visibility'), document.getElementById('admin-filter-signed')].forEach((el) => {
+      if (el) el.addEventListener('change', renderDocuments);
+    });
   }
 
+  // ── Entry point ───────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', async function () {
     handleLoginPage();
     await renderAdminPage();

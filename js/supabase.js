@@ -11,3 +11,55 @@ try {
 } catch (err) {
   console.error("Supabase initialization failed:", err);
 }
+
+/**
+ * Escapes HTML special characters to prevent XSS when inserting
+ * user-supplied content via innerHTML.
+ * @param {unknown} value
+ * @returns {string}
+ */
+function escapeHtml(value) {
+  const str = value == null ? '' : String(value);
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Sanitizes a filename for use in a storage path.
+ * Strips all characters except alphanumerics, dots, dashes, and underscores.
+ * Prevents path traversal by rejecting any remaining directory separators.
+ * @param {string} name
+ * @returns {string}
+ */
+function sanitizeFilename(name) {
+  const safe = String(name || 'upload')
+    .replace(/[^a-zA-Z0-9._-]/g, '_') // keep safe chars only
+    .replace(/\.{2,}/g, '_');           // collapse runs of dots (../ etc.)
+  return safe || 'upload';
+}
+async function getSession() {
+  if (!supabaseClient) return null;
+  const { data } = await supabaseClient.auth.getSession();
+  return data.session || null;
+}
+
+/**
+ * Fetches the role ('admin' | 'client') for the signed-in user from the
+ * profiles table. Returns null if no session or profile exists.
+ * @returns {Promise<string|null>}
+ */
+async function getCurrentUserRole() {
+  const session = await getSession();
+  if (!session) return null;
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
+  if (error || !data) return null;
+  return data.role;
+}

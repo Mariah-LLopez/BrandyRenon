@@ -3,8 +3,10 @@
     { href: 'index.html', label: 'Home' },
     { href: 'properties.html', label: 'Properties' },
     { href: 'map.html', label: 'Map' },
+    { href: 'house-flip.html', label: 'Sell Your Home' },
+    { href: 'contractor.html', label: 'Contractors' },
     { href: 'contact.html', label: 'Contact' },
-    { href: 'login.html', label: 'Admin Login' }
+    { href: 'login.html', label: 'Portal Login' }
   ];
 
   function formatPrice(value) {

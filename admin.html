@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Private Property Database | Brandy Renon</title>
-  <meta name="description" content="Private demonstration dashboard for property documents and internal listing assets.">
+  <title>Admin Portal | Brandy Renon</title>
+  <meta name="description" content="Secure administrator portal for managing users, properties, transactions, and documents.">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/admin.css">
 </head>
@@ -12,20 +12,18 @@
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <main id="main-content">
+
+    <!-- Top bar -->
     <section class="page-hero">
       <div class="container admin-shell">
-        <div class="security-banner" role="note" aria-label="Security notice">
-          <h1>Private Property Database</h1>
-          <p>This demonstration portal uses client-side storage only. Do not use it for live customer records, sensitive contracts, or confidential transaction data.</p>
-        </div>
         <div class="admin-panel admin-topbar">
           <div>
             <p class="eyebrow">Restricted access</p>
-            <h2>Private Property Database</h2>
+            <h1>Admin Portal</h1>
             <p>Signed in as <strong id="logged-in-user"></strong></p>
           </div>
           <div class="cta-actions">
-            <span id="role-badge" class="role-badge"></span>
+            <span id="role-badge" class="role-badge role-admin">Admin</span>
             <button id="logout-button" class="btn-secondary" type="button">Logout</button>
           </div>
         </div>
@@ -34,90 +32,238 @@
 
     <section class="section">
       <div class="container admin-shell">
-        <div id="admin-toolbar" class="admin-panel admin-toolbar">
-          <div>
-            <h3>Admin Controls</h3>
-            <p class="table-hint">Admins can upload, hide, unhide, and delete demo session records.</p>
+
+        <!-- Tab navigation -->
+        <nav class="portal-tab-bar" aria-label="Admin sections">
+          <button class="portal-tab active" data-tab="users" type="button">Users</button>
+          <button class="portal-tab" data-tab="properties" type="button">Properties</button>
+          <button class="portal-tab" data-tab="transactions" type="button">Transactions</button>
+          <button class="portal-tab" data-tab="documents" type="button">Documents</button>
+          <button class="portal-tab" data-tab="leads" type="button">Leads</button>
+        </nav>
+
+        <!-- ── USERS ──────────────────────────────────────────────── -->
+        <div id="tab-users" class="tab-panel">
+          <div class="admin-panel admin-toolbar">
+            <div>
+              <h2>User Management</h2>
+              <p class="table-hint">Invite clients or view all registered users.</p>
+            </div>
+            <button id="open-invite-modal" class="btn-primary" type="button">Invite Client</button>
           </div>
-          <div class="filter-grid" aria-label="Admin filters">
-            <div class="form-group">
-              <label for="admin-filter-type">File Type</label>
-              <select id="admin-filter-type">
-                <option value="">All file types</option>
-                <option value="Document">Document</option>
-                <option value="Photo">Photo</option>
-                <option value="Contract">Contract</option>
-                <option value="Permit">Permit</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="admin-filter-visibility">Visibility</label>
-              <select id="admin-filter-visibility">
-                <option value="">All visibility</option>
-                <option value="visible">Visible only</option>
-                <option value="hidden">Hidden only</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="admin-filter-property">Property</label>
-              <select id="admin-filter-property">
-                <option value="">All properties</option>
-              </select>
-            </div>
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Phone</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Joined</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+            <div id="users-empty" class="admin-empty-state" hidden>No users found.</div>
           </div>
-          <button id="open-upload-modal" class="btn-primary" type="button">Upload New Document</button>
         </div>
 
-        <div class="table-card">
-          <div class="results-meta">
+        <!-- ── PROPERTIES ─────────────────────────────────────────── -->
+        <div id="tab-properties" class="tab-panel" hidden>
+          <div class="admin-panel admin-toolbar">
             <div>
-              <h3>Stored Demo Entries</h3>
-              <p id="table-role-hint" class="table-hint">Admin access: action buttons are available for every row. File names open documents in a new tab when a file is attached.</p>
+              <h2>Properties</h2>
+              <p class="table-hint">Create and manage property records.</p>
             </div>
+            <button id="open-property-modal" class="btn-primary" type="button">Add Property</button>
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Property Address</th>
-                <th scope="col">Property ID</th>
-                <th scope="col">File Name</th>
-                <th scope="col">File Type</th>
-                <th scope="col">Agent</th>
-                <th scope="col">Upload Date</th>
-                <th scope="col">Status</th>
-                <th scope="col">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="private-db-body"></tbody>
-          </table>
-          <div id="admin-empty-state" class="admin-empty-state" hidden>
-            No demo entries match the current filters.
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Address</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Purchase Price</th>
+                  <th scope="col">Sale Price</th>
+                  <th scope="col">Created</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="properties-tbody"></tbody>
+            </table>
+            <div id="properties-empty" class="admin-empty-state" hidden>No properties found.</div>
           </div>
         </div>
+
+        <!-- ── TRANSACTIONS ───────────────────────────────────────── -->
+        <div id="tab-transactions" class="tab-panel" hidden>
+          <div class="admin-panel admin-toolbar">
+            <div>
+              <h2>Transactions</h2>
+              <p class="table-hint">Link clients to properties and track deal status.</p>
+            </div>
+            <button id="open-transaction-modal" class="btn-primary" type="button">New Transaction</button>
+          </div>
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Property</th>
+                  <th scope="col">Client</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Created</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="transactions-tbody"></tbody>
+            </table>
+            <div id="transactions-empty" class="admin-empty-state" hidden>No transactions found.</div>
+          </div>
+        </div>
+
+        <!-- ── DOCUMENTS ──────────────────────────────────────────── -->
+        <div id="tab-documents" class="tab-panel" hidden>
+          <div class="admin-panel admin-toolbar">
+            <div>
+              <h2>Document Management</h2>
+              <p class="table-hint">Upload, assign, hide/unhide, and track signatures.</p>
+            </div>
+            <div class="filter-grid admin-doc-filters" aria-label="Document filters">
+              <div class="form-group">
+                <label for="admin-filter-visibility">Visibility</label>
+                <select id="admin-filter-visibility">
+                  <option value="">All</option>
+                  <option value="admin_only">Admin Only</option>
+                  <option value="client_visible">Client Visible</option>
+                  <option value="client_downloadable">Downloadable</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="admin-filter-signed">Signature</label>
+                <select id="admin-filter-signed">
+                  <option value="">All</option>
+                  <option value="required">Requires Sig.</option>
+                  <option value="signed">Signed</option>
+                  <option value="unsigned">Awaiting Sig.</option>
+                </select>
+              </div>
+            </div>
+            <button id="open-upload-modal" class="btn-primary" type="button">Upload Document</button>
+          </div>
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">File Name</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Client</th>
+                  <th scope="col">Visibility</th>
+                  <th scope="col">Signature</th>
+                  <th scope="col">Uploaded</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="documents-tbody"></tbody>
+            </table>
+            <div id="documents-empty" class="admin-empty-state" hidden>No documents match the current filters.</div>
+          </div>
+        </div>
+
+        <!-- ── LEADS ──────────────────────────────────────────────── -->
+        <div id="tab-leads" class="tab-panel" hidden>
+          <div class="admin-panel" style="margin-bottom:1.5rem">
+            <h2>Leads</h2>
+            <p class="table-hint">House flip inquiries and contractor submissions.</p>
+          </div>
+
+          <nav class="portal-tab-bar leads-sub-tabs" aria-label="Lead type">
+            <button class="portal-tab active" data-lead-tab="flip" type="button">House Flip Inquiries</button>
+            <button class="portal-tab" data-lead-tab="contractor" type="button">Contractor Inquiries</button>
+          </nav>
+
+          <!-- Flip leads -->
+          <div id="lead-tab-flip" class="lead-tab-panel">
+            <div class="table-card">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Phone</th>
+                    <th scope="col">Property</th>
+                    <th scope="col">Est. Value</th>
+                    <th scope="col">Submitted</th>
+                  </tr>
+                </thead>
+                <tbody id="flip-leads-tbody"></tbody>
+              </table>
+              <div id="flip-leads-empty" class="admin-empty-state" hidden>No house flip inquiries yet.</div>
+            </div>
+          </div>
+
+          <!-- Contractor leads -->
+          <div id="lead-tab-contractor" class="lead-tab-panel" hidden>
+            <div class="table-card">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Company</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Service</th>
+                    <th scope="col">Area</th>
+                    <th scope="col">Submitted</th>
+                  </tr>
+                </thead>
+                <tbody id="contractor-leads-tbody"></tbody>
+              </table>
+              <div id="contractor-leads-empty" class="admin-empty-state" hidden>No contractor inquiries yet.</div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
   </main>
 
-  <div id="upload-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title">
+  <!-- ── INVITE MODAL ───────────────────────────────────────────────────── -->
+  <div id="invite-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="invite-modal-title">
     <div class="modal-dialog">
-      <button class="modal-close" type="button" data-close-modal aria-label="Close upload form">×</button>
-      <h2 id="upload-modal-title">Upload New Document</h2>
-      <div class="upload-meta">
-        <p>This adds a placeholder record to sessionStorage only. Files are not uploaded to a secure server in this demo.</p>
-      </div>
-      <form id="upload-form" novalidate>
+      <button class="modal-close" type="button" data-close-modal="invite" aria-label="Close">×</button>
+      <h2 id="invite-modal-title">Invite Client</h2>
+      <p class="table-hint">Send a sign-up invitation to a new client. They will receive an email to set their password.</p>
+      <form id="invite-form" novalidate>
         <div class="form-grid">
           <div class="form-group">
-            <label for="upload-property-address">Property Address</label>
-            <input id="upload-property-address" name="propertyAddress" type="text" required>
+            <label for="invite-email">Email <span class="required" aria-hidden="true">*</span></label>
+            <input id="invite-email" name="email" type="email" required>
           </div>
           <div class="form-group">
-            <label for="upload-property-id">Property ID</label>
-            <input id="upload-property-id" name="propertyId" type="text" placeholder="prop-006" required>
+            <label for="invite-name">Full Name</label>
+            <input id="invite-name" name="full_name" type="text">
+          </div>
+        </div>
+        <button class="btn-primary" type="submit">Send Invitation</button>
+        <div id="invite-status" class="form-status" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── PROPERTY MODAL ─────────────────────────────────────────────────── -->
+  <div id="property-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="property-modal-title">
+    <div class="modal-dialog">
+      <button class="modal-close" type="button" data-close-modal="property" aria-label="Close">×</button>
+      <h2 id="property-modal-title">Add Property</h2>
+      <form id="property-form" novalidate>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="prop-address">Property Address <span class="required" aria-hidden="true">*</span></label>
+            <input id="prop-address" name="property_address" type="text" required>
           </div>
           <div class="form-group">
-            <label for="upload-property-status">Property Status</label>
-            <select id="upload-property-status" name="propertyStatus">
+            <label for="prop-status">Status</label>
+            <select id="prop-status" name="property_status">
               <option value="Active">Active</option>
               <option value="Pending">Pending</option>
               <option value="Sold">Sold</option>
@@ -125,50 +271,148 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="upload-file-type">File Type</label>
-            <select id="upload-file-type" name="fileType">
-              <option value="Document">Document</option>
-              <option value="Photo">Photo</option>
-              <option value="Contract">Contract</option>
-              <option value="Permit">Permit</option>
-            </select>
+            <label for="prop-purchase">Purchase Price</label>
+            <input id="prop-purchase" name="purchase_price" type="number" min="0" step="1000">
           </div>
           <div class="form-group">
-            <label for="upload-file-name">File Name</label>
-            <input id="upload-file-name" name="fileName" type="text" placeholder="Disclosure_Packet.pdf" required>
-          </div>
-          <div class="form-group">
-            <label for="upload-file-input">Optional File Upload</label>
-            <input id="upload-file-input" name="uploadFile" type="file" aria-describedby="upload-file-help">
-            <p id="upload-file-help" class="helper-text">Client-side demo only. Uploaded files are stored in session data and file names become openable links.</p>
-          </div>
-          <div class="form-group">
-            <label for="upload-listing-agent">Listing Agent</label>
-            <input id="upload-listing-agent" name="listingAgent" type="text" value="Brandy Renon" required>
-          </div>
-          <div class="form-group">
-            <label for="upload-brokerage">Brokerage</label>
-            <input id="upload-brokerage" name="brokerage" type="text" value="Colorado Premier Realty" required>
+            <label for="prop-sale">Sale Price</label>
+            <input id="prop-sale" name="sale_price" type="number" min="0" step="1000">
           </div>
           <div class="form-group full-width">
-            <label for="upload-notes">Notes</label>
-            <textarea id="upload-notes" name="notes" placeholder="Internal notes for this demo record."></textarea>
+            <label for="prop-notes">Notes</label>
+            <textarea id="prop-notes" name="notes"></textarea>
           </div>
         </div>
-        <button class="btn-primary" type="submit">Save Demo Entry</button>
+        <button class="btn-primary" type="submit">Save Property</button>
+        <div id="property-status" class="form-status" aria-live="polite"></div>
       </form>
     </div>
   </div>
 
-  <div class="security-footer-note">Security disclaimer: this dashboard is a static front-end demonstration and should not be used to manage live transactions or personally identifiable information.</div>
+  <!-- ── TRANSACTION MODAL ──────────────────────────────────────────────── -->
+  <div id="transaction-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="transaction-modal-title">
+    <div class="modal-dialog">
+      <button class="modal-close" type="button" data-close-modal="transaction" aria-label="Close">×</button>
+      <h2 id="transaction-modal-title">New Transaction</h2>
+      <form id="transaction-form" novalidate>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="txn-property">Property <span class="required" aria-hidden="true">*</span></label>
+            <select id="txn-property" name="property_id" required>
+              <option value="">Select property…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="txn-client">Client <span class="required" aria-hidden="true">*</span></label>
+            <select id="txn-client" name="client_id" required>
+              <option value="">Select client…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="txn-type">Transaction Type</label>
+            <select id="txn-type" name="transaction_type">
+              <option value="purchase">Purchase</option>
+              <option value="sale">Sale</option>
+              <option value="flip">Flip</option>
+              <option value="rental">Rental</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="txn-status">Status</label>
+            <select id="txn-status" name="status">
+              <option value="Pending">Pending</option>
+              <option value="Active">Active</option>
+              <option value="Closed">Closed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <label for="txn-notes">Notes</label>
+            <textarea id="txn-notes" name="notes"></textarea>
+          </div>
+        </div>
+        <button class="btn-primary" type="submit">Create Transaction</button>
+        <div id="transaction-status" class="form-status" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── UPLOAD MODAL ───────────────────────────────────────────────────── -->
+  <div id="upload-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title">
+    <div class="modal-dialog">
+      <button class="modal-close" type="button" data-close-modal="upload" aria-label="Close">×</button>
+      <h2 id="upload-modal-title">Upload Document</h2>
+      <form id="upload-form" novalidate>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="upload-client">Assign to Client</label>
+            <select id="upload-client" name="client_id">
+              <option value="">No specific client</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="upload-property">Assign to Property</label>
+            <select id="upload-property" name="property_id">
+              <option value="">No specific property</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="upload-category">Category</label>
+            <select id="upload-category" name="category">
+              <option value="">Select…</option>
+              <option value="Paystub">Paystub</option>
+              <option value="W-2">W-2 Form</option>
+              <option value="Tax Return">Tax Return</option>
+              <option value="ID">Driver's License / ID</option>
+              <option value="Bank Statement">Bank Statement</option>
+              <option value="Insurance">Insurance Document</option>
+              <option value="Title">Title</option>
+              <option value="Closing Document">Closing Document</option>
+              <option value="Contract">Contract</option>
+              <option value="Inspection Report">Inspection Report</option>
+              <option value="Appraisal">Appraisal</option>
+              <option value="HOA Document">HOA Document</option>
+              <option value="Renovation Document">Renovation Document</option>
+              <option value="Property Photo">Property Photo</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="upload-visibility">Client Visibility</label>
+            <select id="upload-visibility" name="visibility">
+              <option value="admin_only">Admin Only</option>
+              <option value="client_visible">Client Can View</option>
+              <option value="client_downloadable">Client Can Download</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <label for="upload-file">File <span class="required" aria-hidden="true">*</span></label>
+            <input id="upload-file" name="file" type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp" required>
+          </div>
+          <div class="form-group full-width">
+            <label class="signature-label">
+              <input type="checkbox" id="upload-requires-sig" name="requires_signature">
+              Requires client electronic signature
+            </label>
+          </div>
+          <div class="form-group full-width">
+            <label for="upload-notes">Notes</label>
+            <textarea id="upload-notes" name="notes"></textarea>
+          </div>
+        </div>
+        <button class="btn-primary" type="submit">Upload Document</button>
+        <div id="upload-status" class="form-status" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
   <div id="site-footer"></div>
 
   <script src="js/properties-data.js"></script>
   <script src="js/main.js"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js"></script>
-
   <script src="js/admin.js"></script>
 </body>
 </html>
