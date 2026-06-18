@@ -1,0 +1,264 @@
+// auth.js — Login, register, forgot-password, and reset-password page logic.
+// This file is used by login.html, forgot-password.html, and reset-password.html.
+// It does NOT run on admin.html or client-portal.html.
+
+(function () {
+  // ── Redirect already-authenticated users away from the login page ──────────
+  async function redirectIfLoggedIn() {
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
+    const session = await getSession();
+    if (!session) return;
+    const role = await getCurrentUserRole();
+    window.location.replace(role === 'admin' ? 'admin.html' : 'client-portal.html');
+  }
+
+  // ── Tab switching (Sign In / Create Account) ───────────────────────────────
+  function initLoginTabs() {
+    const tabSignin = document.getElementById('tab-signin');
+    const tabRegister = document.getElementById('tab-register');
+    const panelSignin = document.getElementById('panel-signin');
+    const panelRegister = document.getElementById('panel-register');
+
+    if (!tabSignin || !tabRegister) return;
+
+    tabSignin.addEventListener('click', function () {
+      tabSignin.classList.add('active');
+      tabSignin.setAttribute('aria-selected', 'true');
+      tabRegister.classList.remove('active');
+      tabRegister.setAttribute('aria-selected', 'false');
+      if (panelSignin) panelSignin.hidden = false;
+      if (panelRegister) panelRegister.hidden = true;
+    });
+
+    tabRegister.addEventListener('click', function () {
+      tabRegister.classList.add('active');
+      tabRegister.setAttribute('aria-selected', 'true');
+      tabSignin.classList.remove('active');
+      tabSignin.setAttribute('aria-selected', 'false');
+      if (panelRegister) panelRegister.hidden = false;
+      if (panelSignin) panelSignin.hidden = true;
+    });
+  }
+
+  // ── Sign-in form ───────────────────────────────────────────────────────────
+  function initLoginForm() {
+    const loginForm = document.getElementById('login-form');
+    const loginBtn = document.getElementById('login-button');
+    if (!loginForm || !loginBtn) return;
+
+    loginForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const errorBox = document.getElementById('login-error');
+      if (errorBox) { errorBox.textContent = ''; errorBox.className = 'form-status'; }
+
+      if (!email || !password) {
+        if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Enter both your email and password.'; }
+        return;
+      }
+      if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+        if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Login is temporarily unavailable.'; }
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Signing in\u2026';
+
+      try {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+          if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = error.message; }
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Sign In';
+          return;
+        }
+        // Role-based redirect — admin → admin.html, client → client-portal.html
+        const role = await getCurrentUserRole();
+        window.location.href = role === 'admin' ? 'admin.html' : 'client-portal.html';
+      } catch (err) {
+        if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Unable to sign in. Please try again.'; }
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Sign In';
+      }
+    });
+  }
+
+  // ── Create-account form ────────────────────────────────────────────────────
+  function initRegisterForm() {
+    const registerForm = document.getElementById('register-form');
+    const registerBtn = document.getElementById('register-button');
+    if (!registerForm || !registerBtn) return;
+
+    registerForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const fullName = registerForm.querySelector('[name="full_name"]').value.trim();
+      const email = registerForm.querySelector('[name="email"]').value.trim();
+      const password = registerForm.querySelector('[name="password"]').value;
+      const statusEl = document.getElementById('register-status');
+      if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
+
+      if (!email || !password) {
+        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Email and password are required.'; }
+        return;
+      }
+      if (password.length < 8) {
+        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Password must be at least 8 characters.'; }
+        return;
+      }
+      if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Registration is temporarily unavailable.'; }
+        return;
+      }
+
+      registerBtn.disabled = true;
+      registerBtn.textContent = 'Creating account\u2026';
+
+      try {
+        const { error } = await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: fullName, role: 'client' } }
+        });
+
+        if (error) {
+          if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = error.message; }
+          registerBtn.disabled = false;
+          registerBtn.textContent = 'Create Account';
+          return;
+        }
+
+        if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Account created! Check your email to confirm your address, then sign in.'; }
+        registerForm.reset();
+      } catch (err) {
+        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Registration failed. Please try again.'; }
+      }
+
+      registerBtn.disabled = false;
+      registerBtn.textContent = 'Create Account';
+    });
+  }
+
+  // ── Forgot-password form (forgot-password.html) ────────────────────────────
+  function initForgotPasswordForm() {
+    const form = document.getElementById('forgot-password-form');
+    if (!form) return;
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const email = form.querySelector('[name="email"]').value.trim();
+      const statusEl = document.getElementById('forgot-status');
+      const submitBtn = form.querySelector('button[type="submit"]');
+
+      if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
+
+      if (!email) {
+        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Please enter your email address.'; }
+        return;
+      }
+
+      if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Service unavailable. Please try again later.'; }
+        return;
+      }
+
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending\u2026'; }
+
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://mariah-llopez.github.io/BrandyRenon/reset-password.html'
+      });
+
+      if (error) {
+        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = error.message; }
+      } else {
+        if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password reset email sent. Check your inbox and follow the link.'; }
+        form.reset();
+      }
+
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send Reset Link'; }
+    });
+  }
+
+  // ── Reset-password form (reset-password.html) ─────────────────────────────
+  // Supabase v2 sends the user to this page with a recovery token in the URL
+  // hash. The SDK automatically handles the token exchange via onAuthStateChange.
+  function initResetPasswordForm() {
+    const form = document.getElementById('reset-password-form');
+    const formContainer = document.getElementById('reset-form-container');
+    const invalidEl = document.getElementById('reset-invalid');
+    if (!form) return;
+
+    // Listen for the PASSWORD_RECOVERY event that fires when Supabase
+    // processes the recovery token from the URL hash.
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      supabaseClient.auth.onAuthStateChange(function (event) {
+        if (event === 'PASSWORD_RECOVERY') {
+          if (formContainer) formContainer.hidden = false;
+          if (invalidEl) invalidEl.hidden = true;
+        }
+      });
+
+      // If the page loaded via a recovery link, getSession may already have a
+      // session before onAuthStateChange fires — show the form immediately.
+      getSession().then(function (session) {
+        if (session) {
+          if (formContainer) formContainer.hidden = false;
+          if (invalidEl) invalidEl.hidden = true;
+        } else {
+          // No session yet — wait for onAuthStateChange. Hide form until then.
+          if (formContainer) formContainer.hidden = true;
+          if (invalidEl) invalidEl.hidden = true;
+        }
+      });
+    }
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const passwordEl = document.getElementById('new-password');
+      const confirmEl = document.getElementById('confirm-password');
+      const statusEl = document.getElementById('reset-status');
+      const submitBtn = document.getElementById('reset-submit-btn');
+      const password = passwordEl ? passwordEl.value : '';
+      const confirm = confirmEl ? confirmEl.value : '';
+
+      if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
+
+      if (password.length < 8) {
+        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Password must be at least 8 characters.'; }
+        return;
+      }
+      if (password !== confirm) {
+        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Passwords do not match.'; }
+        return;
+      }
+
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Updating\u2026'; }
+
+      const { error } = await supabaseClient.auth.updateUser({ password });
+
+      if (error) {
+        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = error.message; }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Update Password'; }
+        return;
+      }
+
+      if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password updated successfully. Redirecting to login\u2026'; }
+      await supabaseClient.auth.signOut();
+      setTimeout(function () { window.location.href = 'login.html'; }, 2000);
+    });
+  }
+
+  // ── Entry point ───────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', async function () {
+    // On login.html: redirect away if already signed in
+    if (document.getElementById('login-form')) {
+      await redirectIfLoggedIn();
+    }
+
+    initLoginTabs();
+    initLoginForm();
+    initRegisterForm();
+    initForgotPasswordForm();
+    initResetPasswordForm();
+  });
+})();

@@ -526,128 +526,11 @@
     </tr>`).join('');
   }
 
-  // ── Login page ────────────────────────────────────────────────────────────
-  function handleLoginPage() {
-    // Tab switching
-    const tabSignin = document.getElementById('tab-signin');
-    const tabRegister = document.getElementById('tab-register');
-    const panelSignin = document.getElementById('panel-signin');
-    const panelRegister = document.getElementById('panel-register');
-
-    if (tabSignin && tabRegister) {
-      tabSignin.addEventListener('click', function () {
-        tabSignin.classList.add('active');
-        tabSignin.setAttribute('aria-selected', 'true');
-        tabRegister.classList.remove('active');
-        tabRegister.setAttribute('aria-selected', 'false');
-        if (panelSignin) panelSignin.hidden = false;
-        if (panelRegister) panelRegister.hidden = true;
-      });
-      tabRegister.addEventListener('click', function () {
-        tabRegister.classList.add('active');
-        tabRegister.setAttribute('aria-selected', 'true');
-        tabSignin.classList.remove('active');
-        tabSignin.setAttribute('aria-selected', 'false');
-        if (panelRegister) panelRegister.hidden = false;
-        if (panelSignin) panelSignin.hidden = true;
-      });
-    }
-
-    // Sign-in form
-    const loginForm = document.getElementById('login-form');
-    const loginBtn = document.getElementById('login-button');
-    if (loginForm && loginBtn) {
-      loginForm.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const email = document.getElementById('login-email').value.trim();
-        const password = document.getElementById('login-password').value;
-        const errorBox = document.getElementById('login-error');
-        if (errorBox) { errorBox.textContent = ''; errorBox.className = 'form-status'; }
-
-        if (!email || !password) {
-          if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Enter both your email and password.'; }
-          return;
-        }
-        if (typeof supabaseClient === 'undefined' || !supabaseClient) {
-          if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Login is temporarily unavailable.'; }
-          return;
-        }
-
-        loginBtn.disabled = true;
-        loginBtn.textContent = 'Signing in…';
-
-        try {
-          const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-          if (error) {
-            if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = error.message; }
-            loginBtn.disabled = false;
-            loginBtn.textContent = 'Sign In';
-            return;
-          }
-          // Route based on role
-          const role = await getCurrentUserRole();
-          window.location.href = role === 'admin' ? 'admin.html' : 'client.html';
-        } catch (err) {
-          if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Unable to sign in. Please try again.'; }
-          loginBtn.disabled = false;
-          loginBtn.textContent = 'Sign In';
-        }
-      });
-    }
-
-    // Register form
-    const registerForm = document.getElementById('register-form');
-    const registerBtn = document.getElementById('register-button');
-    if (registerForm && registerBtn) {
-      registerForm.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const fullName = registerForm.querySelector('[name="full_name"]').value.trim();
-        const email = registerForm.querySelector('[name="email"]').value.trim();
-        const password = registerForm.querySelector('[name="password"]').value;
-        const statusEl = document.getElementById('register-status');
-        if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
-
-        if (!email || !password) {
-          if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Email and password are required.'; }
-          return;
-        }
-        if (password.length < 8) {
-          if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Password must be at least 8 characters.'; }
-          return;
-        }
-        if (typeof supabaseClient === 'undefined' || !supabaseClient) {
-          if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Registration is temporarily unavailable.'; }
-          return;
-        }
-
-        registerBtn.disabled = true;
-        registerBtn.textContent = 'Creating account…';
-
-        try {
-          const { error } = await supabaseClient.auth.signUp({
-            email,
-            password,
-            options: { data: { full_name: fullName, role: 'client' } }
-          });
-
-          if (error) {
-            if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = error.message; }
-            registerBtn.disabled = false;
-            registerBtn.textContent = 'Create Account';
-            return;
-          }
-
-          if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Account created! Check your email to confirm your address, then sign in.'; }
-          registerForm.reset();
-          registerBtn.disabled = false;
-          registerBtn.textContent = 'Create Account';
-        } catch (err) {
-          if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Registration failed. Please try again.'; }
-          registerBtn.disabled = false;
-          registerBtn.textContent = 'Create Account';
-        }
-      });
-    }
+  // ── Reveal body after auth guard passes ───────────────────────────────────
+  function revealPage() {
+    const style = document.getElementById('auth-guard-style');
+    if (style) style.remove();
+    document.body.style.visibility = 'visible';
   }
 
   // ── Admin page ────────────────────────────────────────────────────────────
@@ -656,18 +539,21 @@
     if (!tableBody) return;
 
     if (typeof supabaseClient === 'undefined' || !supabaseClient) {
-      window.location.href = 'login.html';
+      window.location.replace('login.html');
       return;
     }
 
     const session = await getSession();
-    if (!session) { window.location.href = 'login.html'; return; }
+    if (!session) { window.location.replace('login.html'); return; }
 
     const role = await getCurrentUserRole();
     if (role !== 'admin') {
-      window.location.href = role === 'client' ? 'client.html' : 'login.html';
+      window.location.replace(role === 'client' ? 'client-portal.html' : 'login.html');
       return;
     }
+
+    // Auth passed — reveal page content
+    revealPage();
 
     const adminUserId = session.user.id;
     const userEmail = session.user.email;
@@ -757,7 +643,6 @@
 
   // ── Entry point ───────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', async function () {
-    handleLoginPage();
     await renderAdminPage();
   });
 })();

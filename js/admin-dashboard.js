@@ -211,19 +211,19 @@
 
   async function guardDashboardAccess() {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) {
-      window.location.href = 'login.html';
+      window.location.replace('login.html');
       return null;
     }
 
     const session = await getSession();
     if (!session) {
-      window.location.href = 'login.html';
+      window.location.replace('login.html');
       return null;
     }
 
     const role = await getCurrentUserRole();
     if (role !== 'admin') {
-      window.location.href = role === 'client' ? 'client.html' : 'login.html';
+      window.location.replace(role === 'client' ? 'client-portal.html' : 'login.html');
       return null;
     }
 
@@ -243,6 +243,11 @@
   async function renderDashboard() {
     const session = await guardDashboardAccess();
     if (!session) return;
+
+    // Auth passed — reveal page content
+    const style = document.getElementById('auth-guard-style');
+    if (style) style.remove();
+    document.body.style.visibility = 'visible';
 
     const userDisplay = document.getElementById('logged-in-user');
     if (userDisplay) userDisplay.textContent = session.user.email || 'Admin user';
