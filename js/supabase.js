@@ -49,6 +49,16 @@ async function getSession() {
 }
 
 /**
+ * Returns true when the error is most likely caused by a Row Level Security
+ * policy denial rather than a network or query error.
+ * @param {object} error
+ * @returns {boolean}
+ */
+function isRLSError(error) {
+  return error.code === '42501' || /policy|permission|rls/i.test(error.message || '');
+}
+
+/**
  * Fetches the signed-in user's profile.
  * If no profile row exists, creates a default client profile for the user.
  * Returns null only when the query fails for reasons other than a missing row
@@ -67,14 +77,15 @@ async function getCurrentUserProfile() {
 
   // PGRST116 = no rows returned – the user has no profile row yet, so create one.
   if (error && error.code === 'PGRST116') {
+    const userEmail = session.user.email || null;
     const { data: created, error: insertError } = await supabaseClient
       .from('profiles')
-      .insert([{ id: session.user.id, email: session.user.email, role: 'client' }])
+      .insert([{ id: session.user.id, email: userEmail, role: 'client' }])
       .select('id, email, full_name, role, status, phone, created_at')
       .single();
 
     if (insertError) {
-      if (insertError.code === '42501' || /policy|permission|rls/i.test(insertError.message || '')) {
+      if (isRLSError(insertError)) {
         console.error(
           'Row Level Security is blocking profile creation. ' +
           'Ensure authenticated users have an INSERT policy on the profiles table ' +
@@ -91,7 +102,7 @@ async function getCurrentUserProfile() {
   }
 
   if (error) {
-    if (error.code === '42501' || /policy|permission|rls/i.test(error.message || '')) {
+    if (isRLSError(error)) {
       console.error(
         'Row Level Security is blocking profile access. ' +
         'Ensure authenticated users have a SELECT policy on the profiles table ' +

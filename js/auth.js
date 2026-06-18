@@ -95,7 +95,10 @@
 
         const profile = await getCurrentUserProfile();
         if (!profile) {
-          if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Unable to load your account profile. This may be caused by a security policy. Check the browser console for details, or contact support.'; }
+          if (errorBox) {
+            errorBox.className = 'form-status error-message';
+            errorBox.textContent = 'Unable to load your account profile. This may be caused by a security policy. Check the browser console for details, or contact support.';
+          }
           await supabaseClient.auth.signOut();
           loginBtn.disabled = false;
           loginBtn.textContent = 'Sign In';
