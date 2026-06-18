@@ -84,6 +84,7 @@
   }
 
   function formatInquiryType(value) {
+    // Keep these labels aligned with contact.html field options and the schema constraint.
     const labels = {
       general_inquiry: 'General Inquiry',
       rental_help: 'Help Finding a Rental',
@@ -95,6 +96,10 @@
       seller_help: 'Help Selling My House'
     };
     return escapeHtml(labels[value] || value || '—');
+  }
+
+  function getLeadLabel(row) {
+    return escapeHtml(row.name || row.full_name || row.email || row.company_name || 'lead');
   }
 
   function formatDateTime(value) {
@@ -155,11 +160,11 @@
       const selected = option.value === current ? ' selected' : '';
       return `<option value="${escapeHtml(option.value)}"${selected}>${escapeHtml(option.label)}</option>`;
     }).join('');
-    return `<select class="dashboard-inline-select" data-status-input="${escapeHtml(sectionKey)}" aria-label="Lead status for ${escapeHtml(row.id)}">${options}</select>`;
+    return `<select class="dashboard-inline-select" data-status-input="${escapeHtml(sectionKey)}" aria-label="Lead status for ${getLeadLabel(row)}">${options}</select>`;
   }
 
   function renderNotesEditor(sectionKey, row) {
-    return `<textarea class="dashboard-inline-notes" data-notes-input="${escapeHtml(sectionKey)}" rows="4" aria-label="Admin notes for ${escapeHtml(row.id)}">${escapeHtml(row.admin_notes || '')}</textarea>`;
+    return `<textarea class="dashboard-inline-notes" data-notes-input="${escapeHtml(sectionKey)}" rows="4" aria-label="Admin notes for ${getLeadLabel(row)}">${escapeHtml(row.admin_notes || '')}</textarea>`;
   }
 
   function renderSaveAction(sectionKey, row) {

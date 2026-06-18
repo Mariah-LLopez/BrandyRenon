@@ -89,7 +89,8 @@
     const propertySelect = form.querySelector('[name="property"]');
     if (!inquiryType || !propertyGroup || !propertySelect) return;
 
-    const shouldShow = inquiryNeedsProperty(inquiryType.value) || Boolean(propertySelect.value);
+    const shouldShow = inquiryNeedsProperty(inquiryType.value)
+      || (propertySelect.dataset.preselected === 'true' && !inquiryType.value);
     propertyGroup.hidden = !shouldShow;
     propertySelect.required = inquiryNeedsProperty(inquiryType.value);
     propertySelect.setAttribute('aria-required', propertySelect.required ? 'true' : 'false');
@@ -104,9 +105,12 @@
 
   function initContactFormFields(form) {
     const inquiryType = form.querySelector('[name="inquiry_type"]');
-    if (!inquiryType) return;
+    const propertySelect = form.querySelector('[name="property"]');
+    if (!inquiryType || !propertySelect) return;
+    propertySelect.dataset.preselected = propertySelect.value ? 'true' : 'false';
     syncContactPropertyField(form);
     inquiryType.addEventListener('change', function () {
+      propertySelect.dataset.preselected = 'false';
       syncContactPropertyField(form);
     });
   }
