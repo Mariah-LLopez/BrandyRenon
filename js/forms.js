@@ -89,14 +89,10 @@
     const propertySelect = form.querySelector('[name="property"]');
     if (!inquiryType || !propertyGroup || !propertySelect) return;
 
-    if (propertySelect.value && !inquiryType.value) {
-      inquiryType.value = 'property_inquiry';
-    }
-
-    const shouldShow = inquiryNeedsProperty(inquiryType.value);
+    const shouldShow = inquiryNeedsProperty(inquiryType.value) || Boolean(propertySelect.value);
     propertyGroup.hidden = !shouldShow;
-    propertySelect.required = shouldShow;
-    propertySelect.setAttribute('aria-required', shouldShow ? 'true' : 'false');
+    propertySelect.required = inquiryNeedsProperty(inquiryType.value);
+    propertySelect.setAttribute('aria-required', propertySelect.required ? 'true' : 'false');
 
     if (!shouldShow) {
       propertySelect.value = '';

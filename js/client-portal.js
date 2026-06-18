@@ -205,24 +205,48 @@
     }).join('');
   }
 
-  // ── Open a document ───────────────────────────────────────────────────────
-  async function openDocument(docId) {
+  // ── Document access helpers ───────────────────────────────────────────────
+  async function getDocumentSignedUrl(docId) {
     const doc = allDocuments.find((d) => d.id === docId);
-    if (!doc) return;
+    if (!doc) return null;
 
     const { data, error } = await supabaseClient.storage
       .from(doc.bucket_name || 'property-documents')
       .createSignedUrl(doc.file_path, 300);
 
     if (error) {
-      console.error('Open document error:', error);
-      return;
+      console.error('Document link error:', error);
+      return null;
     }
-    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+
+    return { doc, signedUrl: data.signedUrl };
+  }
+
+  async function openDocument(docId) {
+    const result = await getDocumentSignedUrl(docId);
+    if (!result) return;
+    window.open(result.signedUrl, '_blank', 'noopener,noreferrer');
   }
 
   async function downloadDocument(docId) {
-    await openDocument(docId);
+    const result = await getDocumentSignedUrl(docId);
+    if (!result) return;
+
+    const response = await fetch(result.signedUrl);
+    if (!response.ok) {
+      console.error('Download error:', response.status, response.statusText);
+      return;
+    }
+
+    const blob = await response.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = result.doc.file_name || 'document';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(objectUrl);
   }
 
   // ── Signature modal ───────────────────────────────────────────────────────

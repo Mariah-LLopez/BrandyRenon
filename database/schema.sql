@@ -236,6 +236,7 @@ create policy "contact_requests_insert_public" on public.contact_requests
 create policy "contact_requests_admin_all" on public.contact_requests
   for all using (public.is_admin());
 
+-- Backwards-compatible additions for databases created before these fields existed.
 alter table public.contact_requests add column if not exists inquiry_type text;
 alter table public.contact_requests add column if not exists property_interest text;
 alter table public.contact_requests add column if not exists admin_status text not null default 'not_viewed';
@@ -299,6 +300,7 @@ create policy "showing_requests_insert_public" on public.showing_requests
 create policy "showing_requests_admin_all" on public.showing_requests
   for all using (public.is_admin());
 
+-- Backwards-compatible additions for databases created before these fields existed.
 alter table public.showing_requests add column if not exists admin_status text not null default 'not_viewed';
 alter table public.showing_requests add column if not exists admin_notes text;
 do $$
@@ -344,6 +346,7 @@ create policy "flip_insert_public" on public.house_flip_inquiries
 create policy "flip_admin_all" on public.house_flip_inquiries
   for all using (public.is_admin());
 
+-- Backwards-compatible additions for databases created before these fields existed.
 alter table public.house_flip_inquiries add column if not exists admin_status text not null default 'not_viewed';
 alter table public.house_flip_inquiries add column if not exists admin_notes text;
 do $$
@@ -389,6 +392,7 @@ create policy "contractor_insert_public" on public.contractor_inquiries
 create policy "contractor_admin_all" on public.contractor_inquiries
   for all using (public.is_admin());
 
+-- Backwards-compatible additions for databases created before these fields existed.
 alter table public.contractor_inquiries add column if not exists admin_status text not null default 'not_viewed';
 alter table public.contractor_inquiries add column if not exists admin_notes text;
 do $$
