@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Admin / Client Portal — shared styles
+   Admin / Client Portal - shared styles
    ========================================================================== */
 
 .admin-shell {
@@ -70,7 +70,7 @@
 }
 
 /* ==========================================================================
-   Portal — shared tab navigation
+   Portal - shared tab navigation
    ========================================================================== */
 
 .portal-tabs,
@@ -89,13 +89,14 @@
   border-radius: var(--radius-sm);
   font-weight: 600;
   color: var(--color-muted);
-  transition: background var(--transition), color var(--transition);
+  transition: background var(--transition), color var(--transition), transform var(--transition), box-shadow var(--transition);
   white-space: nowrap;
 }
 
 .portal-tab:hover {
   background: rgba(27, 58, 92, 0.08);
   color: var(--color-primary);
+  transform: translateY(-1px);
 }
 
 .portal-tab.active,
@@ -103,6 +104,7 @@
   background: var(--color-white);
   color: var(--color-primary);
   box-shadow: 0 1px 4px rgba(27, 58, 92, 0.12);
+  transform: translateY(-1px);
 }
 
 /* login page tabs */
@@ -179,10 +181,18 @@
   padding: 1.4rem;
   display: grid;
   gap: 0.5rem;
+  transition: transform var(--transition), box-shadow var(--transition-slow), border-color var(--transition);
 }
 
 .dashboard-card h3 {
   color: var(--color-primary);
+}
+
+.dashboard-card:hover,
+.dashboard-card:focus-within {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(200, 150, 62, 0.28);
 }
 
 /* ==========================================================================
@@ -200,6 +210,14 @@
 
 .dashboard-table-scroll {
   overflow-x: auto;
+}
+
+.dashboard-table-scroll tbody tr {
+  transition: background-color var(--transition);
+}
+
+.dashboard-table-scroll tbody tr:hover {
+  background: rgba(27, 58, 92, 0.03);
 }
 
 .dashboard-cell-wrap {
@@ -240,7 +258,7 @@
 }
 
 /* ==========================================================================
-   Signature modal — checkbox alignment
+   Signature modal - checkbox alignment
    ========================================================================== */
 
 .signature-check-group {
@@ -262,7 +280,7 @@
 }
 
 /* ==========================================================================
-   Admin document filter bar — narrower grid
+   Admin document filter bar - narrower grid
    ========================================================================== */
 
 .admin-doc-filters {

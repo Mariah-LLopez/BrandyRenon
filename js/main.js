@@ -5,6 +5,28 @@
     { href: 'contact.html', label: 'Contact' },
     { href: 'login.html', label: 'Portal Login' }
   ];
+  const REVEAL_SELECTOR = [
+    'main section',
+    '.section-header',
+    '.hero-content > *',
+    '.page-hero .section-header > *',
+    '.property-card',
+    '.teaser-card',
+    '.feature-panel',
+    '.form-card',
+    '.filter-bar',
+    '.contact-card',
+    '.map-card',
+    '.info-card',
+    '.agent-card',
+    '.sticky-card',
+    '.empty-state',
+    '.dashboard-card',
+    '.table-card',
+    '.portal-tab-bar',
+    '.portal-tabs'
+  ].join(', ');
+  let revealObserver = null;
 
   function formatPrice(value) {
     return new Intl.NumberFormat('en-US', {
@@ -35,7 +57,7 @@
         <nav class="navbar" aria-label="Primary navigation">
           <a class="nav-brand" href="index.html" aria-label="Brandy Renon Colorado Real Estate home">
             <span>Brandy Renon | Colorado Real Estate</span>
-            <small>Homes across Denver, Boulder, Fort Collins & beyond</small>
+            <small>Buying, selling, rentals, and long-term property guidance</small>
           </a>
           <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-menu" aria-label="Toggle navigation menu">
             <span></span>
@@ -58,6 +80,7 @@
     if (toggle && menu) {
       toggle.addEventListener('click', function () {
         const open = menu.classList.toggle('is-open');
+        toggle.classList.toggle('is-open', open);
         toggle.setAttribute('aria-expanded', String(open));
       });
     }
@@ -80,7 +103,7 @@
             <p>Equal Housing Opportunity</p>
             <div class="footer-logo-wrap">
               <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='8' fill='%2314293f'/><path d='M12 29 32 13l20 16' stroke='%23C8963E' stroke-width='4' fill='none' stroke-linecap='round' stroke-linejoin='round'/><path d='M18 28v23h28V28' stroke='%23C8963E' stroke-width='4' fill='none' stroke-linecap='round' stroke-linejoin='round'/><path d='M22 35h20M22 42h20' stroke='%23C8963E' stroke-width='4' stroke-linecap='round'/></svg>" alt="Equal Housing Opportunity icon" width="40" height="40">
-              <span>Inclusive service for buyers, sellers, and investors.</span>
+              <span>Guidance for buying, selling, rentals, renovations, and investment decisions.</span>
             </div>
             <div class="footer-links">
               <a href="privacy-policy.html">Privacy Policy</a>
@@ -96,6 +119,92 @@
         <p class="copyright-line">&copy; 2024 Brandy Renon | Colorado Premier Realty. All Rights Reserved.</p>
       </footer>
     `;
+  }
+
+  function getRevealObserver() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+      return null;
+    }
+
+    if (!revealObserver) {
+      revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('reveal-visible');
+          revealObserver.unobserve(entry.target);
+        });
+      }, {
+        threshold: 0.14,
+        rootMargin: '0px 0px -10% 0px'
+      });
+    }
+
+    return revealObserver;
+  }
+
+  function getStaggerDelay(element) {
+    const parent = element.parentElement;
+    if (!parent) return 0;
+
+    const staggerSiblings = Array.from(parent.children).filter((child) => child.matches('.property-card, .teaser-card, .feature-panel, .dashboard-card, .form-card, .info-card, .table-card'));
+    if (!staggerSiblings.length) return 0;
+    return Math.min(staggerSiblings.indexOf(element) * 80, 320);
+  }
+
+  function registerRevealTargets(root) {
+    const scope = root && root.querySelectorAll ? root : document;
+    const observer = getRevealObserver();
+    const elements = scope.querySelectorAll(REVEAL_SELECTOR);
+
+    elements.forEach((element) => {
+      if (element.dataset.revealRegistered === 'true') return;
+      element.dataset.revealRegistered = 'true';
+      element.classList.add('reveal-on-scroll');
+      element.style.setProperty('--reveal-delay', `${getStaggerDelay(element)}ms`);
+
+      if (!observer) {
+        element.classList.add('reveal-visible');
+        return;
+      }
+
+      observer.observe(element);
+    });
+  }
+
+  function refreshMotion(root) {
+    registerRevealTargets(root);
+  }
+
+  function animateGridRefresh(grid) {
+    if (!grid) return;
+    grid.classList.add('is-refreshing');
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        grid.classList.remove('is-refreshing');
+      });
+    });
+  }
+
+  function openModalElement(modal) {
+    if (!modal) return;
+    modal.classList.remove('is-closing');
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeModalElement(modal) {
+    if (!modal) return;
+    if (!modal.classList.contains('is-open')) {
+      modal.classList.remove('is-closing');
+      modal.setAttribute('aria-hidden', 'true');
+      return;
+    }
+    modal.classList.remove('is-open');
+    modal.classList.add('is-closing');
+    modal.setAttribute('aria-hidden', 'true');
+    window.setTimeout(() => {
+      modal.classList.remove('is-closing');
+    }, 240);
   }
 
   function getPropertyById(id) {
@@ -135,6 +244,8 @@
     const grid = document.getElementById('featured-properties-grid');
     if (!grid || !window.PROPERTIES) return;
     grid.innerHTML = window.PROPERTIES.map(renderPropertyCard).join('');
+    animateGridRefresh(grid);
+    refreshMotion(grid);
   }
 
   function renderPropertiesPage() {
@@ -165,9 +276,13 @@
       resultsCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'property' : 'properties'} shown`;
       if (!filtered.length) {
         grid.innerHTML = '<div class="empty-state"><h3>No matching properties</h3><p>Try adjusting the status, price, or bedroom filters to broaden your search.</p></div>';
+        animateGridRefresh(grid);
+        refreshMotion(grid);
         return;
       }
       grid.innerHTML = filtered.map(renderPropertyCard).join('');
+      animateGridRefresh(grid);
+      refreshMotion(grid);
     }
 
     [statusFilter, minPriceFilter, maxPriceFilter, bedroomFilter].forEach((element) => {
@@ -335,6 +450,7 @@
     if (modalPropertySelect) modalPropertySelect.value = property.id;
     window.currentDetailProperty = property;
     setupPropertyGallery();
+    refreshMotion(mount);
   }
 
   function setupModal() {
@@ -344,15 +460,13 @@
     const closers = modal.querySelectorAll('[data-close-modal]');
 
     function openModal(propertyId) {
-      modal.classList.add('is-open');
-      modal.setAttribute('aria-hidden', 'false');
+      openModalElement(modal);
       const propertySelect = modal.querySelector('select[name="property"]');
       if (propertySelect && propertyId) propertySelect.value = propertyId;
     }
 
     function closeModal() {
-      modal.classList.remove('is-open');
-      modal.setAttribute('aria-hidden', 'true');
+      closeModalElement(modal);
     }
 
     openers.forEach((button) => {
@@ -377,6 +491,7 @@
     renderPropertiesPage();
     renderPropertyDetailPage();
     setupModal();
+    refreshMotion();
   }
 
   window.formatPrice = formatPrice;
@@ -385,6 +500,9 @@
   window.getPropertyById = getPropertyById;
   window.renderPropertyCard = renderPropertyCard;
   window.getUrlParam = getUrlParam;
+  window.refreshMotion = refreshMotion;
+  window.openAppModal = openModalElement;
+  window.closeAppModal = closeModalElement;
 
   document.addEventListener('DOMContentLoaded', init);
 })();

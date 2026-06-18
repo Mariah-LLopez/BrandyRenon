@@ -93,7 +93,7 @@
   }
 
   function sigBadge(doc) {
-    if (!doc.requires_signature) return '—';
+    if (!doc.requires_signature) return 'N/A';
     if (doc.signed) return `<span class="badge-doc-signed">Signed ${doc.signed_at ? doc.signed_at.slice(0,10) : ''}</span>`;
     return '<span class="badge-doc-required">Pending</span>';
   }
@@ -120,11 +120,11 @@
     if (empty) empty.hidden = true;
 
     tbody.innerHTML = allUsers.map((u) => `<tr>
-      <td>${escapeHtml(u.full_name) || '—'}</td>
+      <td>${escapeHtml(u.full_name) || 'N/A'}</td>
       <td>${escapeHtml(u.email)}</td>
-      <td>${escapeHtml(u.phone) || '—'}</td>
+      <td>${escapeHtml(u.phone) || 'N/A'}</td>
       <td><span class="role-badge ${u.role === 'admin' ? 'role-admin' : 'role-client'}">${escapeHtml(u.role)}</span></td>
-      <td>${u.created_at ? escapeHtml(u.created_at.slice(0,10)) : '—'}</td>
+      <td>${u.created_at ? escapeHtml(u.created_at.slice(0,10)) : 'N/A'}</td>
     </tr>`).join('');
   }
 
@@ -153,7 +153,7 @@
       return;
     }
 
-    // Use a magic link (OTP) to invite the client — no temporary password needed.
+    // Use a magic link (OTP) to invite the client with no temporary password needed.
     const { error } = await supabaseClient.auth.signInWithOtp({
       email,
       options: { data: { full_name: fullName, role: 'client' }, shouldCreateUser: true }
@@ -189,9 +189,9 @@
     tbody.innerHTML = allProperties.map((p) => `<tr>
       <td>${escapeHtml(p.property_address)}</td>
       <td>${statusBadge(p.property_status)}</td>
-      <td>${p.purchase_price ? '$' + Number(p.purchase_price).toLocaleString() : '—'}</td>
-      <td>${p.sale_price ? '$' + Number(p.sale_price).toLocaleString() : '—'}</td>
-      <td>${p.created_at ? escapeHtml(p.created_at.slice(0,10)) : '—'}</td>
+      <td>${p.purchase_price ? '$' + Number(p.purchase_price).toLocaleString() : 'N/A'}</td>
+      <td>${p.sale_price ? '$' + Number(p.sale_price).toLocaleString() : 'N/A'}</td>
+      <td>${p.created_at ? escapeHtml(p.created_at.slice(0,10)) : 'N/A'}</td>
       <td><div class="table-actions">
         <button class="action-link" data-action="delete-property" data-id="${escapeHtml(p.id)}" type="button">Delete</button>
       </div></td>
@@ -258,14 +258,14 @@
     if (empty) empty.hidden = true;
 
     tbody.innerHTML = txns.map((t) => {
-      const prop = t.properties ? t.properties.property_address : '—';
-      const client = t.profiles ? (t.profiles.full_name || t.profiles.email) : '—';
+      const prop = t.properties ? t.properties.property_address : 'N/A';
+      const client = t.profiles ? (t.profiles.full_name || t.profiles.email) : 'N/A';
       return `<tr>
         <td>${escapeHtml(prop)}</td>
         <td>${escapeHtml(client)}</td>
         <td style="text-transform:capitalize">${escapeHtml(t.transaction_type)}</td>
         <td>${statusBadge(t.status)}</td>
-        <td>${t.created_at ? escapeHtml(t.created_at.slice(0,10)) : '—'}</td>
+        <td>${t.created_at ? escapeHtml(t.created_at.slice(0,10)) : 'N/A'}</td>
         <td><div class="table-actions">
           <button class="action-link" data-action="delete-txn" data-id="${escapeHtml(t.id)}" type="button">Delete</button>
         </div></td>
@@ -343,14 +343,14 @@
     if (empty) empty.hidden = true;
 
     tbody.innerHTML = filtered.map((doc) => {
-      const clientInfo = doc.profiles ? (doc.profiles.full_name || doc.profiles.email) : '—';
+      const clientInfo = doc.profiles ? (doc.profiles.full_name || doc.profiles.email) : 'N/A';
       return `<tr>
         <td>${escapeHtml(doc.file_name)}</td>
-        <td>${escapeHtml(doc.category) || '—'}</td>
+        <td>${escapeHtml(doc.category) || 'N/A'}</td>
         <td>${escapeHtml(clientInfo)}</td>
         <td>${escapeHtml(visibilityLabel(doc.visibility))}</td>
         <td>${sigBadge(doc)}</td>
-        <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0,10)) : '—'}</td>
+        <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0,10)) : 'N/A'}</td>
         <td><div class="table-actions">
           <button class="action-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">Open</button>
           <button class="action-link" data-action="toggle-doc" data-id="${escapeHtml(doc.id)}" type="button">${doc.hidden ? 'Unhide' : 'Hide'}</button>
@@ -519,10 +519,10 @@
     tbody.innerHTML = rows.map((r) => `<tr>
       <td>${escapeHtml(r.full_name)}</td>
       <td>${escapeHtml(r.email)}</td>
-      <td>${escapeHtml(r.phone) || '—'}</td>
-      <td>${escapeHtml(r.property_address) || '—'}</td>
-      <td>${escapeHtml(r.estimated_value) || '—'}</td>
-      <td>${r.created_at ? escapeHtml(r.created_at.slice(0,10)) : '—'}</td>
+      <td>${escapeHtml(r.phone) || 'N/A'}</td>
+      <td>${escapeHtml(r.property_address) || 'N/A'}</td>
+      <td>${escapeHtml(r.estimated_value) || 'N/A'}</td>
+      <td>${r.created_at ? escapeHtml(r.created_at.slice(0,10)) : 'N/A'}</td>
     </tr>`).join('');
   }
 
@@ -540,11 +540,11 @@
 
     tbody.innerHTML = rows.map((r) => `<tr>
       <td>${escapeHtml(r.full_name)}</td>
-      <td>${escapeHtml(r.company_name) || '—'}</td>
+      <td>${escapeHtml(r.company_name) || 'N/A'}</td>
       <td>${escapeHtml(r.email)}</td>
-      <td>${escapeHtml(r.service_type) || '—'}</td>
-      <td>${escapeHtml(r.service_area) || '—'}</td>
-      <td>${r.created_at ? escapeHtml(r.created_at.slice(0,10)) : '—'}</td>
+      <td>${escapeHtml(r.service_type) || 'N/A'}</td>
+      <td>${escapeHtml(r.service_area) || 'N/A'}</td>
+      <td>${r.created_at ? escapeHtml(r.created_at.slice(0,10)) : 'N/A'}</td>
     </tr>`).join('');
   }
 
@@ -574,7 +574,7 @@
       return;
     }
 
-    // Auth passed — reveal page content
+    // Auth passed; reveal page content
     revealPage();
 
     const adminUserId = session.user.id;

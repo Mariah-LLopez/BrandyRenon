@@ -95,7 +95,7 @@
       maintenance_request: 'Maintenance / Property Manager Request',
       seller_help: 'Help Selling My House'
     };
-    return escapeHtml(labels[value] || value || '—');
+    return escapeHtml(labels[value] || value || 'N/A');
   }
 
   function getLeadLabel(row) {
@@ -103,7 +103,7 @@
   }
 
   function formatDateTime(value) {
-    if (!value) return '—';
+    if (!value) return 'N/A';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return escapeHtml(value);
     return escapeHtml(date.toLocaleString([], {
@@ -116,7 +116,7 @@
   }
 
   function formatDateOnly(value) {
-    if (!value) return '—';
+    if (!value) return 'N/A';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return escapeHtml(value);
     return escapeHtml(date.toLocaleDateString([], {
@@ -127,9 +127,9 @@
   }
 
   function formatTimeString(value) {
-    if (!value) return '—';
+    if (!value) return 'N/A';
     const normalized = String(value).trim();
-    if (!normalized) return '—';
+    if (!normalized) return 'N/A';
 
     const parsed = new Date(`1970-01-01T${normalized}`);
     if (!Number.isNaN(parsed.getTime())) {
@@ -185,7 +185,9 @@
           button.setAttribute('aria-selected', isActive ? 'true' : 'false');
         });
         panels.forEach((panel) => {
-          panel.hidden = panel.id !== `panel-${targetKey}`;
+          const isActive = panel.id === `panel-${targetKey}`;
+          panel.hidden = !isActive;
+          if (isActive) window.refreshMotion?.(panel);
         });
       });
     });
@@ -232,7 +234,7 @@
         const renderedValue = column.formatter
           ? column.formatter(rawValue, row)
           : rawValue === null || rawValue === undefined || String(rawValue).trim() === ''
-            ? '—'
+            ? 'N/A'
             : escapeHtml(rawValue);
         const cellClass = column.wrap ? ' class="dashboard-cell-wrap"' : '';
         return `<td${cellClass}>${renderedValue}</td>`;
@@ -363,7 +365,7 @@
     const session = await guardDashboardAccess();
     if (!session) return;
 
-    // Auth passed — reveal page content
+    // Auth passed; reveal page content
     const style = document.getElementById('auth-guard-style');
     if (style) style.remove();
     document.body.style.visibility = 'visible';

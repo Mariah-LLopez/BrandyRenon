@@ -52,7 +52,7 @@
   }
 
   function sigBadge(doc) {
-    if (!doc.requires_signature) return '<span class="badge-doc-none">—</span>';
+    if (!doc.requires_signature) return '<span class="badge-doc-none">N/A</span>';
     if (doc.signed) {
       const ts = doc.signed_at ? new Date(doc.signed_at).toLocaleDateString() : '';
       return `<span class="badge-doc-signed">Signed ${ts}</span>`;
@@ -114,12 +114,12 @@
     }
     if (empty) empty.hidden = true;
     tbody.innerHTML = data.map((t) => {
-      const addr = t.properties ? t.properties.property_address : t.property_id || '—';
+      const addr = t.properties ? t.properties.property_address : t.property_id || 'N/A';
       return `<tr>
         <td>${escapeHtml(addr)}</td>
         <td style="text-transform:capitalize">${escapeHtml(t.transaction_type)}</td>
         <td>${statusBadge(t.status)}</td>
-        <td>${t.created_at ? escapeHtml(t.created_at.slice(0, 10)) : '—'}</td>
+        <td>${t.created_at ? escapeHtml(t.created_at.slice(0, 10)) : 'N/A'}</td>
       </tr>`;
     }).join('');
   }
@@ -165,8 +165,8 @@
         : '';
       return `<tr>
         <td>${escapeHtml(doc.file_name)}</td>
-        <td>${escapeHtml(doc.category) || '—'}</td>
-        <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0, 10)) : '—'}</td>
+        <td>${escapeHtml(doc.category) || 'N/A'}</td>
+        <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0, 10)) : 'N/A'}</td>
         <td>${sigBadge(doc)}</td>
         <td><div class="table-actions">${downloadBtn}${signBtn}</div></td>
       </tr>`;

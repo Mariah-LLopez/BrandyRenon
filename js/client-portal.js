@@ -1,4 +1,4 @@
-// client-portal.js — Client portal page logic.
+// client-portal.js - Client portal page logic.
 // Queries only the signed-in client's own data (transactions, documents, properties).
 
 (function () {
@@ -45,7 +45,10 @@
 
         document.querySelectorAll('.tab-panel').forEach((panel) => { panel.hidden = true; });
         const target = document.getElementById('tab-' + btn.getAttribute('data-tab'));
-        if (target) target.hidden = false;
+        if (target) {
+          target.hidden = false;
+          window.refreshMotion?.(target);
+        }
       });
     });
   }
@@ -62,7 +65,7 @@
   }
 
   function sigBadge(doc) {
-    if (!doc.requires_signature) return '<span class="badge-doc-none">&mdash;</span>';
+    if (!doc.requires_signature) return '<span class="badge-doc-none">N/A</span>';
     if (doc.signed) {
       const ts = doc.signed_at ? new Date(doc.signed_at).toLocaleDateString() : '';
       return `<span class="badge-doc-signed">Signed ${escapeHtml(ts)}</span>`;
@@ -119,6 +122,7 @@
         ${p.notes ? `<p class="table-hint">${escapeHtml(p.notes)}</p>` : ''}
       </div>
     `).join('');
+    window.refreshMotion?.(grid);
   }
 
   // ── Load transactions (client's own only) ─────────────────────────────────
@@ -142,12 +146,12 @@
     }
     if (empty) empty.hidden = true;
     tbody.innerHTML = data.map((t) => {
-      const addr = t.properties ? t.properties.property_address : t.property_id || '&mdash;';
+      const addr = t.properties ? t.properties.property_address : t.property_id || 'N/A';
       return `<tr>
         <td>${escapeHtml(addr)}</td>
         <td style="text-transform:capitalize">${escapeHtml(t.transaction_type)}</td>
         <td>${statusBadge(t.status)}</td>
-        <td>${t.created_at ? escapeHtml(t.created_at.slice(0, 10)) : '&mdash;'}</td>
+        <td>${t.created_at ? escapeHtml(t.created_at.slice(0, 10)) : 'N/A'}</td>
       </tr>`;
     }).join('');
   }
@@ -197,8 +201,8 @@
         : '';
       return `<tr>
         <td>${escapeHtml(doc.file_name)}</td>
-        <td>${escapeHtml(doc.category) || '&mdash;'}</td>
-        <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0, 10)) : '&mdash;'}</td>
+        <td>${escapeHtml(doc.category) || 'N/A'}</td>
+        <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0, 10)) : 'N/A'}</td>
         <td>${sigBadge(doc)}</td>
         <td><div class="table-actions">${openBtn}${downloadBtn}${signBtn}</div></td>
       </tr>`;
@@ -275,16 +279,24 @@
     }
 
     if (modal) {
-      modal.classList.add('is-open');
-      modal.setAttribute('aria-hidden', 'false');
+      if (window.openAppModal) {
+        window.openAppModal(modal);
+      } else {
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+      }
     }
   }
 
   function closeSignatureModal() {
     const modal = document.getElementById('signature-modal');
     if (modal) {
-      modal.classList.remove('is-open');
-      modal.setAttribute('aria-hidden', 'true');
+      if (window.closeAppModal) {
+        window.closeAppModal(modal);
+      } else {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+      }
     }
     pendingSignDocId = null;
   }
@@ -427,7 +439,7 @@
       return;
     }
 
-    // Auth passed — reveal page
+    // Auth passed; reveal page
     revealPage();
 
     const userId = session.user.id;
