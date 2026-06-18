@@ -2,9 +2,6 @@
   const NAV_LINKS = [
     { href: 'index.html', label: 'Home' },
     { href: 'properties.html', label: 'Properties' },
-    { href: 'map.html', label: 'Map' },
-    { href: 'house-flip.html', label: 'Sell Your Home' },
-    { href: 'contractor.html', label: 'Contractors' },
     { href: 'contact.html', label: 'Contact' },
     { href: 'login.html', label: 'Portal Login' }
   ];
@@ -233,6 +230,7 @@
     }
 
     const property = requestedProperty || window.PROPERTIES[0];
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(property.address)}`;
     mount.innerHTML = `
       <section class="page-hero">
         <div class="container">
@@ -241,6 +239,16 @@
             <h1>${property.title}</h1>
             <p>${property.address}</p>
           </div>
+        </div>
+      </section>
+      <section class="section" style="padding-top:0;padding-bottom:0;">
+        <div class="container">
+          <div class="map-card">
+            <div id="property-detail-map" class="map-container" aria-label="Map showing location of ${property.title}"></div>
+          </div>
+          <p style="margin-top:0.75rem;font-size:0.9rem;">
+            <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="display:inline-block;">View on Google Maps</a>
+          </p>
         </div>
       </section>
       <section class="section">
@@ -325,6 +333,7 @@
 
     const modalPropertySelect = document.querySelector('#showing-form select[name="property"]');
     if (modalPropertySelect) modalPropertySelect.value = property.id;
+    window.currentDetailProperty = property;
     setupPropertyGallery();
   }
 
