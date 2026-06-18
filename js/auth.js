@@ -30,7 +30,7 @@
       await supabaseClient.auth.signOut();
       return;
     }
-    window.location.replace(profile.role === 'admin' ? 'admin.html' : 'client-portal.html');
+    window.location.replace(profile.role === 'admin' ? 'admin-dashboard.html' : 'client-portal.html');
   }
 
   function initLoginTabs() {
@@ -95,7 +95,10 @@
 
         const profile = await getCurrentUserProfile();
         if (!profile) {
-          if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Unable to load your account profile.'; }
+          if (errorBox) {
+            errorBox.className = 'form-status error-message';
+            errorBox.textContent = 'Unable to load your account profile. This may be caused by a security policy. Check the browser console for details, or contact support.';
+          }
           await supabaseClient.auth.signOut();
           loginBtn.disabled = false;
           loginBtn.textContent = 'Sign In';
@@ -110,7 +113,7 @@
           return;
         }
 
-        window.location.href = profile.role === 'admin' ? 'admin.html' : 'client-portal.html';
+        window.location.href = profile.role === 'admin' ? 'admin-dashboard.html' : 'client-portal.html';
       } catch (err) {
         if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Unable to sign in. Please try again.'; }
         loginBtn.disabled = false;
