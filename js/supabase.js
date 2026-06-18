@@ -71,7 +71,7 @@ async function getCurrentUserProfile() {
 
   const { data, error } = await supabaseClient
     .from('profiles')
-    .select('id, email, full_name, role, status, phone, created_at')
+    .select('id, email, role')
     .eq('id', session.user.id)
     .single();
 
@@ -81,7 +81,7 @@ async function getCurrentUserProfile() {
     const { data: created, error: insertError } = await supabaseClient
       .from('profiles')
       .insert([{ id: session.user.id, email: userEmail, role: 'client' }])
-      .select('id, email, full_name, role, status, phone, created_at')
+      .select('id, email, role')
       .single();
 
     if (insertError) {
