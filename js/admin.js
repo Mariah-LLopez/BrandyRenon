@@ -13,6 +13,14 @@
   ];
   const USER_ROLES = ['admin', 'client'];
   const USER_STATUSES = ['active', 'inactive'];
+  const SIGNATURE_STATUS_LABELS = {
+    available: 'Available',
+    pending_signature: 'Pending Signature',
+    signed: 'Signed',
+    uploaded: 'Uploaded'
+  };
+  const MAINTENANCE_STATUSES = ['New', 'In Review', 'Scheduled', 'In Progress', 'Completed', 'Closed'];
+  const MAINTENANCE_PRIORITIES = ['Low', 'Medium', 'High', 'Emergency'];
   const LEAD_STATUS_OPTIONS = [
     { value: 'not_viewed', label: 'Not Viewed Yet' },
     { value: 'in_progress', label: 'In Progress' },
@@ -53,6 +61,7 @@
   let allTransactions = [];
   let allDocuments = [];
   let allPropertyAssignments = [];
+  let allMaintenanceRequests = [];
   let allLeads = { contact: [], showing: [], renovation: [] };
 
   function hasAllowedExtension(name) {
@@ -172,12 +181,34 @@
     return doc.visibility === 'client_downloadable' ? 'View + Download' : 'View only';
   }
 
+  function signatureStatusLabel(value) {
+    return SIGNATURE_STATUS_LABELS[value] || SIGNATURE_STATUS_LABELS.available;
+  }
+
   function sigBadge(doc) {
-    if (!doc.requires_signature) return '<span class="badge-doc-none">N/A</span>';
-    if (doc.signed) {
+    const status = doc.signature_status || (doc.signed ? 'signed' : (doc.requires_signature ? 'pending_signature' : 'available'));
+    if (status === 'signed') {
       return `<span class="badge-doc-signed">Signed ${escapeHtml(formatDateOnly(doc.signed_at))}</span>`;
     }
-    return '<span class="badge-doc-required">Pending</span>';
+    if (status === 'pending_signature') {
+      return '<span class="badge-doc-required">Pending Signature</span>';
+    }
+    if (status === 'uploaded') {
+      return '<span class="badge-doc-required">Uploaded</span>';
+    }
+    return '<span class="badge-doc-none">Available</span>';
+  }
+
+  function formatTransactionType(value) {
+    const map = {
+      purchase: 'Purchase',
+      sale: 'Sale',
+      lease: 'Lease',
+      property_management: 'Property Management',
+      rental: 'Rental',
+      flip: 'Flip'
+    };
+    return map[value] || value || 'N/A';
   }
 
   function formatDateOnly(value) {
@@ -248,16 +279,19 @@
     if (current) select.value = current;
   }
 
+  async function getStorageUrl(bucket, filePath) {
+    if (!bucket || !filePath) return null;
+    const { data: signedData, error: signedError } = await supabaseClient.storage.from(bucket).createSignedUrl(filePath, 300);
+    if (!signedError && signedData?.signedUrl) return signedData.signedUrl;
+    const { data: publicData } = supabaseClient.storage.from(bucket).getPublicUrl(filePath);
+    return publicData?.publicUrl || null;
+  }
+
   async function getDocumentUrl(doc) {
     const bucket = doc.bucket_name || 'property-documents';
-    if (bucket === 'property-images') {
-      const { data } = supabaseClient.storage.from(bucket).getPublicUrl(doc.file_path);
-      return data.publicUrl;
-    }
-
-    const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(doc.file_path, 300);
-    if (error) throw error;
-    return data.signedUrl;
+    const url = await getStorageUrl(bucket, doc.file_path);
+    if (!url) throw new Error('Document URL unavailable');
+    return url;
   }
 
   async function openDocument(docId) {
@@ -320,6 +354,7 @@
     allProperties = data || [];
     populatePropertySelect(document.getElementById('upload-property'));
     populatePropertySelect(document.getElementById('txn-property'));
+    populatePropertySelect(document.getElementById('admin-maint-property-filter'));
   }
 
   async function loadTransactionsData() {
@@ -353,6 +388,18 @@
       return;
     }
     allDocuments = data || [];
+  }
+
+  async function loadMaintenanceData() {
+    const { data, error } = await supabaseClient
+      .from('maintenance_requests')
+      .select('*, profiles!maintenance_requests_client_id_fkey(full_name, email), properties(property_address)')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Maintenance requests error:', error);
+      return;
+    }
+    allMaintenanceRequests = data || [];
   }
 
   async function loadLeadData(sectionKey) {
@@ -423,15 +470,13 @@
           <button class="action-link" data-action="view-client" data-id="${escapeHtml(user.id)}" type="button">View as Client</button>`
         : '';
       return `<tr data-user-id="${escapeHtml(user.id)}">
-        <td>${escapeHtml(user.full_name) || 'N/A'}</td>
         <td>${escapeHtml(user.email)}</td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-user-role>${roleOptions}</select></td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-user-status>${statusOptions}</select></td>
         <td>${escapeHtml(formatDateOnly(user.created_at))}</td>
-        <td>${escapeHtml(formatDateTime(user.last_login_at))}</td>
         <td class="dashboard-cell-wrap">${escapeHtml(getPropertySummary(user.id))}</td>
         <td class="dashboard-cell-wrap">${escapeHtml(getTransactionSummary(user.id))}</td>
-        <td><div class="table-actions table-actions-stack">
+        <td class="users-actions-cell"><div class="table-actions table-actions-stack">
           <button class="action-link" data-action="save-user" data-id="${escapeHtml(user.id)}" type="button">Save</button>
           ${clientActions}
         </div></td>
@@ -474,7 +519,7 @@
     tbody.innerHTML = allTransactions.map((transaction) => `<tr>
       <td>${escapeHtml(transaction.properties?.property_address || 'N/A')}</td>
       <td>${escapeHtml(transaction.profiles?.full_name || transaction.profiles?.email || 'Unassigned')}</td>
-      <td style="text-transform:capitalize">${escapeHtml(transaction.transaction_type)}</td>
+      <td>${escapeHtml(formatTransactionType(transaction.transaction_type))}</td>
       <td>${statusBadge(transaction.status)}</td>
       <td>${escapeHtml(formatDateOnly(transaction.created_at))}</td>
       <td><div class="table-actions"><button class="action-link" data-action="delete-transaction" data-id="${escapeHtml(transaction.id)}" type="button">Delete</button></div></td>
@@ -490,9 +535,9 @@
     const signatureFilter = document.getElementById('admin-filter-signed')?.value || '';
     let filtered = allDocuments.slice();
     if (visibilityFilter) filtered = filtered.filter((doc) => doc.visibility === visibilityFilter);
-    if (signatureFilter === 'required') filtered = filtered.filter((doc) => doc.requires_signature);
-    if (signatureFilter === 'signed') filtered = filtered.filter((doc) => doc.signed);
-    if (signatureFilter === 'unsigned') filtered = filtered.filter((doc) => doc.requires_signature && !doc.signed);
+    if (signatureFilter === 'required') filtered = filtered.filter((doc) => doc.requires_signature || doc.signature_status === 'pending_signature');
+    if (signatureFilter === 'signed') filtered = filtered.filter((doc) => (doc.signature_status || (doc.signed ? 'signed' : 'available')) === 'signed');
+    if (signatureFilter === 'unsigned') filtered = filtered.filter((doc) => (doc.signature_status || (doc.requires_signature ? 'pending_signature' : 'available')) === 'pending_signature');
 
     if (!filtered.length) {
       tbody.innerHTML = '';
@@ -503,21 +548,65 @@
 
     tbody.innerHTML = filtered.map((doc) => {
       const clientInfo = doc.profiles ? (doc.profiles.full_name || doc.profiles.email) : 'N/A';
+      const showSignatureActions = doc.requires_signature || doc.signature_status === 'pending_signature' || doc.signature_url;
+      const signatureMeta = doc.signature_provider
+        ? `<div class="table-hint">${escapeHtml(doc.signature_provider)}${doc.signature_url ? ' · link added' : ''}</div>`
+        : '';
       return `<tr>
         <td><button class="action-link document-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">${escapeHtml(doc.file_name)}</button></td>
         <td>${escapeHtml(doc.category) || 'N/A'}</td>
         <td>${escapeHtml(clientInfo)}</td>
         <td>${escapeHtml(visibilityLabel(doc.visibility))}</td>
         <td>${escapeHtml(clientAccessLabel(doc))}</td>
-        <td>${sigBadge(doc)}</td>
+        <td>${sigBadge(doc)}${signatureMeta}</td>
         <td>${escapeHtml(formatDateOnly(doc.created_at))}</td>
         <td><div class="table-actions table-actions-stack">
           <button class="action-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">Open</button>
           <button class="action-link" data-action="download-doc" data-id="${escapeHtml(doc.id)}" type="button">Download</button>
           <button class="action-link" data-action="toggle-doc" data-id="${escapeHtml(doc.id)}" type="button">${doc.hidden ? 'Unhide' : 'Hide'}</button>
           <button class="action-link" data-action="delete-doc" data-id="${escapeHtml(doc.id)}" type="button">Delete</button>
-          ${doc.requires_signature && !doc.signed ? `<button class="action-link" data-action="require-sig" data-id="${escapeHtml(doc.id)}" type="button">Allow Signature</button>` : ''}
+          ${showSignatureActions ? `<button class="action-link" data-action="set-signature-link" data-id="${escapeHtml(doc.id)}" type="button">${doc.signature_url ? 'Edit Signature Link' : 'Add Signature Link'}</button>` : ''}
+          ${showSignatureActions ? `<button class="action-link" data-action="cycle-signature-status" data-id="${escapeHtml(doc.id)}" type="button">Update Signature Status</button>` : ''}
         </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderMaintenanceRequests() {
+    const tbody = document.getElementById('maintenance-tbody');
+    const empty = document.getElementById('maintenance-empty');
+    if (!tbody) return;
+
+    const statusFilter = document.getElementById('admin-maint-status-filter')?.value || '';
+    const priorityFilter = document.getElementById('admin-maint-priority-filter')?.value || '';
+    const propertyFilter = document.getElementById('admin-maint-property-filter')?.value || '';
+
+    let filtered = allMaintenanceRequests.slice();
+    if (statusFilter) filtered = filtered.filter((request) => request.status === statusFilter);
+    if (priorityFilter) filtered = filtered.filter((request) => request.priority === priorityFilter);
+    if (propertyFilter) filtered = filtered.filter((request) => request.property_id === propertyFilter);
+
+    if (!filtered.length) {
+      tbody.innerHTML = '';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+
+    tbody.innerHTML = filtered.map((request) => {
+      const photoLinks = Array.isArray(request.photo_paths) && request.photo_paths.length
+        ? `<div class="maintenance-photo-links">${request.photo_paths.map((photoPath, index) => `<button class="action-link" data-action="open-maint-photo" data-id="${escapeHtml(request.id)}" data-photo-index="${index}" type="button">Photo ${index + 1}</button>`).join('')}</div>`
+        : 'None';
+      return `<tr>
+        <td>${escapeHtml(formatDateTime(request.created_at))}</td>
+        <td>${escapeHtml(request.profiles?.full_name || request.profiles?.email || 'N/A')}</td>
+        <td>${escapeHtml(request.properties?.property_address || 'Unassigned')}</td>
+        <td class="dashboard-cell-wrap">${escapeHtml(request.title || 'N/A')}<div class="table-hint">${escapeHtml(request.description || '')}</div></td>
+        <td><select class="dashboard-inline-select" data-maint-priority>${MAINTENANCE_PRIORITIES.map((priority) => `<option value="${priority}"${priority === (request.priority || 'Medium') ? ' selected' : ''}>${priority}</option>`).join('')}</select></td>
+        <td><select class="dashboard-inline-select" data-maint-status>${MAINTENANCE_STATUSES.map((status) => `<option value="${status}"${status === (request.status || 'New') ? ' selected' : ''}>${status}</option>`).join('')}</select></td>
+        <td><textarea class="dashboard-inline-notes" data-maint-comments rows="3">${escapeHtml(request.admin_comments || '')}</textarea></td>
+        <td>${photoLinks}</td>
+        <td><div class="table-actions"><button class="action-link" data-action="save-maintenance" data-id="${escapeHtml(request.id)}" type="button">Save</button></div></td>
       </tr>`;
     }).join('');
   }

@@ -287,6 +287,10 @@
   grid-template-columns: repeat(2, minmax(160px, 1fr));
 }
 
+.admin-maintenance-filters {
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+}
+
 /* ==========================================================================
    Leads sub-tabs
    ========================================================================== */
@@ -331,6 +335,10 @@
     grid-template-columns: 1fr;
   }
 
+  .admin-maintenance-filters {
+    grid-template-columns: 1fr;
+  }
+
   .dashboard-cards {
     grid-template-columns: 1fr;
   }
@@ -341,8 +349,44 @@
   flex-wrap: wrap;
 }
 
+.users-actions-cell .table-actions-stack {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
 .document-link {
   text-align: left;
+}
+
+.invite-form-layout .invite-form-actions {
+  margin-top: 1rem;
+}
+
+.invite-form-layout .invite-form-actions .btn-primary {
+  margin-top: 0;
+}
+
+.dashboard-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.dashboard-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.dashboard-summary-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(27, 58, 92, 0.08);
+  padding-bottom: 0.35rem;
+}
+
+.maintenance-photo-links {
+  display: grid;
+  gap: 0.35rem;
 }
 
 .admin-user-filters {
@@ -388,5 +432,9 @@
 @media (max-width: 768px) {
   .admin-user-filters {
     grid-template-columns: 1fr;
+  }
+
+  .invite-form-layout .invite-form-actions {
+    margin-top: 1.25rem;
   }
 }

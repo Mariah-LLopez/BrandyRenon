@@ -36,14 +36,40 @@
     <section class="section">
       <div class="container admin-shell">
         <nav class="portal-tab-bar" aria-label="Dashboard sections">
-          <button class="portal-tab active" data-tab="properties" type="button">Properties</button>
+          <button class="portal-tab active" data-tab="dashboard" type="button">Dashboard</button>
+          <button class="portal-tab" data-tab="properties" type="button">Properties</button>
           <button class="portal-tab" data-tab="transactions" type="button">Transactions</button>
           <button class="portal-tab" data-tab="documents" type="button">Documents</button>
+          <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
           <button class="portal-tab" data-tab="upload" type="button">Upload</button>
         </nav>
 
+        <div id="tab-dashboard" class="tab-panel">
+          <div class="admin-panel" style="margin-bottom:1.5rem">
+            <h2>Client Dashboard</h2>
+            <p class="table-hint">Track document, transaction, and task status in one place.</p>
+          </div>
+          <div class="dashboard-cards dashboard-summary-grid">
+            <div class="dashboard-card">
+              <p class="eyebrow">Documents</p>
+              <div id="dashboard-documents-list" class="dashboard-list"></div>
+              <div id="dashboard-documents-empty" class="admin-empty-state" hidden>No document records yet.</div>
+            </div>
+            <div class="dashboard-card">
+              <p class="eyebrow">Transactions</p>
+              <div id="dashboard-transactions-list" class="dashboard-list"></div>
+              <div id="dashboard-transactions-empty" class="admin-empty-state" hidden>No active transactions right now.</div>
+            </div>
+            <div class="dashboard-card">
+              <p class="eyebrow">Tasks</p>
+              <div id="dashboard-tasks-list" class="dashboard-list"></div>
+              <div id="dashboard-tasks-empty" class="admin-empty-state" hidden>No outstanding tasks.</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Properties tab -->
-        <div id="tab-properties" class="tab-panel">
+        <div id="tab-properties" class="tab-panel" hidden>
           <div class="admin-panel" style="margin-bottom:1.5rem">
             <h2>Your Properties</h2>
             <p class="table-hint">Properties linked to your transaction files.</p>
@@ -79,7 +105,7 @@
           <div class="admin-panel" style="margin-bottom:1.5rem">
             <div>
               <h2>Your Documents</h2>
-              <p class="table-hint">Documents shared with you by your agent. Items marked <strong>Signature Required</strong> need your electronic acknowledgement.</p>
+              <p class="table-hint">Documents shared with you by your agent. Legally binding signatures are completed through approved external e-signature providers.</p>
             </div>
           </div>
           <div class="table-card">
@@ -89,13 +115,65 @@
                   <th scope="col">File Name</th>
                   <th scope="col">Category</th>
                   <th scope="col">Date</th>
-                  <th scope="col">Signature</th>
+                  <th scope="col">Status</th>
                   <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody id="documents-tbody"></tbody>
             </table>
             <div id="documents-empty" class="admin-empty-state" hidden>No documents have been shared with you yet.</div>
+          </div>
+        </div>
+
+        <div id="tab-maintenance" class="tab-panel" hidden>
+          <div class="admin-panel" style="margin-bottom:1.5rem">
+            <h2>Maintenance Requests</h2>
+            <p class="table-hint">Submit requests, upload photos, and track updates from your property manager.</p>
+          </div>
+          <div class="form-card" style="margin-bottom:1.5rem">
+            <form id="maintenance-form" novalidate>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="maintenance-property">Property</label>
+                  <select id="maintenance-property" name="property_id"><option value="">Select property…</option></select>
+                </div>
+                <div class="form-group">
+                  <label for="maintenance-priority">Priority <span class="required" aria-hidden="true">*</span></label>
+                  <select id="maintenance-priority" name="priority" required><option value="Medium">Medium</option><option value="Low">Low</option><option value="High">High</option><option value="Emergency">Emergency</option></select>
+                </div>
+                <div class="form-group full-width">
+                  <label for="maintenance-title">Title <span class="required" aria-hidden="true">*</span></label>
+                  <input id="maintenance-title" name="title" type="text" required>
+                </div>
+                <div class="form-group full-width">
+                  <label for="maintenance-description">Description <span class="required" aria-hidden="true">*</span></label>
+                  <textarea id="maintenance-description" name="description" required></textarea>
+                </div>
+                <div class="form-group full-width">
+                  <label for="maintenance-photos">Photos (optional)</label>
+                  <input id="maintenance-photos" name="photos" type="file" accept=".png,.jpg,.jpeg,.gif,.webp" multiple>
+                </div>
+              </div>
+              <button id="maintenance-submit-btn" class="btn-primary" type="submit">Submit Request</button>
+              <div id="maintenance-form-status" class="form-status" aria-live="polite"></div>
+            </form>
+          </div>
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Created</th>
+                  <th scope="col">Property</th>
+                  <th scope="col">Title</th>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Admin Comments</th>
+                  <th scope="col">Photos</th>
+                </tr>
+              </thead>
+              <tbody id="maintenance-tbody"></tbody>
+            </table>
+            <div id="maintenance-empty" class="admin-empty-state" hidden>No maintenance requests submitted yet.</div>
           </div>
         </div>
 
@@ -112,20 +190,20 @@
                   <label for="client-upload-category">Document Category <span class="required" aria-hidden="true">*</span></label>
                   <select id="client-upload-category" name="category" required>
                     <option value="">Select category&hellip;</option>
-                    <option value="Paystub">Paystub</option>
-                    <option value="W-2">W-2 Form</option>
-                    <option value="Tax Return">Tax Return</option>
-                    <option value="ID">Driver's License / ID</option>
-                    <option value="Bank Statement">Bank Statement</option>
-                    <option value="Insurance">Insurance Document</option>
-                    <option value="Title">Title</option>
-                    <option value="Closing Document">Closing Document</option>
-                    <option value="Contract">Contract</option>
-                    <option value="Inspection Report">Inspection Report</option>
-                    <option value="Appraisal">Appraisal</option>
-                    <option value="HOA Document">HOA Document</option>
-                    <option value="Renovation Document">Renovation Document</option>
-                    <option value="Property Photo">Property Photo</option>
+                    <option value="Lease Agreement">Lease agreements</option>
+                    <option value="Lease Renewal">Lease renewals</option>
+                    <option value="Move-In Inspection Report">Move-in inspection reports</option>
+                    <option value="Move-Out Inspection Report">Move-out inspection reports</option>
+                    <option value="Property Rules">Property rules</option>
+                    <option value="Maintenance Agreement">Maintenance agreements</option>
+                    <option value="Insurance Requirement">Insurance requirements</option>
+                    <option value="Notice">Notices</option>
+                    <option value="Closing Document">Closing documents</option>
+                    <option value="Contract">Contracts</option>
+                    <option value="Paystub">Paystubs</option>
+                    <option value="Identification">Identification</option>
+                    <option value="Title Document">Title documents</option>
+                    <option value="Insurance Document">Insurance documents</option>
                     <option value="Other">Other</option>
                   </select>
                 </div>
@@ -150,25 +228,6 @@
       </div>
     </section>
   </main>
-
-  <!-- Signature modal -->
-  <div id="signature-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="sig-modal-title">
-    <div class="modal-dialog">
-      <button class="modal-close" type="button" id="sig-modal-close" aria-label="Close">&times;</button>
-      <h2 id="sig-modal-title">Electronic Acknowledgement</h2>
-      <p>By checking the box below you electronically acknowledge that you have read and understood the document. This acknowledgement is legally binding and will be time-stamped.</p>
-      <p><strong id="sig-doc-name"></strong></p>
-      <div class="form-group signature-check-group">
-        <label class="signature-label">
-          <input type="checkbox" id="sig-checkbox">
-          I have read and acknowledge this document.
-        </label>
-      </div>
-      <button id="sig-confirm-btn" class="btn-primary" type="button" disabled>Confirm Acknowledgement</button>
-      <div id="sig-status" class="form-status" aria-live="polite"></div>
-    </div>
-  </div>
-
   <div id="site-footer"></div>
 
   <script src="js/properties-data.js"></script>
