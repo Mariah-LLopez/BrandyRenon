@@ -3,16 +3,36 @@
 // It does NOT run on admin.html or client-portal.html.
 
 (function () {
-  // ── Redirect already-authenticated users away from the login page ──────────
+  function showLoginMessage(message) {
+    const errorBox = document.getElementById('login-error');
+    if (!errorBox || !message) return;
+    errorBox.className = 'form-status error-message';
+    errorBox.textContent = message;
+  }
+
+  function initLoginPageMessage() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('inactive') === '1') {
+      showLoginMessage('Your account is inactive. Please contact an administrator for access.');
+      params.delete('inactive');
+      const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}${window.location.hash || ''}`;
+      window.history.replaceState({}, '', nextUrl);
+    }
+  }
+
   async function redirectIfLoggedIn() {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
     const session = await getSession();
     if (!session) return;
-    const role = await getCurrentUserRole();
-    window.location.replace(role === 'admin' ? 'admin.html' : 'client-portal.html');
+    const profile = await getCurrentUserProfile();
+    if (!profile) return;
+    if (profile.role !== 'admin' && profile.status === 'inactive') {
+      await supabaseClient.auth.signOut();
+      return;
+    }
+    window.location.replace(profile.role === 'admin' ? 'admin.html' : 'client-portal.html');
   }
 
-  // ── Tab switching (Sign In / Create Account) ───────────────────────────────
   function initLoginTabs() {
     const tabSignin = document.getElementById('tab-signin');
     const tabRegister = document.getElementById('tab-register');
@@ -40,7 +60,6 @@
     });
   }
 
-  // ── Sign-in form ───────────────────────────────────────────────────────────
   function initLoginForm() {
     const loginForm = document.getElementById('login-form');
     const loginBtn = document.getElementById('login-button');
@@ -63,7 +82,7 @@
       }
 
       loginBtn.disabled = true;
-      loginBtn.textContent = 'Signing in\u2026';
+      loginBtn.textContent = 'Signing in…';
 
       try {
         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -73,9 +92,25 @@
           loginBtn.textContent = 'Sign In';
           return;
         }
-        // Role-based redirect: admin to admin.html, client to client-portal.html
-        const role = await getCurrentUserRole();
-        window.location.href = role === 'admin' ? 'admin.html' : 'client-portal.html';
+
+        const profile = await getCurrentUserProfile();
+        if (!profile) {
+          if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Unable to load your account profile.'; }
+          await supabaseClient.auth.signOut();
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Sign In';
+          return;
+        }
+
+        if (profile.role !== 'admin' && profile.status === 'inactive') {
+          await supabaseClient.auth.signOut();
+          if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Your account is inactive. Please contact an administrator for access.'; }
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Sign In';
+          return;
+        }
+
+        window.location.href = profile.role === 'admin' ? 'admin.html' : 'client-portal.html';
       } catch (err) {
         if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Unable to sign in. Please try again.'; }
         loginBtn.disabled = false;
@@ -84,7 +119,6 @@
     });
   }
 
-  // ── Create-account form ────────────────────────────────────────────────────
   function initRegisterForm() {
     const registerForm = document.getElementById('register-form');
     const registerBtn = document.getElementById('register-button');
@@ -112,7 +146,7 @@
       }
 
       registerBtn.disabled = true;
-      registerBtn.textContent = 'Creating account\u2026';
+      registerBtn.textContent = 'Creating account…';
 
       try {
         const { error } = await supabaseClient.auth.signUp({
@@ -139,7 +173,6 @@
     });
   }
 
-  // ── Forgot-password form (forgot-password.html) ────────────────────────────
   function initForgotPasswordForm() {
     const form = document.getElementById('forgot-password-form');
     if (!form) return;
@@ -162,7 +195,7 @@
         return;
       }
 
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending\u2026'; }
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
 
       const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
         redirectTo: new URL('reset-password.html', window.location.href).href
@@ -179,17 +212,12 @@
     });
   }
 
-  // ── Reset-password form (reset-password.html) ─────────────────────────────
-  // Supabase v2 sends the user to this page with a recovery token in the URL
-  // hash. The SDK automatically handles the token exchange via onAuthStateChange.
   function initResetPasswordForm() {
     const form = document.getElementById('reset-password-form');
     const formContainer = document.getElementById('reset-form-container');
     const invalidEl = document.getElementById('reset-invalid');
     if (!form) return;
 
-    // Listen for the PASSWORD_RECOVERY event that fires when Supabase
-    // processes the recovery token from the URL hash.
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       supabaseClient.auth.onAuthStateChange(function (event) {
         if (event === 'PASSWORD_RECOVERY') {
@@ -198,14 +226,11 @@
         }
       });
 
-      // If the page loaded via a recovery link, getSession may already have a
-      // session before onAuthStateChange fires, show the form immediately.
       getSession().then(function (session) {
         if (session) {
           if (formContainer) formContainer.hidden = false;
           if (invalidEl) invalidEl.hidden = true;
         } else {
-          // No session yet, wait for onAuthStateChange. Hide form until then.
           if (formContainer) formContainer.hidden = true;
           if (invalidEl) invalidEl.hidden = true;
         }
@@ -232,7 +257,7 @@
         return;
       }
 
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Updating\u2026'; }
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Updating…'; }
 
       const { error } = await supabaseClient.auth.updateUser({ password });
 
@@ -242,15 +267,15 @@
         return;
       }
 
-      if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password updated successfully. Redirecting to login\u2026'; }
+      if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password updated successfully. Redirecting to login…'; }
       await supabaseClient.auth.signOut();
       setTimeout(function () { window.location.href = 'login.html'; }, 2000);
     });
   }
 
-  // ── Entry point ───────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', async function () {
-    // On login.html: redirect away if already signed in
+    initLoginPageMessage();
+
     if (document.getElementById('login-form')) {
       await redirectIfLoggedIn();
     }
