@@ -30,15 +30,16 @@ function escapeHtml(value) {
 
 /**
  * Sanitizes a filename for use in a storage path.
- * Removes path traversal sequences and replaces unsafe characters.
+ * Strips all characters except alphanumerics, dots, dashes, and underscores.
+ * Prevents path traversal by rejecting any remaining directory separators.
  * @param {string} name
  * @returns {string}
  */
 function sanitizeFilename(name) {
-  return String(name || 'upload')
-    .replace(/\.\.[/\\]/g, '')    // strip ../
-    .replace(/[/\\]/g, '_')       // replace directory separators
-    .replace(/[^a-zA-Z0-9._-]/g, '_'); // keep safe chars only
+  const safe = String(name || 'upload')
+    .replace(/[^a-zA-Z0-9._-]/g, '_') // keep safe chars only
+    .replace(/\.{2,}/g, '_');           // collapse runs of dots (../ etc.)
+  return safe || 'upload';
 }
 async function getSession() {
   if (!supabaseClient) return null;

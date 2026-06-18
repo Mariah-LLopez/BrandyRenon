@@ -81,11 +81,11 @@
     grid.innerHTML = data.map((p) => `
       <div class="dashboard-card">
         <p class="eyebrow">Property</p>
-        <h3>${p.property_address}</h3>
+        <h3>${escapeHtml(p.property_address)}</h3>
         <p>${statusBadge(p.property_status)}</p>
-        ${p.purchase_price ? `<p><strong>Purchase:</strong> ${formatCurrency(p.purchase_price)}</p>` : ''}
-        ${p.sale_price ? `<p><strong>Sale:</strong> ${formatCurrency(p.sale_price)}</p>` : ''}
-        ${p.notes ? `<p class="table-hint">${p.notes}</p>` : ''}
+        ${p.purchase_price ? `<p><strong>Purchase:</strong> ${escapeHtml(formatCurrency(p.purchase_price))}</p>` : ''}
+        ${p.sale_price ? `<p><strong>Sale:</strong> ${escapeHtml(formatCurrency(p.sale_price))}</p>` : ''}
+        ${p.notes ? `<p class="table-hint">${escapeHtml(p.notes)}</p>` : ''}
       </div>
     `).join('');
   }
@@ -116,10 +116,10 @@
     tbody.innerHTML = data.map((t) => {
       const addr = t.properties ? t.properties.property_address : t.property_id || '—';
       return `<tr>
-        <td>${addr}</td>
-        <td style="text-transform:capitalize">${t.transaction_type}</td>
+        <td>${escapeHtml(addr)}</td>
+        <td style="text-transform:capitalize">${escapeHtml(t.transaction_type)}</td>
         <td>${statusBadge(t.status)}</td>
-        <td>${t.created_at ? t.created_at.slice(0, 10) : '—'}</td>
+        <td>${t.created_at ? escapeHtml(t.created_at.slice(0, 10)) : '—'}</td>
       </tr>`;
     }).join('');
   }
@@ -158,15 +158,15 @@
     tbody.innerHTML = allDocuments.map((doc) => {
       const downloadable = doc.visibility === 'client_downloadable';
       const downloadBtn = downloadable
-        ? `<button class="action-link" data-action="download" data-id="${doc.id}" type="button">Download</button>`
+        ? `<button class="action-link" data-action="download" data-id="${escapeHtml(doc.id)}" type="button">Download</button>`
         : '';
       const signBtn = doc.requires_signature && !doc.signed
-        ? `<button class="action-link badge-doc-required-btn" data-action="sign" data-id="${doc.id}" type="button">Acknowledge</button>`
+        ? `<button class="action-link badge-doc-required-btn" data-action="sign" data-id="${escapeHtml(doc.id)}" type="button">Acknowledge</button>`
         : '';
       return `<tr>
-        <td>${doc.file_name}</td>
-        <td>${doc.category || '—'}</td>
-        <td>${doc.created_at ? doc.created_at.slice(0, 10) : '—'}</td>
+        <td>${escapeHtml(doc.file_name)}</td>
+        <td>${escapeHtml(doc.category) || '—'}</td>
+        <td>${doc.created_at ? escapeHtml(doc.created_at.slice(0, 10)) : '—'}</td>
         <td>${sigBadge(doc)}</td>
         <td><div class="table-actions">${downloadBtn}${signBtn}</div></td>
       </tr>`;
