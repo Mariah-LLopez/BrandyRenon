@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Login | Brandy Renon</title>
-  <meta name="description" content="Private demo login page for the Colorado real estate admin portal.">
+  <title>Client &amp; Admin Portal | Brandy Renon</title>
+  <meta name="description" content="Secure portal for real estate transaction clients and administrators.">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/admin.css">
 </head>
@@ -13,24 +13,63 @@
   <div id="site-nav"></div>
 
   <main id="main-content" class="login-shell">
-    <section class="login-card" aria-labelledby="login-title">
+    <section class="login-card" aria-labelledby="portal-title">
       <div class="login-brand">
-        <span class="eyebrow">Private access</span>
-        <h1 id="login-title">Admin Portal</h1>
-        <p>Authorized users only. Session data is stored.</p>
+        <span class="eyebrow">Secure access</span>
+        <h1 id="portal-title">Client &amp; Admin Portal</h1>
+        <p>Sign in to access your real estate transaction dashboard.</p>
       </div>
-      <form id="login-form" action="javascript:void(0);" novalidate>
-        <div class="form-group">
-          <label for="login-email">Email</label>
-          <input id="login-email" name="email" type="email" autocomplete="email" required>
-        </div>
-        <div class="form-group">
-          <label for="login-password">Password</label>
-          <input id="login-password" name="password" type="password" autocomplete="current-password" required>
-        </div>
-        <button id="login-button" class="btn-primary login-submit" type="submit">Login</button>
-        <div id="login-error" aria-live="assertive"></div>
-      </form>
+
+      <!-- Tab navigation -->
+      <div class="portal-tabs" role="tablist" aria-label="Portal access options">
+        <button class="portal-tab active" id="tab-signin" role="tab"
+          aria-selected="true" aria-controls="panel-signin" type="button">Sign In</button>
+        <button class="portal-tab" id="tab-register" role="tab"
+          aria-selected="false" aria-controls="panel-register" type="button">Create Account</button>
+      </div>
+
+      <!-- Sign-in panel -->
+      <div id="panel-signin" role="tabpanel" aria-labelledby="tab-signin">
+        <form id="login-form" action="javascript:void(0);" novalidate>
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <input id="login-email" name="email" type="email" autocomplete="email" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+          </div>
+          <button id="login-button" class="btn-primary login-submit" type="submit">Sign In</button>
+          <div id="login-error" class="form-status" aria-live="assertive"></div>
+        </form>
+      </div>
+
+      <!-- Create account panel -->
+      <div id="panel-register" role="tabpanel" aria-labelledby="tab-register" hidden>
+        <form id="register-form" action="javascript:void(0);" novalidate>
+          <div class="form-group">
+            <label for="reg-name">Full Name <span class="required" aria-hidden="true">*</span></label>
+            <input id="reg-name" name="full_name" type="text" autocomplete="name" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-email">Email <span class="required" aria-hidden="true">*</span></label>
+            <input id="reg-email" name="email" type="email" autocomplete="email" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-phone">Phone</label>
+            <input id="reg-phone" name="phone" type="tel" inputmode="tel" placeholder="(720) 555-0100">
+          </div>
+          <div class="form-group">
+            <label for="reg-password">Password <span class="required" aria-hidden="true">*</span></label>
+            <input id="reg-password" name="password" type="password" autocomplete="new-password"
+              minlength="8" required aria-describedby="reg-password-hint">
+            <span id="reg-password-hint" class="helper-text">Minimum 8 characters.</span>
+          </div>
+          <p class="consent-text">By creating an account you agree to the <a href="privacy-policy.html">Privacy Policy</a>.</p>
+          <button id="register-button" class="btn-primary login-submit" type="submit">Create Account</button>
+          <div id="register-status" class="form-status" aria-live="assertive"></div>
+        </form>
+      </div>
     </section>
   </main>
 
