@@ -219,7 +219,7 @@ create table if not exists public.contact_requests (
   email             text not null,
   phone             text,
   inquiry_type      text not null default 'general_inquiry'
-                      check (inquiry_type in ('general_inquiry','rental_help','buyer_agent_request','property_inquiry','showing_request','renovation_help','maintenance_request','seller_help')),
+                      check (inquiry_type in ('general_question','general_inquiry','property_inquiry','showing_request','renovation_client_inquiry','rental_help','buyer_agent_request','renovation_help','maintenance_request','seller_help')),
   property_interest text,
   message           text not null,
   admin_status      text not null default 'not_viewed'
@@ -250,7 +250,7 @@ begin
   ) then
     alter table public.contact_requests
       add constraint contact_requests_inquiry_type_check
-      check (inquiry_type in ('general_inquiry','rental_help','buyer_agent_request','property_inquiry','showing_request','renovation_help','maintenance_request','seller_help'));
+      check (inquiry_type in ('general_question','general_inquiry','property_inquiry','showing_request','renovation_client_inquiry','rental_help','buyer_agent_request','renovation_help','maintenance_request','seller_help'));
   end if;
 end
 $$;
@@ -325,100 +325,52 @@ alter table public.showing_requests alter column admin_status set default 'not_v
 alter table public.showing_requests alter column admin_status set not null;
 
 -- -------------------------------------------------------------------------
--- house_flip_inquiries  (public — no auth required to insert)
+-- renovation_clients  (public — no auth required to insert)
 -- -------------------------------------------------------------------------
-create table if not exists public.house_flip_inquiries (
+create table if not exists public.renovation_clients (
   id                  uuid primary key default gen_random_uuid(),
   full_name           text not null,
   email               text not null,
   phone               text,
   property_address    text,
-  estimated_value     text,
-  property_condition  text,
+  service_needed      text,
+  project_type        text,
   project_description text,
-  admin_status        text not null default 'not_viewed'
-                        check (admin_status in ('not_viewed','in_progress','complete')),
-  admin_notes         text,
+  timeline            text,
+  budget_range        text,
+  status              text not null default 'not_viewed'
+                        check (status in ('not_viewed','in_progress','complete')),
   created_at          timestamptz not null default now()
 );
 
-alter table public.house_flip_inquiries enable row level security;
+alter table public.renovation_clients enable row level security;
 
-create policy "flip_insert_public" on public.house_flip_inquiries
+create policy "renovation_clients_insert_public" on public.renovation_clients
   for insert with check (true);
 
-create policy "flip_admin_all" on public.house_flip_inquiries
+create policy "renovation_clients_admin_all" on public.renovation_clients
   for all using (public.is_admin());
 
 -- Backwards-compatible additions for databases created before these fields existed.
-alter table public.house_flip_inquiries add column if not exists admin_status text default 'not_viewed';
-alter table public.house_flip_inquiries add column if not exists admin_notes text;
+alter table public.renovation_clients add column if not exists status text default 'not_viewed';
 do $$
 begin
   if not exists (
     select 1
     from pg_constraint
-    where conname = 'house_flip_inquiries_admin_status_check'
+    where conname = 'renovation_clients_status_check'
   ) then
-    alter table public.house_flip_inquiries
-      add constraint house_flip_inquiries_admin_status_check
-      check (admin_status in ('not_viewed','in_progress','complete'));
+    alter table public.renovation_clients
+      add constraint renovation_clients_status_check
+      check (status in ('not_viewed','in_progress','complete'));
   end if;
 end
 $$;
-update public.house_flip_inquiries
-set admin_status = 'not_viewed'
-where admin_status is null or btrim(admin_status) = '';
-alter table public.house_flip_inquiries alter column admin_status set default 'not_viewed';
-alter table public.house_flip_inquiries alter column admin_status set not null;
-
--- -------------------------------------------------------------------------
--- contractor_inquiries  (public — no auth required to insert)
--- -------------------------------------------------------------------------
-create table if not exists public.contractor_inquiries (
-  id                  uuid primary key default gen_random_uuid(),
-  full_name           text not null,
-  company_name        text,
-  email               text not null,
-  phone               text,
-  service_type        text,
-  service_area        text,
-  project_description text,
-  admin_status        text not null default 'not_viewed'
-                        check (admin_status in ('not_viewed','in_progress','complete')),
-  admin_notes         text,
-  created_at          timestamptz not null default now()
-);
-
-alter table public.contractor_inquiries enable row level security;
-
-create policy "contractor_insert_public" on public.contractor_inquiries
-  for insert with check (true);
-
-create policy "contractor_admin_all" on public.contractor_inquiries
-  for all using (public.is_admin());
-
--- Backwards-compatible additions for databases created before these fields existed.
-alter table public.contractor_inquiries add column if not exists admin_status text default 'not_viewed';
-alter table public.contractor_inquiries add column if not exists admin_notes text;
-do $$
-begin
-  if not exists (
-    select 1
-    from pg_constraint
-    where conname = 'contractor_inquiries_admin_status_check'
-  ) then
-    alter table public.contractor_inquiries
-      add constraint contractor_inquiries_admin_status_check
-      check (admin_status in ('not_viewed','in_progress','complete'));
-  end if;
-end
-$$;
-update public.contractor_inquiries
-set admin_status = 'not_viewed'
-where admin_status is null or btrim(admin_status) = '';
-alter table public.contractor_inquiries alter column admin_status set default 'not_viewed';
-alter table public.contractor_inquiries alter column admin_status set not null;
+update public.renovation_clients
+set status = 'not_viewed'
+where status is null or btrim(status) = '';
+alter table public.renovation_clients alter column status set default 'not_viewed';
+alter table public.renovation_clients alter column status set not null;
 
 -- -------------------------------------------------------------------------
 -- Storage bucket setup instructions
@@ -609,10 +561,13 @@ alter table public.contact_requests alter column inquiry_type set default 'gener
 update public.contact_requests
 set inquiry_type = 'general_question'
 where inquiry_type is null or btrim(inquiry_type) = '';
+update public.contact_requests
+set inquiry_type = 'renovation_client_inquiry'
+where inquiry_type in ('contractor_inquiry', 'house_flip_inquiry');
 alter table public.contact_requests drop constraint if exists contact_requests_inquiry_type_check;
 alter table public.contact_requests
   add constraint contact_requests_inquiry_type_check
-  check (inquiry_type in ('general_question', 'general_inquiry', 'property_inquiry', 'showing_request', 'contractor_inquiry', 'house_flip_inquiry', 'rental_help', 'buyer_agent_request', 'renovation_help', 'maintenance_request', 'seller_help'));
+  check (inquiry_type in ('general_question', 'general_inquiry', 'property_inquiry', 'showing_request', 'renovation_client_inquiry', 'rental_help', 'buyer_agent_request', 'renovation_help', 'maintenance_request', 'seller_help'));
 
 alter table public.showing_requests add column if not exists request_type text;
 update public.showing_requests

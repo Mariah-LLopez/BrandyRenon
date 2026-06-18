@@ -130,8 +130,9 @@
       general_question: 'Thank you! Your message has been received.',
       showing_request: 'Thank you! Your showing request has been received.',
       property_inquiry: 'Thank you! Your property inquiry has been received.',
-      contractor_inquiry: 'Thank you! Your contractor inquiry has been received.',
-      house_flip_inquiry: 'Thank you! Your house flip inquiry has been received.'
+      renovation_client_inquiry: 'Thank you! Your renovation client inquiry has been received.',
+      contractor_inquiry: 'Thank you! Your renovation client inquiry has been received.',
+      house_flip_inquiry: 'Thank you! Your renovation client inquiry has been received.'
     }[type] || 'Thank you! Your message has been received.';
   }
 
@@ -180,25 +181,18 @@
         request_type: inquiryType,
         message
       });
-    } else if (inquiryType === 'contractor_inquiry') {
-      result = await supabaseClient.from('contractor_inquiries').insert([{
+    } else if (inquiryType === 'contractor_inquiry' || inquiryType === 'house_flip_inquiry' || inquiryType === 'renovation_client_inquiry') {
+      result = await supabaseClient.from('renovation_clients').insert([{
         full_name: name,
         email,
         phone: phone || null,
-        company_name: null,
-        service_type: null,
-        service_area: null,
-        project_description: message
-      }]);
-    } else if (inquiryType === 'house_flip_inquiry') {
-      result = await supabaseClient.from('house_flip_inquiries').insert([{
-        full_name: name,
-        email,
-        phone: phone || null,
-        property_address: null,
-        estimated_value: null,
-        property_condition: null,
-        project_description: message
+        property_address: propertyInterest,
+        service_needed: 'Renovation Support',
+        project_type: 'Renovation Projects',
+        project_description: message,
+        timeline: null,
+        budget_range: null,
+        status: 'not_viewed'
       }]);
     } else {
       result = { error: { message: 'Unsupported inquiry type.' } };
@@ -294,24 +288,27 @@
       return;
     }
 
-    const { error } = await supabaseClient.from('house_flip_inquiries').insert([{
+    const { error } = await supabaseClient.from('renovation_clients').insert([{
       full_name: fullName,
       email,
       phone: phone || null,
       property_address: propertyAddress || null,
-      estimated_value: estimatedEl ? estimatedEl.value.trim() || null : null,
-      property_condition: conditionEl ? conditionEl.value || null : null,
-      project_description: descEl ? descEl.value.trim() || null : null
+      service_needed: conditionEl ? conditionEl.value || 'Renovation Support' : 'Renovation Support',
+      project_type: 'Renovation Projects',
+      project_description: descEl ? descEl.value.trim() || null : null,
+      timeline: null,
+      budget_range: estimatedEl ? estimatedEl.value.trim() || null : null,
+      status: 'not_viewed'
     }]);
 
     if (error) {
-      console.error('House flip form error:', error);
+      console.error('Renovation client form error:', error);
       if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Submission failed: ' + error.message; }
       return;
     }
 
     form.reset();
-    if (messageBox) { messageBox.className = 'form-status success-message'; messageBox.textContent = 'Thank you! We will review your property and be in touch shortly.'; }
+    if (messageBox) { messageBox.className = 'form-status success-message'; messageBox.textContent = 'Thank you! Your renovation client inquiry has been received.'; }
   }
 
   async function submitContractorForm(form) {
@@ -342,24 +339,31 @@
       return;
     }
 
-    const { error } = await supabaseClient.from('contractor_inquiries').insert([{
+    const { error } = await supabaseClient.from('renovation_clients').insert([{
       full_name: fullName,
       email,
       phone: phone || null,
-      company_name: companyEl ? companyEl.value.trim() || null : null,
-      service_type: serviceEl ? serviceEl.value || null : null,
-      service_area: areaEl ? areaEl.value.trim() || null : null,
-      project_description: descEl ? descEl.value.trim() || null : null
+      property_address: null,
+      service_needed: serviceEl ? serviceEl.value || null : null,
+      project_type: 'Renovation Projects',
+      project_description: [
+        companyEl && companyEl.value.trim() ? `Company: ${companyEl.value.trim()}` : '',
+        areaEl && areaEl.value.trim() ? `Service Area: ${areaEl.value.trim()}` : '',
+        descEl ? descEl.value.trim() : ''
+      ].filter(Boolean).join('\n\n') || null,
+      timeline: null,
+      budget_range: null,
+      status: 'not_viewed'
     }]);
 
     if (error) {
-      console.error('Contractor form error:', error);
+      console.error('Renovation client form error:', error);
       if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Submission failed: ' + error.message; }
       return;
     }
 
     form.reset();
-    if (messageBox) { messageBox.className = 'form-status success-message'; messageBox.textContent = 'Thank you! Your application has been received. We will be in touch if there is a match.'; }
+    if (messageBox) { messageBox.className = 'form-status success-message'; messageBox.textContent = 'Thank you! Your renovation client inquiry has been received.'; }
   }
 
   function handleFormSubmission(form) {

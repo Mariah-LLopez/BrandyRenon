@@ -23,25 +23,27 @@
       table: 'contact_requests',
       tbodyId: 'lead-contact-tbody',
       emptyId: 'lead-contact-empty',
+      statusField: 'admin_status',
+      notesField: 'admin_notes',
+      editable: true,
       columns: ['name', 'email', 'phone', 'inquiry_type', 'property_interest', 'message', 'created_at', 'status', 'notes', 'actions']
     },
     showing: {
       table: 'showing_requests',
       tbodyId: 'lead-showing-tbody',
       emptyId: 'lead-showing-empty',
+      statusField: 'admin_status',
+      notesField: 'admin_notes',
+      editable: true,
       columns: ['name', 'email', 'phone', 'request_type', 'property_address', 'preferred_date', 'preferred_time', 'message', 'created_at', 'status', 'notes', 'actions']
     },
-    contractor: {
-      table: 'contractor_inquiries',
-      tbodyId: 'lead-contractor-tbody',
-      emptyId: 'lead-contractor-empty',
-      columns: ['full_name', 'company_name', 'email', 'phone', 'service_type', 'service_area', 'project_description', 'created_at', 'status', 'notes', 'actions']
-    },
-    flip: {
-      table: 'house_flip_inquiries',
-      tbodyId: 'lead-flip-tbody',
-      emptyId: 'lead-flip-empty',
-      columns: ['full_name', 'email', 'phone', 'property_address', 'property_condition', 'estimated_value', 'project_description', 'created_at', 'status', 'notes', 'actions']
+    renovation: {
+      table: 'renovation_clients',
+      tbodyId: 'lead-renovation-tbody',
+      emptyId: 'lead-renovation-empty',
+      statusField: 'status',
+      editable: false,
+      columns: ['full_name', 'email', 'phone', 'property_address', 'service_needed', 'project_type', 'project_description', 'timeline', 'budget_range', 'status', 'created_at']
     }
   };
 
@@ -51,7 +53,7 @@
   let allTransactions = [];
   let allDocuments = [];
   let allPropertyAssignments = [];
-  let allLeads = { contact: [], showing: [], contractor: [], flip: [] };
+  let allLeads = { contact: [], showing: [], renovation: [] };
 
   function hasAllowedExtension(name) {
     const lower = (name || '').toLowerCase();
@@ -122,13 +124,14 @@
   }
 
   function setActiveLeadTab(tabKey) {
+    const targetTab = LEAD_SECTIONS[tabKey] ? tabKey : 'contact';
     document.querySelectorAll('.leads-sub-tabs .portal-tab').forEach((button) => {
-      const active = button.getAttribute('data-lead-tab') === tabKey;
+      const active = button.getAttribute('data-lead-tab') === targetTab;
       button.classList.toggle('active', active);
       button.setAttribute('aria-selected', active ? 'true' : 'false');
     });
     document.querySelectorAll('.lead-tab-panel').forEach((panel) => {
-      panel.hidden = panel.id !== `lead-tab-${tabKey}`;
+      panel.hidden = panel.id !== `lead-tab-${targetTab}`;
     });
   }
 
@@ -213,8 +216,9 @@
       general_inquiry: 'General Question',
       property_inquiry: 'Property Inquiry',
       showing_request: 'Showing Request',
-      contractor_inquiry: 'Contractor Inquiry',
-      house_flip_inquiry: 'House Flip Inquiry',
+      renovation_client_inquiry: 'Renovation Client Inquiry',
+      contractor_inquiry: 'Renovation Client Inquiry',
+      house_flip_inquiry: 'Renovation Client Inquiry',
       rental_help: 'Help Finding a Rental',
       buyer_agent_request: 'Request Brandy as My Agent',
       renovation_help: 'Help Renovating',
@@ -519,18 +523,25 @@
   }
 
   function renderLeadStatusSelect(sectionKey, row) {
-    const current = row.admin_status || 'not_viewed';
+    const config = LEAD_SECTIONS[sectionKey];
+    const statusField = config?.statusField || 'admin_status';
+    const current = row[statusField] || 'not_viewed';
     return `<select class="dashboard-inline-select" data-lead-status="${escapeHtml(sectionKey)}">${LEAD_STATUS_OPTIONS.map((option) => `<option value="${option.value}"${option.value === current ? ' selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}</select>`;
   }
 
   function renderLeadNotes(sectionKey, row) {
-    return `<textarea class="dashboard-inline-notes" data-lead-notes="${escapeHtml(sectionKey)}" rows="4">${escapeHtml(row.admin_notes || '')}</textarea>`;
+    const config = LEAD_SECTIONS[sectionKey];
+    const notesField = config?.notesField || 'admin_notes';
+    return `<textarea class="dashboard-inline-notes" data-lead-notes="${escapeHtml(sectionKey)}" rows="4">${escapeHtml(row[notesField] || '')}</textarea>`;
   }
 
-  function renderLeadCell(sectionKey, field, row) {
-    if (field === 'status') return renderLeadStatusSelect(sectionKey, row);
-    if (field === 'notes') return renderLeadNotes(sectionKey, row);
-    if (field === 'actions') return `<button class="action-link" data-action="save-lead" data-section="${escapeHtml(sectionKey)}" data-id="${escapeHtml(row.id)}" type="button">Save</button>`;
+  function renderLeadCell(sectionKey, config, field, row) {
+    if (field === 'status') {
+      if (config.editable) return renderLeadStatusSelect(sectionKey, row);
+      return escapeHtml(row[config.statusField || 'status'] || 'N/A');
+    }
+    if (field === 'notes') return config.editable ? renderLeadNotes(sectionKey, row) : 'N/A';
+    if (field === 'actions') return config.editable ? `<button class="action-link" data-action="save-lead" data-section="${escapeHtml(sectionKey)}" data-id="${escapeHtml(row.id)}" type="button">Save</button>` : 'N/A';
     if (field === 'created_at') return formatDateTime(row.created_at);
     if (field === 'preferred_date') return formatDateOnly(row.preferred_date);
     if (field === 'preferred_time') return formatTimeString(row.preferred_time);
@@ -557,7 +568,7 @@
     tbody.innerHTML = rows.map((row) => `<tr data-row-id="${escapeHtml(row.id)}">
       ${config.columns.map((field) => {
         const cellClass = ['message', 'property_interest', 'property_address', 'project_description', 'service_area', 'notes'].includes(field) ? ' class="dashboard-cell-wrap"' : '';
-        return `<td${cellClass}>${renderLeadCell(sectionKey, field, row)}</td>`;
+        return `<td${cellClass}>${renderLeadCell(sectionKey, config, field, row)}</td>`;
       }).join('')}
     </tr>`).join('');
   }
@@ -839,18 +850,22 @@
 
   async function saveLead(sectionKey, rowId, button) {
     const config = LEAD_SECTIONS[sectionKey];
+    if (!config || !config.editable) return;
     const tbody = document.getElementById(config.tbodyId);
     const row = tbody ? tbody.querySelector(`tr[data-row-id="${rowId}"]`) : null;
     if (!row) return;
     const adminStatus = row.querySelector(`[data-lead-status="${sectionKey}"]`)?.value || 'not_viewed';
     const adminNotes = row.querySelector(`[data-lead-notes="${sectionKey}"]`)?.value.trim() || null;
+    const statusField = config.statusField || 'admin_status';
+    const updatePayload = { [statusField]: adminStatus };
+    if (config.notesField) updatePayload[config.notesField] = adminNotes;
 
     if (button) {
       button.disabled = true;
       button.textContent = 'Saving…';
     }
 
-    const { error } = await supabaseClient.from(config.table).update({ admin_status: adminStatus, admin_notes: adminNotes }).eq('id', rowId);
+    const { error } = await supabaseClient.from(config.table).update(updatePayload).eq('id', rowId);
     if (error) {
       window.alert(`Unable to save lead: ${error.message}`);
       if (button) {

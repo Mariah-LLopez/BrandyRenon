@@ -42,39 +42,21 @@
       ]
     },
     {
-      key: 'contractor',
-      table: 'contractor_inquiries',
-      emptyMessage: 'No contractor inquiries found.',
-      columns: [
-        { field: 'full_name' },
-        { field: 'company_name' },
-        { field: 'email' },
-        { field: 'phone' },
-        { field: 'service_type' },
-        { field: 'service_area', wrap: true },
-        { field: 'project_description', wrap: true },
-        { field: 'created_at', formatter: formatDateTime },
-        { type: 'status' },
-        { type: 'notes' },
-        { type: 'actions' }
-      ]
-    },
-    {
-      key: 'flip',
-      table: 'house_flip_inquiries',
-      emptyMessage: 'No house flip inquiries found.',
+      key: 'renovation',
+      table: 'renovation_clients',
+      emptyMessage: 'No renovation clients found.',
       columns: [
         { field: 'full_name' },
         { field: 'email' },
         { field: 'phone' },
         { field: 'property_address', wrap: true },
-        { field: 'property_condition' },
-        { field: 'estimated_value' },
+        { field: 'service_needed' },
+        { field: 'project_type' },
         { field: 'project_description', wrap: true },
+        { field: 'timeline' },
+        { field: 'budget_range' },
+        { field: 'status' },
         { field: 'created_at', formatter: formatDateTime },
-        { type: 'status' },
-        { type: 'notes' },
-        { type: 'actions' }
       ]
     }
   ];
@@ -91,6 +73,7 @@
       buyer_agent_request: 'Request Brandy as My Agent',
       property_inquiry: 'Property Inquiry',
       showing_request: 'Request for a Showing',
+      renovation_client_inquiry: 'Renovation Client Inquiry',
       renovation_help: 'Help Renovating',
       maintenance_request: 'Maintenance / Property Manager Request',
       seller_help: 'Help Selling My House'
