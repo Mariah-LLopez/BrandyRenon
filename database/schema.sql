@@ -239,7 +239,7 @@ create policy "contact_requests_admin_all" on public.contact_requests
 -- Backwards-compatible additions for databases created before these fields existed.
 alter table public.contact_requests add column if not exists inquiry_type text;
 alter table public.contact_requests add column if not exists property_interest text;
-alter table public.contact_requests add column if not exists admin_status text not null default 'not_viewed';
+alter table public.contact_requests add column if not exists admin_status text default 'not_viewed';
 alter table public.contact_requests add column if not exists admin_notes text;
 do $$
 begin
@@ -273,6 +273,8 @@ where inquiry_type is null or btrim(inquiry_type) = '';
 update public.contact_requests
 set admin_status = 'not_viewed'
 where admin_status is null or btrim(admin_status) = '';
+alter table public.contact_requests alter column admin_status set default 'not_viewed';
+alter table public.contact_requests alter column admin_status set not null;
 
 -- -------------------------------------------------------------------------
 -- showing_requests  (public — no auth required to insert)
@@ -301,7 +303,7 @@ create policy "showing_requests_admin_all" on public.showing_requests
   for all using (public.is_admin());
 
 -- Backwards-compatible additions for databases created before these fields existed.
-alter table public.showing_requests add column if not exists admin_status text not null default 'not_viewed';
+alter table public.showing_requests add column if not exists admin_status text default 'not_viewed';
 alter table public.showing_requests add column if not exists admin_notes text;
 do $$
 begin
@@ -319,6 +321,8 @@ $$;
 update public.showing_requests
 set admin_status = 'not_viewed'
 where admin_status is null or btrim(admin_status) = '';
+alter table public.showing_requests alter column admin_status set default 'not_viewed';
+alter table public.showing_requests alter column admin_status set not null;
 
 -- -------------------------------------------------------------------------
 -- house_flip_inquiries  (public — no auth required to insert)
@@ -347,7 +351,7 @@ create policy "flip_admin_all" on public.house_flip_inquiries
   for all using (public.is_admin());
 
 -- Backwards-compatible additions for databases created before these fields existed.
-alter table public.house_flip_inquiries add column if not exists admin_status text not null default 'not_viewed';
+alter table public.house_flip_inquiries add column if not exists admin_status text default 'not_viewed';
 alter table public.house_flip_inquiries add column if not exists admin_notes text;
 do $$
 begin
@@ -365,6 +369,8 @@ $$;
 update public.house_flip_inquiries
 set admin_status = 'not_viewed'
 where admin_status is null or btrim(admin_status) = '';
+alter table public.house_flip_inquiries alter column admin_status set default 'not_viewed';
+alter table public.house_flip_inquiries alter column admin_status set not null;
 
 -- -------------------------------------------------------------------------
 -- contractor_inquiries  (public — no auth required to insert)
@@ -393,7 +399,7 @@ create policy "contractor_admin_all" on public.contractor_inquiries
   for all using (public.is_admin());
 
 -- Backwards-compatible additions for databases created before these fields existed.
-alter table public.contractor_inquiries add column if not exists admin_status text not null default 'not_viewed';
+alter table public.contractor_inquiries add column if not exists admin_status text default 'not_viewed';
 alter table public.contractor_inquiries add column if not exists admin_notes text;
 do $$
 begin
@@ -411,6 +417,8 @@ $$;
 update public.contractor_inquiries
 set admin_status = 'not_viewed'
 where admin_status is null or btrim(admin_status) = '';
+alter table public.contractor_inquiries alter column admin_status set default 'not_viewed';
+alter table public.contractor_inquiries alter column admin_status set not null;
 
 -- -------------------------------------------------------------------------
 -- Storage bucket setup instructions

@@ -79,7 +79,7 @@
     }
   ];
 
-  function normalizeLeadStatus(value) {
+  function sanitizeLeadStatus(value) {
     return LEAD_STATUS_OPTIONS.some((option) => option.value === value) ? value : 'not_viewed';
   }
 
@@ -150,7 +150,7 @@
   }
 
   function renderStatusEditor(sectionKey, row) {
-    const current = normalizeLeadStatus(row.admin_status);
+    const current = sanitizeLeadStatus(row.admin_status);
     const options = LEAD_STATUS_OPTIONS.map((option) => {
       const selected = option.value === current ? ' selected' : '';
       return `<option value="${escapeHtml(option.value)}"${selected}>${escapeHtml(option.label)}</option>`;
@@ -233,7 +233,7 @@
         return `<td${cellClass}>${renderedValue}</td>`;
       }).join('');
 
-      return `<tr data-row-id="${escapeHtml(row.id)}" data-current-status="${escapeHtml(normalizeLeadStatus(row.admin_status))}">${cells}</tr>`;
+      return `<tr data-row-id="${escapeHtml(row.id)}" data-current-status="${escapeHtml(sanitizeLeadStatus(row.admin_status))}">${cells}</tr>`;
     }).join('');
   }
 
@@ -294,7 +294,7 @@
 
     const statusInput = row.querySelector(`[data-status-input="${sectionKey}"]`);
     const notesInput = row.querySelector(`[data-notes-input="${sectionKey}"]`);
-    const adminStatus = normalizeLeadStatus(statusInput ? statusInput.value : row.getAttribute('data-current-status'));
+    const adminStatus = sanitizeLeadStatus(statusInput ? statusInput.value : row.getAttribute('data-current-status'));
     const adminNotes = notesInput ? notesInput.value.trim() : '';
 
     if (button) {

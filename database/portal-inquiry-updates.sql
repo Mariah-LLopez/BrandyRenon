@@ -48,7 +48,7 @@ $$;
 
 alter table public.contact_requests add column if not exists inquiry_type text;
 alter table public.contact_requests add column if not exists property_interest text;
-alter table public.contact_requests add column if not exists admin_status text not null default 'not_viewed';
+alter table public.contact_requests add column if not exists admin_status text default 'not_viewed';
 alter table public.contact_requests add column if not exists admin_notes text;
 do $$
 begin
@@ -84,6 +84,8 @@ where inquiry_type is null or btrim(inquiry_type) = '';
 update public.contact_requests
 set admin_status = 'not_viewed'
 where admin_status is null or btrim(admin_status) = '';
+alter table public.contact_requests alter column admin_status set default 'not_viewed';
+alter table public.contact_requests alter column admin_status set not null;
 
 create table if not exists public.showing_requests (
   id               uuid primary key default gen_random_uuid(),
@@ -131,7 +133,7 @@ begin
 end
 $$;
 
-alter table public.showing_requests add column if not exists admin_status text not null default 'not_viewed';
+alter table public.showing_requests add column if not exists admin_status text default 'not_viewed';
 alter table public.showing_requests add column if not exists admin_notes text;
 do $$
 begin
@@ -150,8 +152,10 @@ $$;
 update public.showing_requests
 set admin_status = 'not_viewed'
 where admin_status is null or btrim(admin_status) = '';
+alter table public.showing_requests alter column admin_status set default 'not_viewed';
+alter table public.showing_requests alter column admin_status set not null;
 
-alter table public.house_flip_inquiries add column if not exists admin_status text not null default 'not_viewed';
+alter table public.house_flip_inquiries add column if not exists admin_status text default 'not_viewed';
 alter table public.house_flip_inquiries add column if not exists admin_notes text;
 do $$
 begin
@@ -170,8 +174,10 @@ $$;
 update public.house_flip_inquiries
 set admin_status = 'not_viewed'
 where admin_status is null or btrim(admin_status) = '';
+alter table public.house_flip_inquiries alter column admin_status set default 'not_viewed';
+alter table public.house_flip_inquiries alter column admin_status set not null;
 
-alter table public.contractor_inquiries add column if not exists admin_status text not null default 'not_viewed';
+alter table public.contractor_inquiries add column if not exists admin_status text default 'not_viewed';
 alter table public.contractor_inquiries add column if not exists admin_notes text;
 do $$
 begin
@@ -190,3 +196,5 @@ $$;
 update public.contractor_inquiries
 set admin_status = 'not_viewed'
 where admin_status is null or btrim(admin_status) = '';
+alter table public.contractor_inquiries alter column admin_status set default 'not_viewed';
+alter table public.contractor_inquiries alter column admin_status set not null;
