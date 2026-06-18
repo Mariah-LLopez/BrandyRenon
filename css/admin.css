@@ -220,6 +220,15 @@
   background: rgba(27, 58, 92, 0.03);
 }
 
+.dashboard-table-scroll table :is(th, td):last-child {
+  text-align: left;
+}
+
+.dashboard-table-scroll table td:last-child .table-actions {
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
 .dashboard-cell-wrap {
   min-width: 220px;
   white-space: normal;
@@ -345,6 +354,7 @@
 }
 
 .table-actions-stack {
+  justify-content: flex-start;
   align-items: flex-start;
   flex-wrap: wrap;
 }
