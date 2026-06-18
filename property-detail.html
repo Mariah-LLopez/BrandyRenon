@@ -44,6 +44,16 @@
             </select>
             <span class="field-error" aria-live="polite"></span>
           </div>
+          <div class="form-group">
+            <label for="showing-date">Preferred Date</label>
+            <input id="showing-date" name="preferred_date" type="date">
+            <span class="field-error" aria-live="polite"></span>
+          </div>
+          <div class="form-group">
+            <label for="showing-time">Preferred Time</label>
+            <input id="showing-time" name="preferred_time" type="time">
+            <span class="field-error" aria-live="polite"></span>
+          </div>
           <div class="form-group full-width">
             <label for="showing-message">Preferred Tour Details <span class="required" aria-hidden="true">*</span></label>
             <textarea id="showing-message" name="message" required aria-required="true" placeholder="Share your preferred dates, timing, and any questions about the property."></textarea>
@@ -61,6 +71,8 @@
 
   <script src="js/properties-data.js"></script>
   <script src="js/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
   <script src="js/forms.js"></script>
 </body>
 </html>

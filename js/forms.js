@@ -1,6 +1,5 @@
 (function () {
   const PHONE_REGEX = /^[0-9()+\-\s.]{7,20}$/;
-  const SUCCESS_NOTE = 'DEVELOPER NOTE: Connect form submissions to your CMS, CRM, or business email service (e.g., Formspree, Netlify Forms, EmailJS). Do NOT store submissions in publicly accessible files.';
 
   function populatePropertySelects() {
     const selects = document.querySelectorAll('.property-select');
@@ -67,25 +66,120 @@
     return valid;
   }
 
+  async function submitContactForm(form) {
+    const messageBox = form.querySelector('.form-status');
+
+    if (!validateForm(form)) {
+      if (messageBox) {
+        messageBox.className = 'form-status error-message';
+        messageBox.textContent = 'Please correct the highlighted fields and try again.';
+      }
+      return;
+    }
+
+    const name = form.querySelector('[name="name"]').value.trim();
+    const email = form.querySelector('[name="email"]').value.trim();
+    const phoneEl = form.querySelector('[name="phone"]');
+    const phone = phoneEl ? phoneEl.value.trim() : '';
+    const message = form.querySelector('[name="message"]').value.trim();
+
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+      if (messageBox) {
+        messageBox.className = 'form-status error-message';
+        messageBox.textContent = 'Unable to submit. Please refresh and try again.';
+      }
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from('contact_requests')
+      .insert([{ name, email, phone, message }]);
+
+    if (error) {
+      console.error('Contact form error:', error);
+      if (messageBox) {
+        messageBox.className = 'form-status error-message';
+        messageBox.textContent = 'Submission failed: ' + error.message;
+      }
+      return;
+    }
+
+    form.reset();
+    populatePropertySelects();
+    if (messageBox) {
+      messageBox.className = 'form-status success-message';
+      messageBox.textContent = 'Thank you! Your message has been received.';
+    }
+  }
+
+  async function submitShowingForm(form) {
+    const messageBox = form.querySelector('.form-status');
+
+    if (!validateForm(form)) {
+      if (messageBox) {
+        messageBox.className = 'form-status error-message';
+        messageBox.textContent = 'Please correct the highlighted fields and try again.';
+      }
+      return;
+    }
+
+    const name = form.querySelector('[name="name"]').value.trim();
+    const email = form.querySelector('[name="email"]').value.trim();
+    const phoneEl = form.querySelector('[name="phone"]');
+    const phone = phoneEl ? phoneEl.value.trim() : '';
+    const message = form.querySelector('[name="message"]').value.trim();
+
+    const propertySelect = form.querySelector('[name="property"]');
+    const preferredDateEl = form.querySelector('[name="preferred_date"]');
+    const preferredTimeEl = form.querySelector('[name="preferred_time"]');
+
+    let property_address = '';
+    if (propertySelect && propertySelect.value && window.PROPERTIES) {
+      const found = window.PROPERTIES.find((p) => p.id === propertySelect.value);
+      property_address = found ? `${found.title} — ${found.address}` : propertySelect.value;
+    }
+
+    const preferred_date = preferredDateEl ? preferredDateEl.value : '';
+    const preferred_time = preferredTimeEl ? preferredTimeEl.value : '';
+
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+      if (messageBox) {
+        messageBox.className = 'form-status error-message';
+        messageBox.textContent = 'Unable to submit. Please refresh and try again.';
+      }
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from('showing_requests')
+      .insert([{ name, email, phone, property_address, preferred_date, preferred_time, message }]);
+
+    if (error) {
+      console.error('Showing form error:', error);
+      if (messageBox) {
+        messageBox.className = 'form-status error-message';
+        messageBox.textContent = 'Submission failed: ' + error.message;
+      }
+      return;
+    }
+
+    form.reset();
+    populatePropertySelects();
+    if (messageBox) {
+      messageBox.className = 'form-status success-message';
+      messageBox.textContent = 'Thank you! Your showing request has been received.';
+    }
+  }
+
   function handleFormSubmission(form) {
+    const formType = form.getAttribute('data-form-type');
     form.addEventListener('submit', function (event) {
       event.preventDefault();
-      const messageBox = form.querySelector('.form-status');
-      if (!validateForm(form)) {
-        if (messageBox) {
-          messageBox.className = 'form-status error-message';
-          messageBox.textContent = 'Please correct the highlighted fields and try again.';
-        }
-        return;
+      if (formType === 'contact') {
+        submitContactForm(form);
+      } else if (formType === 'showing') {
+        submitShowingForm(form);
       }
-
-      form.reset();
-      populatePropertySelects();
-      if (messageBox) {
-        messageBox.className = 'form-status success-message';
-        messageBox.textContent = 'Thank you! Your inquiry has been captured for follow-up.';
-      }
-      console.log(SUCCESS_NOTE);
     });
   }
 
