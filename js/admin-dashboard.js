@@ -233,7 +233,7 @@
         return `<td${cellClass}>${renderedValue}</td>`;
       }).join('');
 
-      return `<tr data-row-id="${escapeHtml(row.id)}">${cells}</tr>`;
+      return `<tr data-row-id="${escapeHtml(row.id)}" data-current-status="${escapeHtml(normalizeLeadStatus(row.admin_status))}">${cells}</tr>`;
     }).join('');
   }
 
@@ -294,7 +294,7 @@
 
     const statusInput = row.querySelector(`[data-status-input="${sectionKey}"]`);
     const notesInput = row.querySelector(`[data-notes-input="${sectionKey}"]`);
-    const adminStatus = normalizeLeadStatus(statusInput ? statusInput.value : '');
+    const adminStatus = normalizeLeadStatus(statusInput ? statusInput.value : row.getAttribute('data-current-status'));
     const adminNotes = notesInput ? notesInput.value.trim() : '';
 
     if (button) {
