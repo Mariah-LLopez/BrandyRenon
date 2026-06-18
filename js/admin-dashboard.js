@@ -99,7 +99,7 @@
   }
 
   function getLeadLabel(row) {
-    return escapeHtml(row.name || row.full_name || row.email || row.company_name || 'lead');
+    return escapeHtml(row.name || row.full_name || row.email || row.company_name || 'this inquiry');
   }
 
   function formatDateTime(value) {
