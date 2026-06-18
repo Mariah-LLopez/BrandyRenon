@@ -115,6 +115,30 @@
     });
   }
 
+  function getPropertyInterest(select) {
+    if (!select || !select.value) return null;
+    const property = window.PROPERTIES
+      ? window.PROPERTIES.find((item) => item.id === select.value)
+      : null;
+    return property
+      ? `${property.title} - ${property.address}`
+      : select.options[select.selectedIndex]?.textContent || select.value;
+  }
+
+  async function insertShowingRequest(payload) {
+    return supabaseClient.from('showing_requests').insert([payload]);
+  }
+
+  function getContactSuccessMessage(type) {
+    return {
+      general_question: 'Thank you! Your message has been received.',
+      showing_request: 'Thank you! Your showing request has been received.',
+      property_inquiry: 'Thank you! Your property inquiry has been received.',
+      contractor_inquiry: 'Thank you! Your contractor inquiry has been received.',
+      house_flip_inquiry: 'Thank you! Your house flip inquiry has been received.'
+    }[type] || 'Thank you! Your message has been received.';
+  }
+
   async function submitContactForm(form) {
     const messageBox = form.querySelector('.form-status');
 
@@ -131,41 +155,69 @@
     const inquiryType = inquiryTypeEl ? inquiryTypeEl.value : '';
     const propertySelect = form.querySelector('[name="property"]');
     const message = form.querySelector('[name="message"]').value.trim();
-    let propertyInterest = null;
-
-    if (propertySelect && propertySelect.value) {
-      const property = window.PROPERTIES
-        ? window.PROPERTIES.find((item) => item.id === propertySelect.value)
-        : null;
-      propertyInterest = property
-        ? `${property.title} - ${property.address}`
-        : propertySelect.options[propertySelect.selectedIndex]?.textContent || propertySelect.value;
-    }
+    const propertyInterest = getPropertyInterest(propertySelect);
 
     if (typeof supabaseClient === 'undefined' || !supabaseClient) {
       if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Unable to submit. Please refresh and try again.'; }
       return;
     }
 
-    const { error } = await supabaseClient.from('contact_requests').insert([{
-      name,
-      email,
-      phone,
-      inquiry_type: inquiryType,
-      property_interest: propertyInterest,
-      message
-    }]);
+    let result;
 
-    if (error) {
-      console.error('Contact form error:', error);
-      if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Submission failed: ' + error.message; }
+    if (inquiryType === 'general_question') {
+      result = await supabaseClient.from('contact_requests').insert([{
+        name,
+        email,
+        phone,
+        inquiry_type: inquiryType,
+        property_interest: null,
+        message
+      }]);
+    } else if (inquiryType === 'showing_request' || inquiryType === 'property_inquiry') {
+      result = await insertShowingRequest({
+        name,
+        email,
+        phone,
+        property_address: propertyInterest,
+        preferred_date: null,
+        preferred_time: null,
+        request_type: inquiryType,
+        message
+      });
+    } else if (inquiryType === 'contractor_inquiry') {
+      result = await supabaseClient.from('contractor_inquiries').insert([{
+        full_name: name,
+        email,
+        phone: phone || null,
+        company_name: null,
+        service_type: null,
+        service_area: null,
+        project_description: message
+      }]);
+    } else if (inquiryType === 'house_flip_inquiry') {
+      result = await supabaseClient.from('house_flip_inquiries').insert([{
+        full_name: name,
+        email,
+        phone: phone || null,
+        property_address: null,
+        estimated_value: null,
+        property_condition: null,
+        project_description: message
+      }]);
+    } else {
+      result = { error: { message: 'Unsupported inquiry type.' } };
+    }
+
+    if (result.error) {
+      console.error('Contact form error:', result.error);
+      if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Submission failed: ' + result.error.message; }
       return;
     }
 
     form.reset();
     populatePropertySelects();
     syncContactPropertyField(form);
-    if (messageBox) { messageBox.className = 'form-status success-message'; messageBox.textContent = 'Thank you! Your message has been received.'; }
+    if (messageBox) { messageBox.className = 'form-status success-message'; messageBox.textContent = getContactSuccessMessage(inquiryType); }
   }
 
   async function submitShowingForm(form) {
@@ -186,21 +238,25 @@
     const preferredDateEl = form.querySelector('[name="preferred_date"]');
     const preferredTimeEl = form.querySelector('[name="preferred_time"]');
 
-    let property_address = '';
-    if (propertySelect && propertySelect.value && window.PROPERTIES) {
-      const found = window.PROPERTIES.find((p) => p.id === propertySelect.value);
-      property_address = found ? `${found.title} - ${found.address}` : propertySelect.value;
-    }
-
-    const preferred_date = preferredDateEl ? preferredDateEl.value : '';
-    const preferred_time = preferredTimeEl ? preferredTimeEl.value : '';
+    const propertyAddress = getPropertyInterest(propertySelect) || '';
+    const preferredDate = preferredDateEl ? preferredDateEl.value || null : null;
+    const preferredTime = preferredTimeEl ? preferredTimeEl.value || null : null;
 
     if (typeof supabaseClient === 'undefined' || !supabaseClient) {
       if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Unable to submit. Please refresh and try again.'; }
       return;
     }
 
-    const { error } = await supabaseClient.from('showing_requests').insert([{ name, email, phone, property_address, preferred_date, preferred_time, message }]);
+    const { error } = await insertShowingRequest({
+      name,
+      email,
+      phone,
+      property_address: propertyAddress || null,
+      preferred_date: preferredDate,
+      preferred_time: preferredTime,
+      request_type: 'showing_request',
+      message
+    });
 
     if (error) {
       console.error('Showing form error:', error);
@@ -228,11 +284,11 @@
       return;
     }
 
-    const full_name = form.querySelector('[name="full_name"]').value.trim();
+    const fullName = form.querySelector('[name="full_name"]').value.trim();
     const email = form.querySelector('[name="email"]').value.trim();
     const phoneEl = form.querySelector('[name="phone"]');
     const phone = phoneEl ? phoneEl.value.trim() : '';
-    const property_address = addressEl ? addressEl.value.trim() : '';
+    const propertyAddress = addressEl ? addressEl.value.trim() : '';
     const estimatedEl = form.querySelector('[name="estimated_value"]');
     const conditionEl = form.querySelector('[name="property_condition"]');
     const descEl = form.querySelector('[name="project_description"]');
@@ -243,10 +299,10 @@
     }
 
     const { error } = await supabaseClient.from('house_flip_inquiries').insert([{
-      full_name,
+      full_name: fullName,
       email,
       phone: phone || null,
-      property_address: property_address || null,
+      property_address: propertyAddress || null,
       estimated_value: estimatedEl ? estimatedEl.value.trim() || null : null,
       property_condition: conditionEl ? conditionEl.value || null : null,
       project_description: descEl ? descEl.value.trim() || null : null
@@ -277,7 +333,7 @@
       return;
     }
 
-    const full_name = form.querySelector('[name="full_name"]').value.trim();
+    const fullName = form.querySelector('[name="full_name"]').value.trim();
     const email = form.querySelector('[name="email"]').value.trim();
     const phoneEl = form.querySelector('[name="phone"]');
     const phone = phoneEl ? phoneEl.value.trim() : '';
@@ -291,7 +347,7 @@
     }
 
     const { error } = await supabaseClient.from('contractor_inquiries').insert([{
-      full_name,
+      full_name: fullName,
       email,
       phone: phone || null,
       company_name: companyEl ? companyEl.value.trim() || null : null,

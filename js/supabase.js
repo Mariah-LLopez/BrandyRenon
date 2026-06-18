@@ -37,14 +37,31 @@ function escapeHtml(value) {
  */
 function sanitizeFilename(name) {
   const safe = String(name || 'upload')
-    .replace(/[^a-zA-Z0-9._-]/g, '_') // keep safe chars only
-    .replace(/\.{2,}/g, '_');           // collapse runs of dots (../ etc.)
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/\.{2,}/g, '_');
   return safe || 'upload';
 }
+
 async function getSession() {
   if (!supabaseClient) return null;
   const { data } = await supabaseClient.auth.getSession();
   return data.session || null;
+}
+
+/**
+ * Fetches the signed-in user's profile.
+ * @returns {Promise<object|null>}
+ */
+async function getCurrentUserProfile() {
+  const session = await getSession();
+  if (!session) return null;
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('id, email, full_name, role, status, phone, created_at')
+    .eq('id', session.user.id)
+    .single();
+  if (error || !data) return null;
+  return data;
 }
 
 /**
@@ -53,13 +70,6 @@ async function getSession() {
  * @returns {Promise<string|null>}
  */
 async function getCurrentUserRole() {
-  const session = await getSession();
-  if (!session) return null;
-  const { data, error } = await supabaseClient
-    .from('profiles')
-    .select('role')
-    .eq('id', session.user.id)
-    .single();
-  if (error || !data) return null;
-  return data.role;
+  const profile = await getCurrentUserProfile();
+  return profile ? profile.role : null;
 }
