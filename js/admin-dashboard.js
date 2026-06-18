@@ -22,7 +22,7 @@
         { field: 'phone' },
         { field: 'property_address', wrap: true },
         { field: 'preferred_date', formatter: formatDateOnly },
-        { field: 'preferred_time', formatter: formatTimeValue },
+        { field: 'preferred_time', formatter: formatTimeString },
         { field: 'message', wrap: true },
         { field: 'created_at', formatter: formatDateTime }
       ]
@@ -83,7 +83,7 @@
     }));
   }
 
-  function formatTimeValue(value) {
+  function formatTimeString(value) {
     if (!value) return '—';
     const normalized = String(value).trim();
     if (!normalized) return '—';
@@ -149,7 +149,7 @@
         const rawValue = row[column.field];
         const renderedValue = column.formatter
           ? column.formatter(rawValue, row)
-          : rawValue == null || String(rawValue).trim() === ''
+          : rawValue === null || rawValue === undefined || String(rawValue).trim() === ''
             ? '—'
             : escapeHtml(rawValue);
         const cellClass = column.wrap ? ' class="dashboard-cell-wrap"' : '';
@@ -175,7 +175,7 @@
 
     const { data, error } = await supabaseClient
       .from(section.table)
-      .select('*')
+      .select(section.columns.map((column) => column.field).join(', '))
       .order('created_at', { ascending: false });
 
     if (error) {
