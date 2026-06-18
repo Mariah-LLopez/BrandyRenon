@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contractor &amp; Trade Inquiries | Brandy Renon</title>
+  <meta name="description" content="Colorado contractors and service providers — register your services with Brandy Renon Colorado Real Estate.">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="site-nav"></div>
+
+  <main id="main-content">
+    <section class="page-hero">
+      <div class="container">
+        <div class="section-header">
+          <span class="eyebrow">Contractor Network</span>
+          <h1>Join Our Contractor Network</h1>
+          <p>Are you a licensed contractor, tradesperson, or service provider in Colorado? Submit your information to be considered for our renovation and property maintenance projects.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container contact-grid">
+        <div class="form-card">
+          <h2>Contractor Inquiry</h2>
+          <form id="contractor-form" data-form-type="contractor" novalidate>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="con-name">Full Name <span class="required" aria-hidden="true">*</span></label>
+                <input id="con-name" name="full_name" type="text" required aria-required="true">
+                <span class="field-error" aria-live="polite"></span>
+              </div>
+              <div class="form-group">
+                <label for="con-company">Company Name</label>
+                <input id="con-company" name="company_name" type="text">
+              </div>
+              <div class="form-group">
+                <label for="con-email">Email <span class="required" aria-hidden="true">*</span></label>
+                <input id="con-email" name="email" type="email" required aria-required="true">
+                <span class="field-error" aria-live="polite"></span>
+              </div>
+              <div class="form-group">
+                <label for="con-phone">Phone</label>
+                <input id="con-phone" name="phone" type="tel" inputmode="tel" placeholder="(720) 555-0100">
+                <span class="field-error" aria-live="polite"></span>
+              </div>
+              <div class="form-group">
+                <label for="con-service">Primary Service Type <span class="required" aria-hidden="true">*</span></label>
+                <select id="con-service" name="service_type" required aria-required="true">
+                  <option value="">Select service…</option>
+                  <option value="HVAC">HVAC</option>
+                  <option value="Electrical">Electrical</option>
+                  <option value="Plumbing">Plumbing</option>
+                  <option value="Roofing">Roofing</option>
+                  <option value="Concrete">Concrete</option>
+                  <option value="Drywall">Drywall</option>
+                  <option value="Painting">Painting</option>
+                  <option value="Flooring">Flooring</option>
+                  <option value="Landscaping">Landscaping</option>
+                  <option value="General Contracting">General Contracting</option>
+                  <option value="Carpentry">Carpentry</option>
+                  <option value="Insulation">Insulation</option>
+                  <option value="Windows &amp; Doors">Windows &amp; Doors</option>
+                  <option value="Cleaning">Cleaning</option>
+                  <option value="Other">Other</option>
+                </select>
+                <span class="field-error" aria-live="polite"></span>
+              </div>
+              <div class="form-group">
+                <label for="con-area">Service Area</label>
+                <input id="con-area" name="service_area" type="text" placeholder="e.g. Denver Metro, Boulder County">
+              </div>
+              <div class="form-group full-width">
+                <label for="con-description">Describe Your Services <span class="required" aria-hidden="true">*</span></label>
+                <textarea id="con-description" name="project_description" required aria-required="true"
+                  placeholder="Tell us about your experience, licensing, specialties, and availability."></textarea>
+                <span class="field-error" aria-live="polite"></span>
+              </div>
+            </div>
+            <p class="consent-text">By submitting this form you agree to our <a href="privacy-policy.html">Privacy Policy</a>.</p>
+            <button class="btn-primary" type="submit">Submit Application</button>
+            <div class="form-status" aria-live="polite"></div>
+          </form>
+        </div>
+
+        <div class="contact-card feature-panel">
+          <span class="eyebrow">Work with us</span>
+          <h2>Renovation Opportunities</h2>
+          <p>We regularly source skilled tradespeople for Colorado renovation and flip projects. Qualified applicants may be contacted for upcoming work.</p>
+          <ul class="contact-list">
+            <li><strong>HVAC</strong></li>
+            <li><strong>Electrical</strong></li>
+            <li><strong>Plumbing</strong></li>
+            <li><strong>Roofing</strong></li>
+            <li><strong>Concrete</strong></li>
+            <li><strong>Drywall</strong></li>
+            <li><strong>Painting</strong></li>
+            <li><strong>Flooring</strong></li>
+            <li><strong>Landscaping</strong></li>
+          </ul>
+          <p style="margin-top:1.5rem">
+            <a class="btn-secondary" href="contact.html">General Inquiry</a>
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="js/properties-data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/forms.js"></script>
+</body>
+</html>
