@@ -151,7 +151,7 @@
       name,
       email,
       phone,
-      inquiry_type: inquiryType || null,
+      inquiry_type: inquiryType,
       property_interest: propertyInterest,
       message
     }]);
