@@ -52,3 +52,218 @@
     align-items: stretch;
   }
 }
+
+/* ==========================================================================
+   Portal — shared tab navigation
+   ========================================================================== */
+
+.portal-tabs,
+.portal-tab-bar {
+  display: flex;
+  gap: 0.25rem;
+  background: rgba(27, 58, 92, 0.05);
+  border-radius: var(--radius-md);
+  padding: 0.35rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.portal-tab {
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  color: var(--color-muted);
+  transition: background var(--transition), color var(--transition);
+  white-space: nowrap;
+}
+
+.portal-tab:hover {
+  background: rgba(27, 58, 92, 0.08);
+  color: var(--color-primary);
+}
+
+.portal-tab.active,
+.portal-tab[aria-selected="true"] {
+  background: var(--color-white);
+  color: var(--color-primary);
+  box-shadow: 0 1px 4px rgba(27, 58, 92, 0.12);
+}
+
+/* login page tabs */
+.portal-tabs {
+  margin-bottom: 1.5rem;
+}
+
+/* ==========================================================================
+   Tab panels
+   ========================================================================== */
+
+.tab-panel[hidden],
+.lead-tab-panel[hidden] {
+  display: none;
+}
+
+/* ==========================================================================
+   Role badges
+   ========================================================================== */
+
+.role-client {
+  background: rgba(23, 162, 184, 0.12);
+  color: #0d6674;
+}
+
+/* ==========================================================================
+   Document status badges
+   ========================================================================== */
+
+.badge-doc-required,
+.badge-doc-required-btn {
+  background: rgba(192, 57, 43, 0.12);
+  color: #8f261a;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.badge-doc-signed {
+  background: rgba(40, 167, 69, 0.12);
+  color: #146c2e;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.badge-doc-none {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   Client dashboard cards
+   ========================================================================== */
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.dashboard-card {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(27, 58, 92, 0.08);
+  padding: 1.4rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.dashboard-card h3 {
+  color: var(--color-primary);
+}
+
+/* ==========================================================================
+   Document upload progress bar
+   ========================================================================== */
+
+.upload-progress {
+  height: 6px;
+  background: rgba(27, 58, 92, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0.75rem 0;
+}
+
+.upload-progress-bar {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+/* ==========================================================================
+   Signature modal — checkbox alignment
+   ========================================================================== */
+
+.signature-check-group {
+  margin: 1.25rem 0;
+}
+
+.signature-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.signature-label input[type="checkbox"] {
+  width: auto;
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+}
+
+/* ==========================================================================
+   Admin document filter bar — narrower grid
+   ========================================================================== */
+
+.admin-doc-filters {
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+}
+
+/* ==========================================================================
+   Leads sub-tabs
+   ========================================================================== */
+
+.leads-sub-tabs {
+  background: transparent;
+  padding: 0;
+  border-bottom: 2px solid rgba(27, 58, 92, 0.08);
+  border-radius: 0;
+  gap: 0;
+  margin-bottom: 1.25rem;
+}
+
+.leads-sub-tabs .portal-tab {
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+.leads-sub-tabs .portal-tab.active {
+  border-bottom-color: var(--color-accent);
+  background: var(--color-white);
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   Responsive overrides
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .portal-tab-bar,
+  .portal-tabs {
+    gap: 0.15rem;
+  }
+
+  .portal-tab {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .admin-doc-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+}
