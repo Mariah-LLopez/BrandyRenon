@@ -1,4 +1,4 @@
-// auth.js — Login, register, forgot-password, and reset-password page logic.
+// auth.js - Login, register, forgot-password, and reset-password page logic.
 // This file is used by login.html, forgot-password.html, and reset-password.html.
 // It does NOT run on admin.html or client-portal.html.
 
@@ -73,7 +73,7 @@
           loginBtn.textContent = 'Sign In';
           return;
         }
-        // Role-based redirect — admin → admin.html, client → client-portal.html
+        // Role-based redirect: admin to admin.html, client to client-portal.html
         const role = await getCurrentUserRole();
         window.location.href = role === 'admin' ? 'admin.html' : 'client-portal.html';
       } catch (err) {
@@ -199,13 +199,13 @@
       });
 
       // If the page loaded via a recovery link, getSession may already have a
-      // session before onAuthStateChange fires — show the form immediately.
+      // session before onAuthStateChange fires, show the form immediately.
       getSession().then(function (session) {
         if (session) {
           if (formContainer) formContainer.hidden = false;
           if (invalidEl) invalidEl.hidden = true;
         } else {
-          // No session yet — wait for onAuthStateChange. Hide form until then.
+          // No session yet, wait for onAuthStateChange. Hide form until then.
           if (formContainer) formContainer.hidden = true;
           if (invalidEl) invalidEl.hidden = true;
         }

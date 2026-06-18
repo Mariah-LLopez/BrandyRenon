@@ -17,7 +17,7 @@
         if (!existingOptions.includes(property.id)) {
           const option = document.createElement('option');
           option.value = property.id;
-          option.textContent = `${property.title} — ${property.address}`;
+          option.textContent = `${property.title} - ${property.address}`;
           select.appendChild(option);
         }
       });
@@ -138,7 +138,7 @@
         ? window.PROPERTIES.find((item) => item.id === propertySelect.value)
         : null;
       propertyInterest = property
-        ? `${property.title} — ${property.address}`
+        ? `${property.title} - ${property.address}`
         : propertySelect.options[propertySelect.selectedIndex]?.textContent || propertySelect.value;
     }
 
@@ -189,7 +189,7 @@
     let property_address = '';
     if (propertySelect && propertySelect.value && window.PROPERTIES) {
       const found = window.PROPERTIES.find((p) => p.id === propertySelect.value);
-      property_address = found ? `${found.title} — ${found.address}` : propertySelect.value;
+      property_address = found ? `${found.title} - ${found.address}` : propertySelect.value;
     }
 
     const preferred_date = preferredDateEl ? preferredDateEl.value : '';
