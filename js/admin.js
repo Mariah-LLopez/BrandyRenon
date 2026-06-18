@@ -195,8 +195,15 @@
 
   function formatTimeString(value) {
     if (!value) return 'N/A';
-    const parsed = new Date(`1970-01-01T${value}`);
-    if (Number.isNaN(parsed.getTime())) return escapeHtml(value);
+    const match = String(value).trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (!match) return escapeHtml(value);
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (Number.isNaN(hours) || Number.isNaN(minutes) || hours > 23 || minutes > 59) {
+      return escapeHtml(value);
+    }
+    const parsed = new Date();
+    parsed.setHours(hours, minutes, 0, 0);
     return escapeHtml(parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
   }
 
@@ -1017,7 +1024,7 @@
     renderAllLeadSections();
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
-    renderAdminPage();
+  document.addEventListener('DOMContentLoaded', async function () {
+    await renderAdminPage();
   });
 })();

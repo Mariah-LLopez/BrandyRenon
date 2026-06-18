@@ -297,7 +297,7 @@ create or replace function public.client_acknowledge_document(target_document_id
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, auth
 as $$
 begin
   update public.documents

@@ -215,7 +215,7 @@
       const showDownload = doc.visibility === 'client_downloadable' || previewMode;
       const showSign = !previewMode && doc.requires_signature && !doc.signed && doc.can_client_edit;
       return `<tr>
-        <td><button class="action-link document-link" data-action="open" data-id="${escapeHtml(doc.id)}" type="button">${escapeHtml(doc.file_name)}</button></td>
+        <td><button class="action-link document-link" data-action="open" data-id="${escapeHtml(doc.id)}" type="button" aria-label="Open ${escapeHtml(doc.file_name)}">${escapeHtml(doc.file_name)}</button></td>
         <td>${escapeHtml(doc.category) || 'N/A'}</td>
         <td>${formatDateOnly(doc.created_at)}</td>
         <td>${sigBadge(doc)}</td>
