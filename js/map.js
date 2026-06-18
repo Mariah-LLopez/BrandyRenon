@@ -40,8 +40,29 @@
     return map;
   }
 
+  function initializeSinglePropertyMap(containerId, property) {
+    const container = document.getElementById(containerId);
+    if (!container || typeof L === 'undefined' || !property) return;
+
+    const map = L.map(containerId, { scrollWheelZoom: false }).setView([property.lat, property.lng], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    L.marker([property.lat, property.lng])
+      .addTo(map)
+      .bindPopup(`<strong>${property.title}</strong><br>${property.address}`)
+      .openPopup();
+
+    return map;
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initializeMap('homepage-map', { zoom: 7, scrollWheelZoom: false });
-    initializeMap('all-properties-map', { zoom: 7, scrollWheelZoom: true });
+    if (document.getElementById('property-detail-map') && window.currentDetailProperty) {
+      initializeSinglePropertyMap('property-detail-map', window.currentDetailProperty);
+    }
   });
 })();
