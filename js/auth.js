@@ -165,7 +165,7 @@
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending\u2026'; }
 
       const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://mariah-llopez.github.io/BrandyRenon/reset-password.html'
+        redirectTo: new URL('reset-password.html', window.location.href).href
       });
 
       if (error) {

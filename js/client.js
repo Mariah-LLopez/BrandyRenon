@@ -158,7 +158,7 @@
     tbody.innerHTML = allDocuments.map((doc) => {
       const downloadable = doc.visibility === 'client_downloadable';
       const downloadBtn = downloadable
-        ? `<button class="action-link" data-action="download" data-id="${escapeHtml(doc.id)}" type="button">Download</button>`
+        ? `<button class="action-link" data-action="download" data-id="${escapeHtml(doc.id)}" type="button" aria-label="Download ${escapeHtml(doc.file_name)} (opens in new window)">Download</button>`
         : '';
       const signBtn = doc.requires_signature && !doc.signed
         ? `<button class="action-link badge-doc-required-btn" data-action="sign" data-id="${escapeHtml(doc.id)}" type="button">Acknowledge</button>`
