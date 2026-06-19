@@ -528,3 +528,40 @@
   min-height: 3.5rem;
   font-size: 0.85rem;
 }
+
+/* ==========================================================================
+   Admin Summary Cards
+   ========================================================================== */
+
+.admin-summary-cards {
+  margin-bottom: 2rem;
+}
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.summary-card-count {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-primary, #1a56db);
+}
+
+.summary-card-link {
+  margin-top: auto;
+  font-size: 0.85rem;
+  text-decoration: none;
+  color: var(--color-primary, #1a56db);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.summary-card-link:hover {
+  text-decoration: underline;
+}

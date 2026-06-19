@@ -11,13 +11,18 @@
     'text/plain',
     'image/png', 'image/jpeg', 'image/gif', 'image/webp'
   ];
-  const USER_ROLES = ['admin', 'client'];
+  const USER_ROLES = ['admin', 'client', 'renter', 'buyer', 'seller'];
   const USER_STATUSES = ['active', 'inactive'];
   const LEAD_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
   const ACCOUNT_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Active', 'Pending Signature', 'Completed', 'Archived'];
-  const ACCOUNT_TYPES = ['Buyer', 'Seller', 'Rental', 'Lease', 'Property Management', 'Renovation', 'Other'];
-  const MAINTENANCE_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
+  const ACCOUNT_TYPES = ['Buyer', 'Seller', 'Rental', 'Lease', 'Property Management', 'Renovation', 'Renter', 'Owner', 'Contractor', 'Other'];
+  const MAINTENANCE_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Waiting on Contractor', 'Completed'];
   const MAINTENANCE_PRIORITIES = ['Low', 'Medium', 'High', 'Emergency'];
+  const TASK_TYPES = ['Maintenance Request', 'Property Inquiry', 'Showing Request', 'Document Upload', 'Signature Request', 'Seller Task', 'Buyer Task', 'Admin Follow-Up', 'General Message'];
+  const TASK_STATUSES = ['Not Reviewed', 'In Progress', 'Waiting on User', 'Waiting on Admin', 'Completed', 'Archived'];
+  const TASK_PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
+  const SIG_REQUEST_STATUSES = ['Signature Needed', 'Sent for Signature', 'Signed', 'Declined', 'Expired'];
+  const MESSAGE_STATUSES = ['Not Reviewed', 'In Progress', 'Replied', 'Closed'];
   const SIGNATURE_STATUS_LABELS = {
     available: 'Available',
     pending_signature: 'Pending Signature',
@@ -60,6 +65,9 @@
   let allDocuments = [];
   let allMaintenanceRequests = [];
   let allMaintenanceFiles = [];
+  let allTasks = [];
+  let allMessages = [];
+  let allSigRequests = [];
   let allLeads = { contact: [], showing: [], renovation: [] };
 
   function nowIso() {
@@ -144,6 +152,7 @@
   }
 
   function openModal(id) {
+    const modal = document.getElementById(id + '-modal');
     if (!modal) return;
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
@@ -559,6 +568,33 @@
     await Promise.all(Object.keys(LEAD_SECTIONS).filter((k) => k !== 'property').map(loadLeadData));
   }
 
+  async function loadTasksData() {
+    const { data, error } = await supabaseClient
+      .from('tasks')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) return;
+    allTasks = data || [];
+  }
+
+  async function loadMessagesData() {
+    const { data, error } = await supabaseClient
+      .from('messages')
+      .select('*, profiles!messages_user_id_fkey(full_name, email)')
+      .order('created_at', { ascending: false });
+    if (error) return;
+    allMessages = data || [];
+  }
+
+  async function loadSigRequestsData() {
+    const { data, error } = await supabaseClient
+      .from('signature_requests')
+      .select('*, profiles!signature_requests_user_id_fkey(full_name, email)')
+      .order('created_at', { ascending: false });
+    if (error) return;
+    allSigRequests = data || [];
+  }
+
   function renderUsers() {
     const tbody = document.getElementById('users-tbody');
     const empty = document.getElementById('users-empty');
@@ -797,6 +833,125 @@
     renderCompletedLeads();
   }
 
+  function renderTasks() {
+    const tbody = document.getElementById('tasks-tbody');
+    const empty = document.getElementById('tasks-empty');
+    if (!tbody) return;
+    const typeFilter = document.getElementById('task-filter-type')?.value || '';
+    const statusFilter = document.getElementById('task-filter-status')?.value || '';
+    let filtered = allTasks.slice();
+    if (typeFilter) filtered = filtered.filter((t) => t.task_type === typeFilter);
+    if (statusFilter) filtered = filtered.filter((t) => t.status === statusFilter);
+    if (!filtered.length) {
+      tbody.innerHTML = '';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    tbody.innerHTML = filtered.map((task) => {
+      const account = getAccountById(task.account_id);
+      const user = getUserById(task.user_id);
+      const statusOptions = TASK_STATUSES.map((s) => `<option value="${s}"${s === task.status ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
+      return `<tr data-task-id="${escapeHtml(task.id)}">
+        <td class="dashboard-cell-wrap"><strong>${escapeHtml(task.title)}</strong>${task.user_visible_notes ? `<div class="table-hint">${escapeHtml(task.user_visible_notes)}</div>` : ''}</td>
+        <td>${escapeHtml(task.task_type || 'General Message')}</td>
+        <td>${escapeHtml(account?.account_name || 'N/A')}</td>
+        <td>${escapeHtml(user?.full_name || user?.email || 'N/A')}</td>
+        <td>${escapeHtml(task.priority || 'Medium')}</td>
+        <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-task-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
+        <td>${task.due_date ? escapeHtml(new Date(task.due_date).toLocaleDateString()) : 'None'}</td>
+        <td>${formatDateTime(task.created_at)}</td>
+        <td><div class="table-actions table-actions-stack"><button class="action-link" data-action="edit-task" data-id="${escapeHtml(task.id)}" type="button">Edit</button><button class="action-link" data-action="delete-task" data-id="${escapeHtml(task.id)}" type="button">Delete</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderMessages() {
+    const tbody = document.getElementById('messages-tbody');
+    const empty = document.getElementById('messages-empty');
+    if (!tbody) return;
+    const statusFilter = document.getElementById('message-filter-status')?.value || '';
+    let filtered = allMessages.slice();
+    if (statusFilter) filtered = filtered.filter((m) => m.status === statusFilter);
+    if (!filtered.length) {
+      tbody.innerHTML = '';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    tbody.innerHTML = filtered.map((msg) => {
+      const account = getAccountById(msg.account_id);
+      const userInfo = msg.profiles ? (msg.profiles.full_name || msg.profiles.email) : (getUserById(msg.user_id)?.full_name || getUserById(msg.user_id)?.email || 'N/A');
+      const statusOptions = MESSAGE_STATUSES.map((s) => `<option value="${s}"${s === msg.status ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
+      return `<tr data-message-id="${escapeHtml(msg.id)}">
+        <td>${escapeHtml(msg.subject || 'No subject')}</td>
+        <td>${escapeHtml(msg.message_type || 'General Message')}</td>
+        <td>${escapeHtml(userInfo)}</td>
+        <td>${escapeHtml(account?.account_name || 'N/A')}</td>
+        <td class="dashboard-cell-wrap">${escapeHtml(msg.message_body || '')}</td>
+        <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-message-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
+        <td><textarea class="dashboard-inline-notes" data-message-notes rows="2">${escapeHtml(msg.admin_notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></td>
+        <td>${formatDateTime(msg.created_at)}</td>
+        <td><div class="table-actions"><button class="action-link" data-action="delete-message" data-id="${escapeHtml(msg.id)}" type="button">Delete</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderSigRequests() {
+    const tbody = document.getElementById('sig-requests-tbody');
+    const empty = document.getElementById('sig-requests-empty');
+    if (!tbody) return;
+    const statusFilter = document.getElementById('sig-filter-status')?.value || '';
+    let filtered = allSigRequests.slice();
+    if (statusFilter) filtered = filtered.filter((s) => s.status === statusFilter);
+    if (!filtered.length) {
+      tbody.innerHTML = '';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    tbody.innerHTML = filtered.map((sig) => {
+      const account = getAccountById(sig.account_id);
+      const userInfo = sig.profiles ? (sig.profiles.full_name || sig.profiles.email) : (getUserById(sig.user_id)?.full_name || getUserById(sig.user_id)?.email || 'N/A');
+      const statusOptions = SIG_REQUEST_STATUSES.map((s) => `<option value="${s}"${s === sig.status ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
+      return `<tr data-sig-id="${escapeHtml(sig.id)}">
+        <td class="dashboard-cell-wrap"><strong>${escapeHtml(sig.title)}</strong>${sig.signature_url ? `<div class="table-hint"><a href="${escapeHtml(sig.signature_url)}" target="_blank" rel="noopener noreferrer">Open link</a></div>` : ''}</td>
+        <td>${escapeHtml(userInfo)}</td>
+        <td>${escapeHtml(account?.account_name || 'N/A')}</td>
+        <td>${escapeHtml(sig.provider || 'None')}</td>
+        <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-sig-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
+        <td><textarea class="dashboard-inline-notes" data-sig-notes rows="2">${escapeHtml(sig.admin_notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></td>
+        <td>${formatDateTime(sig.created_at)}</td>
+        <td><div class="table-actions"><button class="action-link" data-action="delete-sig" data-id="${escapeHtml(sig.id)}" type="button">Delete</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function updateSummaryCards() {
+    const activeAccounts = allAccounts.filter((a) => !['Completed', 'Archived'].includes(a.status)).length;
+    const filesNeedingAction = allDocuments.filter((d) => {
+      const sigState = d.signature_status || (d.signed ? 'signed' : (d.requires_signature ? 'pending_signature' : 'available'));
+      return sigState === 'pending_signature' || sigState === 'uploaded';
+    }).length;
+    const openMaintenance = allMaintenanceRequests.filter((m) => m.status !== 'Completed').length;
+    const openMessages = allMessages.filter((m) => m.status === 'Not Reviewed').length
+      + (allLeads.contact || []).filter((l) => l.admin_status === 'Not Reviewed Yet').length
+      + (allLeads.showing || []).filter((l) => l.admin_status === 'Not Reviewed Yet').length;
+    const openSigRequests = allSigRequests.filter((s) => !['Signed', 'Declined', 'Expired'].includes(s.status)).length;
+    const sellerTasks = allTasks.filter((t) => t.task_type === 'Seller Task' && !['Completed', 'Archived'].includes(t.status)).length;
+
+    const set = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+    set('summary-accounts', activeAccounts);
+    set('summary-files', filesNeedingAction);
+    set('summary-maintenance', openMaintenance);
+    set('summary-messages', openMessages);
+    set('summary-signatures', openSigRequests);
+    set('summary-seller-tasks', sellerTasks);
+  }
+
   async function handleInvite(event) {
     event.preventDefault();
     const form = document.getElementById('invite-form');
@@ -972,7 +1127,169 @@
     form.reset();
     await loadDocumentsData();
     renderDocuments();
+    updateSummaryCards();
     setTimeout(() => closeModal('upload'), 1200);
+  }
+
+  async function handleAddTask(event) {
+    event.preventDefault();
+    const form = document.getElementById('task-form');
+    const statusEl = document.getElementById('task-status-message');
+    const title = form.querySelector('[name="title"]').value.trim();
+    if (!title) {
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Task title is required.';
+      return;
+    }
+    const isEdit = !!form.dataset.editId;
+    const payload = {
+      title,
+      task_type: form.querySelector('[name="task_type"]').value || 'General Message',
+      status: form.querySelector('[name="status"]').value || 'Not Reviewed',
+      priority: form.querySelector('[name="priority"]').value || 'Medium',
+      account_id: form.querySelector('[name="account_id"]').value || null,
+      user_id: form.querySelector('[name="user_id"]').value || null,
+      property_id: form.querySelector('[name="property_id"]').value || null,
+      due_date: form.querySelector('[name="due_date"]').value || null,
+      description: form.querySelector('[name="description"]').value.trim() || null,
+      user_visible_notes: form.querySelector('[name="user_visible_notes"]').value.trim() || null,
+      internal_notes: form.querySelector('[name="internal_notes"]').value.trim() || null,
+      updated_at: nowIso()
+    };
+    let error;
+    if (isEdit) {
+      ({ error } = await supabaseClient.from('tasks').update(payload).eq('id', form.dataset.editId));
+    } else {
+      ({ error } = await supabaseClient.from('tasks').insert([payload]));
+    }
+    if (error) {
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Failed: ' + error.message;
+      return;
+    }
+    statusEl.className = 'form-status success-message';
+    statusEl.textContent = isEdit ? 'Task updated.' : 'Task created.';
+    form.reset();
+    delete form.dataset.editId;
+    document.getElementById('task-modal-title').textContent = 'New Task';
+    await loadTasksData();
+    renderTasks();
+    updateSummaryCards();
+    setTimeout(() => closeModal('task'), 1200);
+  }
+
+  function openEditTaskModal(taskId) {
+    const task = allTasks.find((t) => t.id === taskId);
+    if (!task) return;
+    const form = document.getElementById('task-form');
+    form.dataset.editId = taskId;
+    document.getElementById('task-modal-title').textContent = 'Edit Task';
+    form.querySelector('[name="title"]').value = task.title || '';
+    form.querySelector('[name="task_type"]').value = task.task_type || 'General Message';
+    form.querySelector('[name="status"]').value = task.status || 'Not Reviewed';
+    form.querySelector('[name="priority"]').value = task.priority || 'Medium';
+    form.querySelector('[name="account_id"]').value = task.account_id || '';
+    form.querySelector('[name="user_id"]').value = task.user_id || '';
+    form.querySelector('[name="property_id"]').value = task.property_id || '';
+    form.querySelector('[name="due_date"]').value = task.due_date || '';
+    form.querySelector('[name="description"]').value = task.description || '';
+    form.querySelector('[name="user_visible_notes"]').value = task.user_visible_notes || '';
+    form.querySelector('[name="internal_notes"]').value = task.internal_notes || '';
+    document.getElementById('task-status-message').textContent = '';
+    openModal('task');
+  }
+
+  async function deleteTask(taskId) {
+    if (!window.confirm('Delete this task? This cannot be undone.')) return;
+    const { error } = await supabaseClient.from('tasks').delete().eq('id', taskId);
+    if (error) return window.alert(error.message);
+    await loadTasksData();
+    renderTasks();
+    updateSummaryCards();
+  }
+
+  async function handleAddSigRequest(event) {
+    event.preventDefault();
+    const form = document.getElementById('sig-request-form');
+    const statusEl = document.getElementById('sig-request-status');
+    const title = form.querySelector('[name="title"]').value.trim();
+    if (!title) {
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Title is required.';
+      return;
+    }
+    const payload = {
+      title,
+      account_id: form.querySelector('[name="account_id"]').value || null,
+      user_id: form.querySelector('[name="user_id"]').value || null,
+      provider: form.querySelector('[name="provider"]').value || null,
+      status: form.querySelector('[name="status"]').value || 'Signature Needed',
+      signature_url: form.querySelector('[name="signature_url"]').value.trim() || null,
+      admin_notes: form.querySelector('[name="admin_notes"]').value.trim() || null,
+      updated_at: nowIso()
+    };
+    const { error } = await supabaseClient.from('signature_requests').insert([payload]);
+    if (error) {
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Failed: ' + error.message;
+      return;
+    }
+    statusEl.className = 'form-status success-message';
+    statusEl.textContent = 'Signature request created.';
+    form.reset();
+    await loadSigRequestsData();
+    renderSigRequests();
+    updateSummaryCards();
+    setTimeout(() => closeModal('sig-request'), 1200);
+  }
+
+  async function autoSaveTask(rowEl, field, value) {
+    const taskId = rowEl.closest('tr')?.getAttribute('data-task-id');
+    if (!taskId) return;
+    const indicatorEl = rowEl.closest('td')?.querySelector('.autosave-indicator');
+    setAutosaveState(indicatorEl, 'saving');
+    const nowCompleted = field === 'status' && value === 'Completed';
+    const wasCompleted = allTasks.find((t) => t.id === taskId)?.status === 'Completed';
+    const { error } = await supabaseClient.from('tasks').update({
+      [field]: value,
+      updated_at: nowIso(),
+      completed_at: nowCompleted ? nowIso() : (wasCompleted && field === 'status' ? null : undefined)
+    }).eq('id', taskId);
+    if (error) { setAutosaveState(indicatorEl, 'error', error.message); return; }
+    setAutosaveState(indicatorEl, 'saved');
+    const task = allTasks.find((t) => t.id === taskId);
+    if (task) {
+      task[field] = value;
+      if (nowCompleted) task.completed_at = new Date().toISOString();
+      if (field === 'status' && !nowCompleted && wasCompleted) task.completed_at = null;
+    }
+    if (field === 'status') { renderTasks(); updateSummaryCards(); }
+  }
+
+  async function autoSaveMessage(rowEl, field, value) {
+    const msgId = rowEl.closest('tr')?.getAttribute('data-message-id');
+    if (!msgId) return;
+    const indicatorEl = rowEl.closest('td')?.querySelector('.autosave-indicator');
+    setAutosaveState(indicatorEl, 'saving');
+    const { error } = await supabaseClient.from('messages').update({ [field]: value, updated_at: nowIso() }).eq('id', msgId);
+    if (error) { setAutosaveState(indicatorEl, 'error', error.message); return; }
+    setAutosaveState(indicatorEl, 'saved');
+    const msg = allMessages.find((m) => m.id === msgId);
+    if (msg) msg[field] = value;
+    if (field === 'status') { renderMessages(); updateSummaryCards(); }
+  }
+
+  async function autoSaveSigRequest(rowEl, field, value) {
+    const sigId = rowEl.closest('tr')?.getAttribute('data-sig-id');
+    if (!sigId) return;
+    const indicatorEl = rowEl.closest('td')?.querySelector('.autosave-indicator');
+    setAutosaveState(indicatorEl, 'saving');
+    const { error } = await supabaseClient.from('signature_requests').update({ [field]: value, updated_at: nowIso() }).eq('id', sigId);
+    if (error) { setAutosaveState(indicatorEl, 'error', error.message); return; }
+    setAutosaveState(indicatorEl, 'saved');
+    const sig = allSigRequests.find((s) => s.id === sigId);
+    if (sig) sig[field] = value;
+    if (field === 'status') { renderSigRequests(); updateSummaryCards(); }
   }
 
   async function saveUser(userId, row) {
@@ -1122,7 +1439,7 @@
     if (!maintenanceId) return;
     const indicatorEl = rowEl.closest('td')?.querySelector('.autosave-indicator');
     setAutosaveState(indicatorEl, 'saving');
-    const wasCompleted = allMaintenance.find((m) => m.id === maintenanceId)?.status === 'Completed';
+    const wasCompleted = allMaintenanceRequests.find((m) => m.id === maintenanceId)?.status === 'Completed';
     const nowCompleted = field === 'status' && value === 'Completed';
     const { error } = await supabaseClient.from('maintenance_requests').update({
       [field]: value,
@@ -1131,7 +1448,7 @@
     }).eq('id', maintenanceId);
     if (error) { setAutosaveState(indicatorEl, 'error', error.message); return; }
     setAutosaveState(indicatorEl, 'saved');
-    const req = allMaintenance.find((m) => m.id === maintenanceId);
+    const req = allMaintenanceRequests.find((m) => m.id === maintenanceId);
     if (req) {
       req[field] = value;
       if (nowCompleted) req.completed_at = new Date().toISOString();
@@ -1341,16 +1658,38 @@
     document.getElementById('open-property-modal')?.addEventListener('click', () => openModal('property'));
     document.getElementById('open-account-modal')?.addEventListener('click', () => openModal('account'));
     document.getElementById('open-upload-modal')?.addEventListener('click', () => openModal('upload'));
+    document.getElementById('open-task-modal')?.addEventListener('click', () => {
+      const form = document.getElementById('task-form');
+      if (form) { form.reset(); delete form.dataset.editId; }
+      document.getElementById('task-modal-title').textContent = 'New Task';
+      document.getElementById('task-status-message').textContent = '';
+      openModal('task');
+    });
+    document.getElementById('open-sig-request-modal')?.addEventListener('click', () => openModal('sig-request'));
     document.getElementById('upload-account')?.addEventListener('change', function () { applyUploadAccountDefaults(this.value); });
     document.getElementById('invite-form')?.addEventListener('submit', handleInvite);
     document.getElementById('property-form')?.addEventListener('submit', handleAddProperty);
     document.getElementById('account-form')?.addEventListener('submit', handleAddAccount);
     document.getElementById('upload-form')?.addEventListener('submit', handleUpload);
+    document.getElementById('task-form')?.addEventListener('submit', handleAddTask);
+    document.getElementById('sig-request-form')?.addEventListener('submit', handleAddSigRequest);
     document.getElementById('property-assignment-form')?.addEventListener('submit', savePropertyAssignments);
     document.getElementById('account-assignment-form')?.addEventListener('submit', saveAccountAssignments);
     document.getElementById('user-search')?.addEventListener('input', renderUsers);
     document.getElementById('admin-filter-visibility')?.addEventListener('change', renderDocuments);
     document.getElementById('admin-filter-signed')?.addEventListener('change', renderDocuments);
+    document.getElementById('task-filter-type')?.addEventListener('change', renderTasks);
+    document.getElementById('task-filter-status')?.addEventListener('change', renderTasks);
+    document.getElementById('message-filter-status')?.addEventListener('change', renderMessages);
+    document.getElementById('sig-filter-status')?.addEventListener('change', renderSigRequests);
+
+    // ── Summary card navigation ───────────────────────────────────────────────
+    document.querySelectorAll('.summary-card-link[data-tab-target]').forEach((btn) => {
+      btn.addEventListener('click', function () {
+        setActiveMainTab(btn.getAttribute('data-tab-target'));
+        updateTabParams({ tab: btn.getAttribute('data-tab-target') });
+      });
+    });
 
     // ── Autosave: Users ──────────────────────────────────────────────────────
     document.getElementById('users-tbody')?.addEventListener('change', function (event) {
@@ -1376,6 +1715,32 @@
         const el = event.target;
         if (el.hasAttribute('data-account-status')) autoSaveAccount(el, 'status', el.value);
       });
+    });
+
+    // ── Autosave: Tasks ──────────────────────────────────────────────────────
+    document.getElementById('tasks-tbody')?.addEventListener('change', function (event) {
+      const el = event.target;
+      if (el.hasAttribute('data-task-status')) autoSaveTask(el, 'status', el.value);
+    });
+
+    // ── Autosave: Messages ───────────────────────────────────────────────────
+    document.getElementById('messages-tbody')?.addEventListener('change', function (event) {
+      const el = event.target;
+      if (el.hasAttribute('data-message-status')) autoSaveMessage(el, 'status', el.value);
+    });
+    document.getElementById('messages-tbody')?.addEventListener('input', function (event) {
+      const el = event.target;
+      if (el.hasAttribute('data-message-notes')) debouncedUpdate(el, 650, () => autoSaveMessage(el, 'admin_notes', el.value.trim() || null));
+    });
+
+    // ── Autosave: Signature Requests ─────────────────────────────────────────
+    document.getElementById('sig-requests-tbody')?.addEventListener('change', function (event) {
+      const el = event.target;
+      if (el.hasAttribute('data-sig-status')) autoSaveSigRequest(el, 'status', el.value);
+    });
+    document.getElementById('sig-requests-tbody')?.addEventListener('input', function (event) {
+      const el = event.target;
+      if (el.hasAttribute('data-sig-notes')) debouncedUpdate(el, 650, () => autoSaveSigRequest(el, 'admin_notes', el.value.trim() || null));
     });
 
     // ── Autosave: Maintenance ────────────────────────────────────────────────
@@ -1418,6 +1783,45 @@
       if (button) handleDocumentAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
     });
 
+    document.getElementById('tasks-tbody')?.addEventListener('click', function (event) {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = button.getAttribute('data-action');
+      const id = button.getAttribute('data-id');
+      if (action === 'edit-task') openEditTaskModal(id);
+      if (action === 'delete-task') deleteTask(id);
+    });
+
+    document.getElementById('messages-tbody')?.addEventListener('click', function (event) {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = button.getAttribute('data-action');
+      const id = button.getAttribute('data-id');
+      if (action === 'delete-message') {
+        if (!window.confirm('Delete this message?')) return;
+        supabaseClient.from('messages').delete().eq('id', id).then(async () => {
+          await loadMessagesData();
+          renderMessages();
+          updateSummaryCards();
+        });
+      }
+    });
+
+    document.getElementById('sig-requests-tbody')?.addEventListener('click', function (event) {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = button.getAttribute('data-action');
+      const id = button.getAttribute('data-id');
+      if (action === 'delete-sig') {
+        if (!window.confirm('Delete this signature request?')) return;
+        supabaseClient.from('signature_requests').delete().eq('id', id).then(async () => {
+          await loadSigRequestsData();
+          renderSigRequests();
+          updateSummaryCards();
+        });
+      }
+    });
+
     ['maintenance-active-tbody', 'maintenance-completed-tbody'].forEach((tbodyId) => {
       document.getElementById(tbodyId)?.addEventListener('click', function (event) {
         const button = event.target.closest('[data-action]');
@@ -1458,14 +1862,29 @@
       loadPropertyAssignmentsData(),
       loadDocumentsData(),
       loadMaintenanceData(),
+      loadTasksData(),
+      loadMessagesData(),
+      loadSigRequestsData(),
       loadAllLeadData()
     ]);
+
+    // Populate task modal selects after data is loaded
+    populateAccountSelect(document.getElementById('task-account'), 'No account');
+    populateUserSelect(document.getElementById('task-user'), 'No specific user');
+    populatePropertySelect(document.getElementById('task-property'));
+    populateAccountSelect(document.getElementById('sig-req-account'), 'No account');
+    populateUserSelect(document.getElementById('sig-req-user'), 'No specific user');
 
     renderUsers();
     renderProperties();
     renderAccounts();
+    renderDocuments();
     renderMaintenanceTables();
+    renderTasks();
+    renderMessages();
+    renderSigRequests();
     renderAllLeadSections();
+    updateSummaryCards();
   }
 
   document.addEventListener('DOMContentLoaded', renderAdminPage);

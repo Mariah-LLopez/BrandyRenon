@@ -37,6 +37,8 @@
           <button class="portal-tab" data-tab="accounts" type="button">Accounts</button>
           <button class="portal-tab" data-tab="files" type="button">Files</button>
           <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
+          <button class="portal-tab" id="tab-btn-messages" data-tab="messages" type="button" hidden>Messages</button>
+          <button class="portal-tab" id="tab-btn-tasks" data-tab="tasks" type="button" hidden>Tasks</button>
         </nav>
 
         <div id="tab-dashboard" class="tab-panel">
@@ -59,6 +61,16 @@
               <p class="eyebrow">Maintenance</p>
               <div id="dashboard-maintenance-list" class="dashboard-list"></div>
               <div id="dashboard-maintenance-empty" class="admin-empty-state" hidden>No maintenance activity yet.</div>
+            </div>
+            <div class="dashboard-card" id="dashboard-messages-card" hidden>
+              <p class="eyebrow">Messages / Inquiries</p>
+              <div id="dashboard-messages-list" class="dashboard-list"></div>
+              <div id="dashboard-messages-empty" class="admin-empty-state" hidden>No messages yet.</div>
+            </div>
+            <div class="dashboard-card" id="dashboard-tasks-card" hidden>
+              <p class="eyebrow">Assigned Tasks</p>
+              <div id="dashboard-tasks-list" class="dashboard-list"></div>
+              <div id="dashboard-tasks-empty" class="admin-empty-state" hidden>No tasks assigned yet.</div>
             </div>
           </div>
         </div>
@@ -251,6 +263,89 @@
             <div id="maintenance-completed-empty" class="admin-empty-state" hidden>No completed maintenance requests yet.</div>
           </div>
         </div>
+
+        <!-- Messages / Inquiries tab (shown to buyers and other roles) -->
+        <div id="tab-messages" class="tab-panel" hidden>
+          <div class="admin-panel" style="margin-bottom:1.5rem">
+            <h2>Messages &amp; Property Inquiries</h2>
+            <p class="table-hint">Submit questions, property inquiries, or general messages to your agent.</p>
+          </div>
+          <div class="form-card" style="margin-bottom:1.5rem">
+            <form id="inquiry-form" novalidate>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="inquiry-type">Message Type</label>
+                  <select id="inquiry-type" name="message_type" required>
+                    <option value="">Select type…</option>
+                    <option value="Property Inquiry">Property Inquiry</option>
+                    <option value="Showing Request">Showing Request</option>
+                    <option value="Buyer Question">Buyer Question</option>
+                    <option value="General Message">General Message</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="inquiry-account">Account (optional)</label>
+                  <select id="inquiry-account" name="account_id"><option value="">Select account…</option></select>
+                </div>
+                <div class="form-group">
+                  <label for="inquiry-property">Property (optional)</label>
+                  <select id="inquiry-property" name="property_id"><option value="">Select property…</option></select>
+                </div>
+                <div class="form-group full-width">
+                  <label for="inquiry-subject">Subject</label>
+                  <input id="inquiry-subject" name="subject" type="text" required>
+                </div>
+                <div class="form-group full-width">
+                  <label for="inquiry-body">Message</label>
+                  <textarea id="inquiry-body" name="message_body" required></textarea>
+                </div>
+              </div>
+              <button id="inquiry-submit-btn" class="btn-primary" type="submit">Send Message</button>
+              <div id="inquiry-form-status" class="form-status" aria-live="polite"></div>
+            </form>
+          </div>
+
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Subject</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody id="client-messages-tbody"></tbody>
+            </table>
+            <div id="client-messages-empty" class="admin-empty-state" hidden>No messages submitted yet.</div>
+          </div>
+        </div>
+
+        <!-- Tasks tab (shown to sellers) -->
+        <div id="tab-tasks" class="tab-panel" hidden>
+          <div class="admin-panel" style="margin-bottom:1.5rem">
+            <h2>Your Tasks</h2>
+            <p class="table-hint">View tasks assigned to you by your agent. Complete required uploads, forms, or approvals here.</p>
+          </div>
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Title</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Account</th>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Due Date</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Agent Notes</th>
+                </tr>
+              </thead>
+              <tbody id="client-tasks-tbody"></tbody>
+            </table>
+            <div id="client-tasks-empty" class="admin-empty-state" hidden>No tasks have been assigned to you yet.</div>
+          </div>
+        </div>
+
       </div>
     </section>
   </main>
