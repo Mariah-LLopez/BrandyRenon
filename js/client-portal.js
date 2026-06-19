@@ -19,6 +19,8 @@
   let allDocuments = [];
   let allMaintenanceRequests = [];
   let allMaintenanceFiles = [];
+  let allClientMessages = [];
+  let allClientTasks = [];
 
   function hasAllowedExtension(name) {
     const lower = (name || '').toLowerCase();
@@ -156,6 +158,10 @@
     if (propertySelect) {
       propertySelect.innerHTML = '<option value="">Select property…</option>' + allProperties.map((property) => `<option value="${escapeHtml(property.id)}">${escapeHtml(property.property_address)}</option>`).join('');
     }
+    const inquiryPropertySelect = document.getElementById('inquiry-property');
+    if (inquiryPropertySelect) {
+      inquiryPropertySelect.innerHTML = '<option value="">Select property…</option>' + allProperties.map((property) => `<option value="${escapeHtml(property.id)}">${escapeHtml(property.property_address)}</option>`).join('');
+    }
     if (!allProperties.length) {
       grid.innerHTML = '';
       empty.hidden = false;
@@ -187,6 +193,10 @@
     const maintSelect = document.getElementById('maintenance-account');
     if (maintSelect) {
       maintSelect.innerHTML = '<option value="">Select account…</option>' + allAccounts.map((account) => `<option value="${escapeHtml(account.id)}">${escapeHtml(account.account_name)}</option>`).join('');
+    }
+    const inquiryAccountSelect = document.getElementById('inquiry-account');
+    if (inquiryAccountSelect) {
+      inquiryAccountSelect.innerHTML = '<option value="">Select account…</option>' + allAccounts.map((account) => `<option value="${escapeHtml(account.id)}">${escapeHtml(account.account_name)}</option>`).join('');
     }
     renderAccounts();
     renderDashboardAccounts();
@@ -512,7 +522,193 @@
     submitBtn.disabled = false;
     statusEl.className = 'form-status success-message';
     statusEl.textContent = 'Maintenance request submitted.';
+    // Auto-create an admin task for this maintenance request
+    await supabaseClient.from('tasks').insert([{
+      user_id: userId,
+      account_id: accountId || null,
+      property_id: propertyId || null,
+      task_type: 'Maintenance Request',
+      title: title,
+      description: description,
+      status: 'Not Reviewed',
+      priority: priority,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }]);
     await loadMaintenance(userId);
+  }
+
+  async function loadMessages(userId) {
+    const { data, error } = await supabaseClient
+      .from('messages')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) return;
+    allClientMessages = data || [];
+    renderClientMessages();
+    renderDashboardMessages();
+  }
+
+  async function loadTasks(userId) {
+    const { data, error } = await supabaseClient
+      .from('tasks')
+      .select('*, accounts(account_name)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) return;
+    allClientTasks = data || [];
+    renderClientTasks();
+    renderDashboardTasks();
+  }
+
+  function renderClientMessages() {
+    const tbody = document.getElementById('client-messages-tbody');
+    const empty = document.getElementById('client-messages-empty');
+    if (!tbody) return;
+    if (!allClientMessages.length) {
+      tbody.innerHTML = '';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    tbody.innerHTML = allClientMessages.map((msg) => `
+      <tr>
+        <td>${formatDateTime(msg.created_at)}</td>
+        <td>${escapeHtml(msg.message_type || 'Message')}</td>
+        <td class="dashboard-cell-wrap">${escapeHtml(msg.subject || '')}</td>
+        <td>${statusPill(msg.status || 'Open')}</td>
+      </tr>
+    `).join('');
+  }
+
+  function renderClientTasks() {
+    const tbody = document.getElementById('client-tasks-tbody');
+    const empty = document.getElementById('client-tasks-empty');
+    if (!tbody) return;
+    if (!allClientTasks.length) {
+      tbody.innerHTML = '';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    tbody.innerHTML = allClientTasks.map((task) => `
+      <tr>
+        <td class="dashboard-cell-wrap"><strong>${escapeHtml(task.title || 'Task')}</strong></td>
+        <td>${escapeHtml(task.task_type || '')}</td>
+        <td>${escapeHtml(task.accounts?.account_name || 'Unassigned')}</td>
+        <td>${escapeHtml(task.priority || 'Medium')}</td>
+        <td>${formatDateOnly(task.due_date)}</td>
+        <td>${statusPill(task.status || 'Not Reviewed')}</td>
+        <td>${escapeHtml(task.user_visible_notes || '')}</td>
+      </tr>
+    `).join('');
+  }
+
+  function renderDashboardMessages() {
+    const mount = document.getElementById('dashboard-messages-list');
+    const empty = document.getElementById('dashboard-messages-empty');
+    if (!mount) return;
+    const rows = allClientMessages.slice(0, 4);
+    if (!rows.length) {
+      mount.innerHTML = '';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    mount.innerHTML = rows.map((msg) => `<div class="dashboard-summary-item"><span>${escapeHtml(msg.subject || msg.message_type || 'Message')}</span><span>${statusPill(msg.status || 'Open')}</span></div>`).join('');
+  }
+
+  function renderDashboardTasks() {
+    const mount = document.getElementById('dashboard-tasks-list');
+    const empty = document.getElementById('dashboard-tasks-empty');
+    if (!mount) return;
+    const rows = allClientTasks.filter((t) => t.status !== 'Completed' && t.status !== 'Archived').slice(0, 4);
+    if (!rows.length) {
+      mount.innerHTML = '';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    mount.innerHTML = rows.map((task) => `<div class="dashboard-summary-item"><span>${escapeHtml(task.title || 'Task')}</span><span>${statusPill(task.status || 'Not Reviewed')}</span></div>`).join('');
+  }
+
+  async function handleInquirySubmit(event, userId) {
+    event.preventDefault();
+    if (previewMode) return;
+    const typeEl = document.getElementById('inquiry-type');
+    const accountEl = document.getElementById('inquiry-account');
+    const propertyEl = document.getElementById('inquiry-property');
+    const subjectEl = document.getElementById('inquiry-subject');
+    const bodyEl = document.getElementById('inquiry-body');
+    const statusEl = document.getElementById('inquiry-form-status');
+    const submitBtn = document.getElementById('inquiry-submit-btn');
+    if (!typeEl?.value || !subjectEl?.value.trim() || !bodyEl?.value.trim()) {
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Message type, subject, and message body are required.';
+      return;
+    }
+    submitBtn.disabled = true;
+    const { data: msg, error } = await supabaseClient.from('messages').insert([{
+      user_id: userId,
+      account_id: accountEl?.value || null,
+      property_id: propertyEl?.value || null,
+      message_type: typeEl.value,
+      subject: subjectEl.value.trim(),
+      message_body: bodyEl.value.trim(),
+      status: 'Open',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }]).select().single();
+    if (error) {
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Unable to send message: ' + error.message;
+      submitBtn.disabled = false;
+      return;
+    }
+    // Auto-create an admin task
+    await supabaseClient.from('tasks').insert([{
+      user_id: userId,
+      account_id: accountEl?.value || null,
+      property_id: propertyEl?.value || null,
+      task_type: 'Property Inquiry',
+      title: subjectEl.value.trim(),
+      description: bodyEl.value.trim(),
+      status: 'Not Reviewed',
+      priority: 'Medium',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }]);
+    event.target.reset();
+    submitBtn.disabled = false;
+    statusEl.className = 'form-status success-message';
+    statusEl.textContent = 'Message sent successfully.';
+    await loadMessages(userId);
+  }
+
+  function detectClientRoles() {
+    const types = allAccounts.map((a) => (a.account_type || '').toLowerCase());
+    return {
+      isBuyer: types.some((t) => t === 'buyer'),
+      isSeller: types.some((t) => t === 'seller'),
+      isRenter: types.some((t) => t === 'renter' || t === 'rental' || t === 'lease')
+    };
+  }
+
+  function applyRoleUI() {
+    const { isBuyer, isSeller } = detectClientRoles();
+    const messagesTabBtn = document.getElementById('tab-btn-messages');
+    const tasksTabBtn = document.getElementById('tab-btn-tasks');
+    const messagesCard = document.getElementById('dashboard-messages-card');
+    const tasksCard = document.getElementById('dashboard-tasks-card');
+    if (isBuyer || isSeller) {
+      if (messagesTabBtn) messagesTabBtn.hidden = false;
+      if (messagesCard) messagesCard.hidden = false;
+    }
+    if (isSeller) {
+      if (tasksTabBtn) tasksTabBtn.hidden = false;
+      if (tasksCard) tasksCard.hidden = false;
+    }
   }
 
   function applyPreviewMode(clientProfile) {
@@ -534,7 +730,7 @@
     if (!currentProfile) return window.location.replace('login.html');
     const previewClientId = getPreviewClientId();
     const isAdminPreview = currentProfile.role === 'admin' && previewClientId;
-    if (!isAdminPreview && currentProfile.role !== 'client') return window.location.replace(currentProfile.role === 'admin' ? 'admin.html' : 'login.html');
+    if (!isAdminPreview && currentProfile.role !== 'client' && !['renter', 'buyer', 'seller'].includes(currentProfile.role)) return window.location.replace(currentProfile.role === 'admin' ? 'admin.html' : 'login.html');
     if (!isAdminPreview && currentProfile.status === 'inactive') {
       await supabaseClient.auth.signOut();
       return window.location.replace('login.html?inactive=1');
@@ -544,7 +740,7 @@
     let displayProfile = currentProfile;
     if (isAdminPreview) {
       const { data: previewProfile } = await supabaseClient.from('profiles').select('id, email, full_name, role, status').eq('id', previewClientId).single();
-      if (!previewProfile || previewProfile.role !== 'client') return window.location.replace('admin.html?tab=users');
+      if (!previewProfile || (previewProfile.role !== 'client' && !['renter', 'buyer', 'seller'].includes(previewProfile.role))) return window.location.replace('admin.html?tab=users');
       displayProfile = previewProfile;
       applyPreviewMode(displayProfile);
     }
@@ -559,8 +755,11 @@
       loadProperties(activeUserId),
       loadAccounts(activeUserId),
       loadDocuments(activeUserId),
-      loadMaintenance(activeUserId)
+      loadMaintenance(activeUserId),
+      loadMessages(activeUserId),
+      loadTasks(activeUserId)
     ]);
+    applyRoleUI();
     document.getElementById('documents-tbody')?.addEventListener('click', function (event) {
       const button = event.target.closest('[data-action]');
       if (!button) return;
@@ -578,5 +777,6 @@
     });
     document.getElementById('client-upload-form')?.addEventListener('submit', function (event) { handleUpload(event, activeUserId); });
     document.getElementById('maintenance-form')?.addEventListener('submit', function (event) { handleMaintenanceSubmit(event, activeUserId); });
+    document.getElementById('inquiry-form')?.addEventListener('submit', function (event) { handleInquirySubmit(event, activeUserId); });
   });
 })();
