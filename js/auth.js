@@ -35,6 +35,7 @@
       return;
     }
     window.location.replace(getPortalDestination(profile));
+    return true;
   }
 
   function initLoginTabs() {
@@ -285,9 +286,10 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener('DOMContentLoaded', async function () {
     initLoginPageMessage();
-    redirectIfLoggedIn();
+    const redirected = await redirectIfLoggedIn();
+    if (redirected) return;
     initLoginTabs();
     initLoginForm();
     initRegisterForm();

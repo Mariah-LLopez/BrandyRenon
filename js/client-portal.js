@@ -404,7 +404,10 @@
       return;
     }
     uploadBtn.disabled = true;
-    const filePath = `${userId}/${account.id}/${Date.now()}-${sanitizeFilename(file.name)}`;
+    const uniquePrefix = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const filePath = `${userId}/${account.id}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
     const { error: storageError } = await supabaseClient.storage.from('property-documents').upload(filePath, file);
     if (storageError) {
       statusEl.className = 'form-status error-message';
@@ -481,7 +484,10 @@
     for (const file of uploads) {
       if (file.size > MAX_FILE_SIZE_BYTES || !isAllowedMime(file.type) || !hasAllowedExtension(file.name)) continue;
       const bucketName = 'maintenance-files';
-      const filePath = `${userId}/${request.id}/${Date.now()}-${sanitizeFilename(file.name)}`;
+      const uniquePrefix = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const filePath = `${userId}/${request.id}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
       const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
       if (!storageError) {
         await supabaseClient.from('maintenance_files').insert([{
