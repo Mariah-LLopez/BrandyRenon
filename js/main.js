@@ -5,6 +5,13 @@
     { href: 'contact.html', label: 'Contact' },
     { href: 'login.html', label: 'Portal Login' }
   ];
+  const MOBILE_BREAKPOINT_PX = 768;
+  const MOBILE_REVEAL_THRESHOLD = 0.01;
+  const DEFAULT_REVEAL_THRESHOLD = 0.14;
+  const MOBILE_REVEAL_ROOT_MARGIN = '0px 0px 32% 0px';
+  const DEFAULT_REVEAL_ROOT_MARGIN = '0px 0px -10% 0px';
+  const MOBILE_REVEAL_PRELOAD_RATIO = 0.45;
+  const MOBILE_REVEAL_MIN_PRELOAD_PX = 240;
   const REVEAL_SELECTOR = [
     'main section',
     '.section-header',
@@ -123,7 +130,7 @@
   }
 
   function isMobileViewport() {
-    return window.matchMedia('(max-width: 768px)').matches;
+    return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`).matches;
   }
 
   function getRevealObserver() {
@@ -142,8 +149,8 @@
           revealObserver.unobserve(entry.target);
         });
       }, {
-        threshold: mode === 'mobile' ? 0.01 : 0.14,
-        rootMargin: mode === 'mobile' ? '0px 0px 32% 0px' : '0px 0px -10% 0px'
+        threshold: mode === 'mobile' ? MOBILE_REVEAL_THRESHOLD : DEFAULT_REVEAL_THRESHOLD,
+        rootMargin: mode === 'mobile' ? MOBILE_REVEAL_ROOT_MARGIN : DEFAULT_REVEAL_ROOT_MARGIN
       });
     }
 
@@ -153,7 +160,7 @@
   function shouldRevealEarly(element) {
     if (!isMobileViewport()) return false;
     const rect = element.getBoundingClientRect();
-    const preloadDistance = Math.max(window.innerHeight * 0.45, 240);
+    const preloadDistance = Math.max(window.innerHeight * MOBILE_REVEAL_PRELOAD_RATIO, MOBILE_REVEAL_MIN_PRELOAD_PX);
     return rect.top <= window.innerHeight + preloadDistance;
   }
 
