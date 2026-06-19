@@ -191,7 +191,7 @@
     const scope = root && root.querySelectorAll ? root : document;
     const observer = getRevealObserver();
     const elements = scope.querySelectorAll(REVEAL_SELECTOR);
-    const revealLimitPx = window.innerHeight + Math.max(window.innerHeight * MOBILE_REVEAL_PRELOAD_RATIO, MOBILE_REVEAL_MIN_PRELOAD_PX);
+    const earlyRevealThresholdY = window.innerHeight + Math.max(window.innerHeight * MOBILE_REVEAL_PRELOAD_RATIO, MOBILE_REVEAL_MIN_PRELOAD_PX);
 
     elements.forEach((element) => {
       if (element.dataset.revealRegistered === 'true') return;
@@ -204,7 +204,7 @@
         return;
       }
 
-      if (shouldRevealEarly(element, revealLimitPx)) {
+      if (shouldRevealEarly(element, earlyRevealThresholdY)) {
         element.classList.add('reveal-visible');
         return;
       }
