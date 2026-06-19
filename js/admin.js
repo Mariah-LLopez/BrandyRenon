@@ -829,7 +829,8 @@
     }
     const accountId = form.querySelector('[name="account_id"]').value || null;
     const account = getAccountById(accountId);
-    const clientId = form.querySelector('[name="client_id"]').value || null;
+    const assignedClientIds = accountId ? getAccountClientIds(accountId) : [];
+    const clientId = form.querySelector('[name="client_id"]').value || (assignedClientIds.length === 1 ? assignedClientIds[0] : null);
     const propertyId = form.querySelector('[name="property_id"]').value || account?.property_id || null;
     const visibility = form.querySelector('[name="visibility"]').value;
     const requiresSignature = document.getElementById('upload-requires-sig').checked;
