@@ -34,6 +34,8 @@
     '.portal-tabs'
   ].join(', ');
   let revealObserver = null;
+  let revealObserverMode = null;
+  let revealRefreshFrame = 0;
 
   function formatPrice(value) {
     return new Intl.NumberFormat('en-US', {
@@ -137,8 +139,10 @@
       return null;
     }
 
-    if (!revealObserver) {
-      const mode = isMobileViewport() ? 'mobile' : 'default';
+    const mode = isMobileViewport() ? 'mobile' : 'default';
+    if (!revealObserver || revealObserverMode !== mode) {
+      if (revealObserver) revealObserver.disconnect();
+      revealObserverMode = mode;
       revealObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
@@ -152,6 +156,20 @@
     }
 
     return revealObserver;
+  }
+
+  function refreshRevealObserver() {
+    if (revealRefreshFrame) window.cancelAnimationFrame(revealRefreshFrame);
+    revealRefreshFrame = window.requestAnimationFrame(() => {
+      revealRefreshFrame = 0;
+      if (revealObserver) revealObserver.disconnect();
+      revealObserver = null;
+      revealObserverMode = null;
+      document.querySelectorAll('.reveal-on-scroll:not(.reveal-visible)').forEach((element) => {
+        element.dataset.revealRegistered = 'false';
+      });
+      registerRevealTargets(document);
+    });
   }
 
   function shouldRevealEarly(element, revealLimit) {
@@ -173,7 +191,7 @@
     const scope = root && root.querySelectorAll ? root : document;
     const observer = getRevealObserver();
     const elements = scope.querySelectorAll(REVEAL_SELECTOR);
-    const mobileRevealLimitPx = window.innerHeight + Math.max(window.innerHeight * MOBILE_REVEAL_PRELOAD_RATIO, MOBILE_REVEAL_MIN_PRELOAD_PX);
+    const revealLimitPx = window.innerHeight + Math.max(window.innerHeight * MOBILE_REVEAL_PRELOAD_RATIO, MOBILE_REVEAL_MIN_PRELOAD_PX);
 
     elements.forEach((element) => {
       if (element.dataset.revealRegistered === 'true') return;
@@ -186,7 +204,7 @@
         return;
       }
 
-      if (shouldRevealEarly(element, mobileRevealLimitPx)) {
+      if (shouldRevealEarly(element, revealLimitPx)) {
         element.classList.add('reveal-visible');
         return;
       }
@@ -516,6 +534,7 @@
     renderPropertyDetailPage();
     setupModal();
     refreshMotion();
+    window.addEventListener('resize', refreshRevealObserver);
   }
 
   window.formatPrice = formatPrice;
