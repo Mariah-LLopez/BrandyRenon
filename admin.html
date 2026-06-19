@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Portal | Brandy Renon</title>
-  <meta name="description" content="Secure administrator portal for managing users, properties, transactions, documents, and leads.">
+  <meta name="description" content="Secure administrator portal for managing clients, accounts, properties, maintenance, files, and leads.">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/admin.css">
   <style id="auth-guard-style">body { visibility: hidden; }</style>
@@ -34,8 +34,8 @@
         <nav class="portal-tab-bar" aria-label="Admin sections">
           <button class="portal-tab active" data-tab="users" type="button">Users</button>
           <button class="portal-tab" data-tab="properties" type="button">Properties</button>
-          <button class="portal-tab" data-tab="transactions" type="button">Transactions</button>
-          <button class="portal-tab" data-tab="documents" type="button">Documents</button>
+          <button class="portal-tab" data-tab="accounts" type="button">Accounts</button>
+          <button class="portal-tab" data-tab="files" type="button">Files</button>
           <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
           <button class="portal-tab" data-tab="leads" type="button">Leads</button>
         </nav>
@@ -44,7 +44,7 @@
           <div class="admin-panel admin-toolbar">
             <div>
               <h2>User Management</h2>
-              <p class="table-hint">Search users, change roles and status, assign records, and preview the client portal.</p>
+              <p class="table-hint">Search users, change roles and status, assign properties and accounts, and preview the client portal.</p>
             </div>
             <div class="filter-grid admin-user-filters" aria-label="User filters">
               <div class="form-group">
@@ -64,7 +64,7 @@
                     <th scope="col">Status</th>
                     <th scope="col">Account Created</th>
                     <th scope="col">Assigned Properties</th>
-                    <th scope="col">Assigned Transactions</th>
+                    <th scope="col">Assigned Accounts</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
@@ -79,7 +79,7 @@
           <div class="admin-panel admin-toolbar">
             <div>
               <h2>Properties</h2>
-              <p class="table-hint">Create and manage property records.</p>
+              <p class="table-hint">Manage internal properties, public listings, account links, and property notes.</p>
             </div>
             <button id="open-property-modal" class="btn-primary" type="button">Add Property</button>
           </div>
@@ -88,11 +88,11 @@
               <table>
                 <thead>
                   <tr>
-                    <th scope="col">Address</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Purchase Price</th>
-                    <th scope="col">Sale Price</th>
-                    <th scope="col">Created</th>
+                    <th scope="col">Property</th>
+                    <th scope="col">Workflow Status</th>
+                    <th scope="col">Visibility</th>
+                    <th scope="col">Public Website</th>
+                    <th scope="col">Last Updated</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
@@ -103,61 +103,88 @@
           </div>
         </div>
 
-        <div id="tab-transactions" class="tab-panel" hidden>
+        <div id="tab-accounts" class="tab-panel" hidden>
           <div class="admin-panel admin-toolbar">
             <div>
-              <h2>Transactions</h2>
-              <p class="table-hint">Link clients to properties and track deal status.</p>
+              <h2>Accounts</h2>
+              <p class="table-hint">Accounts replace separate transaction and document groupings for buyers, sellers, rentals, leases, renovations, and property management.</p>
             </div>
-            <button id="open-transaction-modal" class="btn-primary" type="button">New Transaction</button>
+            <button id="open-account-modal" class="btn-primary" type="button">New Account</button>
           </div>
-          <div class="table-card">
+
+          <nav class="portal-tab-bar workflow-tab-bar" aria-label="Account workflow">
+            <button class="portal-tab active" data-workflow-group="accounts" data-workflow-target="active" type="button">Active Accounts</button>
+            <button class="portal-tab" data-workflow-group="accounts" data-workflow-target="completed" type="button">Completed Accounts</button>
+          </nav>
+
+          <div class="table-card workflow-panel" data-workflow-panel="accounts-active">
             <div class="dashboard-table-scroll">
               <table>
                 <thead>
                   <tr>
-                    <th scope="col">Property</th>
+                    <th scope="col">Account Name</th>
                     <th scope="col">Client</th>
-                    <th scope="col">Type</th>
+                    <th scope="col">Assigned Property</th>
+                    <th scope="col">Account Type</th>
                     <th scope="col">Status</th>
-                    <th scope="col">Created</th>
+                    <th scope="col">Last Updated</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
-                <tbody id="transactions-tbody"></tbody>
+                <tbody id="accounts-active-tbody"></tbody>
               </table>
             </div>
-            <div id="transactions-empty" class="admin-empty-state" hidden>No transactions found.</div>
+            <div id="accounts-active-empty" class="admin-empty-state" hidden>No active accounts found.</div>
+          </div>
+
+          <div class="table-card workflow-panel" data-workflow-panel="accounts-completed" hidden>
+            <div class="dashboard-table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Account Name</th>
+                    <th scope="col">Client</th>
+                    <th scope="col">Assigned Property</th>
+                    <th scope="col">Account Type</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Completed</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="accounts-completed-tbody"></tbody>
+              </table>
+            </div>
+            <div id="accounts-completed-empty" class="admin-empty-state" hidden>No completed accounts found.</div>
           </div>
         </div>
 
-        <div id="tab-documents" class="tab-panel" hidden>
+        <div id="tab-files" class="tab-panel" hidden>
           <div class="admin-panel admin-toolbar">
             <div>
-              <h2>Document Management</h2>
-              <p class="table-hint">Upload, assign, preview, download, and control client access.</p>
+              <h2>Documents &amp; Files</h2>
+              <p class="table-hint">Upload contracts, leases, receipts, photos, IDs, and signature links across accounts, properties, clients, and maintenance records.</p>
             </div>
-            <div class="filter-grid admin-doc-filters" aria-label="Document filters">
+            <div class="filter-grid admin-doc-filters" aria-label="File filters">
               <div class="form-group">
                 <label for="admin-filter-visibility">Visibility</label>
                 <select id="admin-filter-visibility">
                   <option value="">All</option>
                   <option value="admin_only">Admin Only</option>
                   <option value="client_visible">Client Visible</option>
-                  <option value="client_downloadable">Downloadable</option>
+                  <option value="client_downloadable">Client Downloadable</option>
                 </select>
               </div>
               <div class="form-group">
                 <label for="admin-filter-signed">Signature</label>
                 <select id="admin-filter-signed">
                   <option value="">All</option>
-                  <option value="required">Requires Sig.</option>
+                  <option value="required">Needs Signature</option>
                   <option value="signed">Signed</option>
-                  <option value="unsigned">Awaiting Sig.</option>
+                  <option value="pending">Pending Signature</option>
                 </select>
               </div>
             </div>
-            <button id="open-upload-modal" class="btn-primary" type="button">Upload Document</button>
+            <button id="open-upload-modal" class="btn-primary" type="button">Upload File</button>
           </div>
           <div class="table-card">
             <div class="dashboard-table-scroll">
@@ -166,8 +193,9 @@
                   <tr>
                     <th scope="col">File Name</th>
                     <th scope="col">Category</th>
+                    <th scope="col">Account</th>
+                    <th scope="col">Property</th>
                     <th scope="col">Client</th>
-                    <th scope="col">Visibility</th>
                     <th scope="col">Client Access</th>
                     <th scope="col">Signature</th>
                     <th scope="col">Uploaded</th>
@@ -177,32 +205,22 @@
                 <tbody id="documents-tbody"></tbody>
               </table>
             </div>
-            <div id="documents-empty" class="admin-empty-state" hidden>No documents match the current filters.</div>
+            <div id="documents-empty" class="admin-empty-state" hidden>No files match the current filters.</div>
           </div>
         </div>
 
         <div id="tab-maintenance" class="tab-panel" hidden>
-          <div class="admin-panel admin-toolbar">
-            <div>
-              <h2>Maintenance Requests</h2>
-              <p class="table-hint">Track and update maintenance requests from rental and property management clients.</p>
-            </div>
-            <div class="filter-grid admin-maintenance-filters" aria-label="Maintenance filters">
-              <div class="form-group">
-                <label for="admin-maint-status-filter">Status</label>
-                <select id="admin-maint-status-filter"><option value="">All</option><option value="New">New</option><option value="In Review">In Review</option><option value="Scheduled">Scheduled</option><option value="In Progress">In Progress</option><option value="Completed">Completed</option><option value="Closed">Closed</option></select>
-              </div>
-              <div class="form-group">
-                <label for="admin-maint-priority-filter">Priority</label>
-                <select id="admin-maint-priority-filter"><option value="">All</option><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option><option value="Emergency">Emergency</option></select>
-              </div>
-              <div class="form-group">
-                <label for="admin-maint-property-filter">Property</label>
-                <select id="admin-maint-property-filter"><option value="">All properties</option></select>
-              </div>
-            </div>
+          <div class="admin-panel">
+            <h2>Maintenance Requests</h2>
+            <p class="table-hint">Clients submit maintenance requests from their portal. Admin can review, add comments, and manage related files here.</p>
           </div>
-          <div class="table-card">
+
+          <nav class="portal-tab-bar workflow-tab-bar" aria-label="Maintenance workflow">
+            <button class="portal-tab active" data-workflow-group="maintenance" data-workflow-target="active" type="button">Active Maintenance</button>
+            <button class="portal-tab" data-workflow-group="maintenance" data-workflow-target="completed" type="button">Completed Maintenance</button>
+          </nav>
+
+          <div class="table-card workflow-panel" data-workflow-panel="maintenance-active">
             <div class="dashboard-table-scroll">
               <table>
                 <thead>
@@ -210,43 +228,100 @@
                     <th scope="col">Created</th>
                     <th scope="col">Client</th>
                     <th scope="col">Property</th>
+                    <th scope="col">Account</th>
                     <th scope="col">Title</th>
                     <th scope="col">Priority</th>
                     <th scope="col">Status</th>
                     <th scope="col">Admin Comments</th>
-                    <th scope="col">Photos</th>
+                    <th scope="col">Files</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
-                <tbody id="maintenance-tbody"></tbody>
+                <tbody id="maintenance-active-tbody"></tbody>
               </table>
             </div>
-            <div id="maintenance-empty" class="admin-empty-state" hidden>No maintenance requests match the current filters.</div>
+            <div id="maintenance-active-empty" class="admin-empty-state" hidden>No active maintenance requests found.</div>
+          </div>
+
+          <div class="table-card workflow-panel" data-workflow-panel="maintenance-completed" hidden>
+            <div class="dashboard-table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Created</th>
+                    <th scope="col">Client</th>
+                    <th scope="col">Property</th>
+                    <th scope="col">Account</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Priority</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Admin Comments</th>
+                    <th scope="col">Files</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="maintenance-completed-tbody"></tbody>
+              </table>
+            </div>
+            <div id="maintenance-completed-empty" class="admin-empty-state" hidden>No completed maintenance requests found.</div>
           </div>
         </div>
 
         <div id="tab-leads" class="tab-panel" hidden>
           <div class="admin-panel" style="margin-bottom:1.5rem">
             <h2>Leads</h2>
-            <p class="table-hint">Manage all contact requests, showing requests, and renovation client inquiries from one location.</p>
+            <p class="table-hint">Track contact requests, showing requests, renovation inquiries, and other lead submissions without deleting completed history.</p>
           </div>
 
           <nav class="portal-tab-bar leads-sub-tabs" aria-label="Lead type">
             <button class="portal-tab active" data-lead-tab="contact" type="button">Contact Requests</button>
             <button class="portal-tab" data-lead-tab="showing" type="button">Showing Requests</button>
-            <button class="portal-tab" data-lead-tab="renovation" type="button">Renovation Clients</button>
+            <button class="portal-tab" data-lead-tab="renovation" type="button">Renovation Inquiries</button>
           </nav>
 
           <div id="lead-tab-contact" class="lead-tab-panel">
-            <div class="table-card"><div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-contact-tbody"></tbody></table></div><div id="lead-contact-empty" class="admin-empty-state" hidden>No contact requests yet.</div></div>
+            <nav class="portal-tab-bar workflow-tab-bar compact-tab-bar" aria-label="Contact request workflow">
+              <button class="portal-tab active" data-workflow-group="lead-contact" data-workflow-target="active" type="button">Active Leads</button>
+              <button class="portal-tab" data-workflow-group="lead-contact" data-workflow-target="completed" type="button">Completed Leads</button>
+            </nav>
+            <div class="table-card workflow-panel" data-workflow-panel="lead-contact-active">
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-contact-active-tbody"></tbody></table></div>
+              <div id="lead-contact-active-empty" class="admin-empty-state" hidden>No active contact requests.</div>
+            </div>
+            <div class="table-card workflow-panel" data-workflow-panel="lead-contact-completed" hidden>
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-contact-completed-tbody"></tbody></table></div>
+              <div id="lead-contact-completed-empty" class="admin-empty-state" hidden>No completed contact requests.</div>
+            </div>
           </div>
 
           <div id="lead-tab-showing" class="lead-tab-panel" hidden>
-            <div class="table-card"><div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property</th><th scope="col">Preferred Date</th><th scope="col">Preferred Time</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-showing-tbody"></tbody></table></div><div id="lead-showing-empty" class="admin-empty-state" hidden>No showing requests yet.</div></div>
+            <nav class="portal-tab-bar workflow-tab-bar compact-tab-bar" aria-label="Showing request workflow">
+              <button class="portal-tab active" data-workflow-group="lead-showing" data-workflow-target="active" type="button">Active Leads</button>
+              <button class="portal-tab" data-workflow-group="lead-showing" data-workflow-target="completed" type="button">Completed Leads</button>
+            </nav>
+            <div class="table-card workflow-panel" data-workflow-panel="lead-showing-active">
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property</th><th scope="col">Preferred Date</th><th scope="col">Preferred Time</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-showing-active-tbody"></tbody></table></div>
+              <div id="lead-showing-active-empty" class="admin-empty-state" hidden>No active showing requests.</div>
+            </div>
+            <div class="table-card workflow-panel" data-workflow-panel="lead-showing-completed" hidden>
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property</th><th scope="col">Preferred Date</th><th scope="col">Preferred Time</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-showing-completed-tbody"></tbody></table></div>
+              <div id="lead-showing-completed-empty" class="admin-empty-state" hidden>No completed showing requests.</div>
+            </div>
           </div>
 
           <div id="lead-tab-renovation" class="lead-tab-panel" hidden>
-            <div class="table-card"><div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Full Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property Address</th><th scope="col">Service Needed</th><th scope="col">Project Type</th><th scope="col">Project Description</th><th scope="col">Timeline</th><th scope="col">Budget Range</th><th scope="col">Status</th><th scope="col">Created At</th></tr></thead><tbody id="lead-renovation-tbody"></tbody></table></div><div id="lead-renovation-empty" class="admin-empty-state" hidden>No renovation clients yet.</div></div>
+            <nav class="portal-tab-bar workflow-tab-bar compact-tab-bar" aria-label="Renovation inquiry workflow">
+              <button class="portal-tab active" data-workflow-group="lead-renovation" data-workflow-target="active" type="button">Active Leads</button>
+              <button class="portal-tab" data-workflow-group="lead-renovation" data-workflow-target="completed" type="button">Completed Leads</button>
+            </nav>
+            <div class="table-card workflow-panel" data-workflow-panel="lead-renovation-active">
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Full Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property Address</th><th scope="col">Service Needed</th><th scope="col">Project Type</th><th scope="col">Project Description</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-renovation-active-tbody"></tbody></table></div>
+              <div id="lead-renovation-active-empty" class="admin-empty-state" hidden>No active renovation inquiries.</div>
+            </div>
+            <div class="table-card workflow-panel" data-workflow-panel="lead-renovation-completed" hidden>
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Full Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property Address</th><th scope="col">Service Needed</th><th scope="col">Project Type</th><th scope="col">Project Description</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-renovation-completed-tbody"></tbody></table></div>
+              <div id="lead-renovation-completed-empty" class="admin-empty-state" hidden>No completed renovation inquiries.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -255,15 +330,15 @@
 
   <div id="invite-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="invite-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="invite" aria-label="Close">×</button><h2 id="invite-modal-title">Invite Client</h2><p class="table-hint">Send a sign-up invitation to a new client. They will receive an email to set their password.</p><form id="invite-form" class="invite-form-layout" novalidate><div class="form-grid"><div class="form-group"><label for="invite-email">Email <span class="required" aria-hidden="true">*</span></label><input id="invite-email" name="email" type="email" required></div><div class="form-group"><label for="invite-name">Full Name</label><input id="invite-name" name="full_name" type="text"></div></div><div class="invite-form-actions"><button class="btn-primary" type="submit">Send Invitation</button></div><div id="invite-status" class="form-status" aria-live="polite"></div></form></div></div>
 
-  <div id="property-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="property-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="property" aria-label="Close">×</button><h2 id="property-modal-title">Add Property</h2><form id="property-form" novalidate><div class="form-grid"><div class="form-group full-width"><label for="prop-address">Property Address <span class="required" aria-hidden="true">*</span></label><input id="prop-address" name="property_address" type="text" required></div><div class="form-group"><label for="prop-status">Status</label><select id="prop-status" name="property_status"><option value="Active">Active</option><option value="Pending">Pending</option><option value="Sold">Sold</option><option value="Coming Soon">Coming Soon</option></select></div><div class="form-group"><label for="prop-purchase">Purchase Price</label><input id="prop-purchase" name="purchase_price" type="number" min="0" step="1000"></div><div class="form-group"><label for="prop-sale">Sale Price</label><input id="prop-sale" name="sale_price" type="number" min="0" step="1000"></div><div class="form-group full-width"><label for="prop-notes">Notes</label><textarea id="prop-notes" name="notes"></textarea></div></div><button class="btn-primary" type="submit">Save Property</button><div id="property-status" class="form-status" aria-live="polite"></div></form></div></div>
+  <div id="property-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="property-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="property" aria-label="Close">×</button><h2 id="property-modal-title">Add Property</h2><form id="property-form" novalidate><div class="form-grid"><div class="form-group full-width"><label for="prop-address">Property Address <span class="required" aria-hidden="true">*</span></label><input id="prop-address" name="property_address" type="text" required></div><div class="form-group"><label for="prop-status">Workflow Status</label><select id="prop-status" name="property_status"><option value="Active">Active</option><option value="Pending">Pending</option><option value="Sold">Sold</option><option value="Coming Soon">Coming Soon</option></select></div><div class="form-group"><label for="prop-visibility">Visibility</label><select id="prop-visibility" name="visibility"><option value="internal">Internal Property</option><option value="public">Public Listing</option></select></div><div class="form-group full-width"><label for="prop-notes">Notes</label><textarea id="prop-notes" name="notes"></textarea></div></div><button class="btn-primary" type="submit">Save Property</button><div id="property-status" class="form-status" aria-live="polite"></div></form></div></div>
 
-  <div id="transaction-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="transaction-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="transaction" aria-label="Close">×</button><h2 id="transaction-modal-title">New Transaction</h2><form id="transaction-form" novalidate><div class="form-grid"><div class="form-group"><label for="txn-property">Property <span class="required" aria-hidden="true">*</span></label><select id="txn-property" name="property_id" required><option value="">Select property…</option></select></div><div class="form-group"><label for="txn-client">Client <span class="required" aria-hidden="true">*</span></label><select id="txn-client" name="client_id" required><option value="">Select client…</option></select></div><div class="form-group"><label for="txn-type">Transaction Type</label><select id="txn-type" name="transaction_type"><option value="purchase">Purchase</option><option value="sale">Sale</option><option value="lease">Lease</option><option value="property_management">Property Management</option><option value="rental">Rental</option><option value="flip">Flip</option></select></div><div class="form-group"><label for="txn-status">Status</label><select id="txn-status" name="status"><option value="Pending">Pending</option><option value="Active">Active</option><option value="Closed">Closed</option><option value="Cancelled">Cancelled</option></select></div><div class="form-group full-width"><label for="txn-notes">Notes</label><textarea id="txn-notes" name="notes"></textarea></div></div><button class="btn-primary" type="submit">Create Transaction</button><div id="transaction-status" class="form-status" aria-live="polite"></div></form></div></div>
+  <div id="account-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="account-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="account" aria-label="Close">×</button><h2 id="account-modal-title">New Account</h2><form id="account-form" novalidate><div class="form-grid"><div class="form-group full-width"><label for="account-name">Account Name <span class="required" aria-hidden="true">*</span></label><input id="account-name" name="account_name" type="text" required></div><div class="form-group"><label for="account-client">Client</label><select id="account-client" name="primary_client_id"><option value="">No client selected</option></select></div><div class="form-group"><label for="account-property">Property</label><select id="account-property" name="property_id"><option value="">No property selected</option></select></div><div class="form-group"><label for="account-type">Account Type</label><select id="account-type" name="account_type"><option value="Buyer">Buyer</option><option value="Seller">Seller</option><option value="Rental">Rental</option><option value="Lease">Lease</option><option value="Property Management">Property Management</option><option value="Renovation">Renovation</option><option value="Other">Other</option></select></div><div class="form-group"><label for="account-status">Status</label><select id="account-status" name="status"><option value="Not Reviewed Yet">Not Reviewed Yet</option><option value="In Progress">In Progress</option><option value="Active">Active</option><option value="Pending Signature">Pending Signature</option><option value="Completed">Completed</option><option value="Archived">Archived</option></select></div><div class="form-group full-width"><label class="signature-label"><input id="account-client-upload-enabled" name="client_upload_enabled" type="checkbox"> Allow the assigned client to upload files to this account</label></div><div class="form-group full-width"><label for="account-transaction-details">Transaction Details</label><textarea id="account-transaction-details" name="transaction_details"></textarea></div><div class="form-group full-width"><label for="account-internal-notes">Internal Notes</label><textarea id="account-internal-notes" name="internal_notes"></textarea></div><div class="form-group full-width"><label for="account-client-notes">Client Visible Notes</label><textarea id="account-client-notes" name="client_notes"></textarea></div><div class="form-group full-width"><label for="account-required-tasks">Required Documents / Missing Tasks</label><textarea id="account-required-tasks" name="required_tasks"></textarea></div></div><button class="btn-primary" type="submit">Create Account</button><div id="account-status-message" class="form-status" aria-live="polite"></div></form></div></div>
 
-  <div id="upload-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="upload" aria-label="Close">×</button><h2 id="upload-modal-title">Upload Document</h2><form id="upload-form" novalidate><div class="form-grid"><div class="form-group"><label for="upload-client">Assign to Client</label><select id="upload-client" name="client_id"><option value="">No specific client</option></select></div><div class="form-group"><label for="upload-property">Assign to Property</label><select id="upload-property" name="property_id"><option value="">No specific property</option></select></div><div class="form-group"><label for="upload-category">Category</label><select id="upload-category" name="category"><option value="">Select…</option><option value="Lease Agreement">Lease agreements</option><option value="Lease Renewal">Lease renewals</option><option value="Move-In Inspection Report">Move-in inspection reports</option><option value="Move-Out Inspection Report">Move-out inspection reports</option><option value="Property Rules">Property rules</option><option value="Maintenance Agreement">Maintenance agreements</option><option value="Insurance Requirement">Insurance requirements</option><option value="Notice">Notices</option><option value="Closing Document">Closing documents</option><option value="Contract">Contracts</option><option value="Paystub">Paystubs</option><option value="Identification">Identification</option><option value="Title Document">Title documents</option><option value="Insurance Document">Insurance documents</option><option value="Other">Other</option></select></div><div class="form-group"><label for="upload-visibility">Client Visibility</label><select id="upload-visibility" name="visibility"><option value="admin_only">Admin Only</option><option value="client_visible">Client Can View</option><option value="client_downloadable">Client Can Download</option></select></div><div class="form-group full-width"><label for="upload-file">File <span class="required" aria-hidden="true">*</span></label><input id="upload-file" name="file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp" required></div><div class="form-group full-width"><label class="signature-label"><input type="checkbox" id="upload-requires-sig" name="requires_signature"> Requires external signature workflow</label><span class="helper-text">Legally binding signatures must be completed with DocuSign, Dropbox Sign, Adobe Acrobat Sign, or another approved e-signature provider.</span></div><div class="form-group"><label for="upload-signature-provider">Signature Provider</label><select id="upload-signature-provider" name="signature_provider"><option value="">Select…</option><option value="DocuSign">DocuSign</option><option value="Dropbox Sign">Dropbox Sign</option><option value="Adobe Acrobat Sign">Adobe Acrobat Sign</option><option value="Manual Upload">Manual Upload</option></select></div><div class="form-group"><label for="upload-signature-status">Signature Status</label><select id="upload-signature-status" name="signature_status"><option value="available">Available</option><option value="pending_signature">Pending Signature</option><option value="signed">Signed</option><option value="uploaded">Uploaded</option></select></div><div class="form-group full-width"><label for="upload-signature-url">External Signature URL</label><input id="upload-signature-url" name="signature_url" type="url" placeholder="https://"></div><div class="form-group full-width"><label class="signature-label"><input type="checkbox" id="upload-client-edit" name="can_client_edit"> Allow client edits / acknowledgement actions</label></div><div class="form-group full-width"><label for="upload-notes">Notes</label><textarea id="upload-notes" name="notes"></textarea></div></div><button class="btn-primary" type="submit">Upload Document</button><div id="upload-status" class="form-status" aria-live="polite"></div></form></div></div>
+  <div id="upload-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="upload" aria-label="Close">×</button><h2 id="upload-modal-title">Upload File</h2><form id="upload-form" novalidate><div class="form-grid"><div class="form-group"><label for="upload-account">Assign to Account</label><select id="upload-account" name="account_id"><option value="">No specific account</option></select></div><div class="form-group"><label for="upload-client">Assign to Client</label><select id="upload-client" name="client_id"><option value="">No specific client</option></select></div><div class="form-group"><label for="upload-property">Assign to Property</label><select id="upload-property" name="property_id"><option value="">No specific property</option></select></div><div class="form-group"><label for="upload-category">Category</label><select id="upload-category" name="category"><option value="">Select…</option><option value="Contract">Contract</option><option value="Lease Agreement">Lease Agreement</option><option value="Lease Renewal">Lease Renewal</option><option value="Move-in Inspection">Move-in Inspection</option><option value="Move-out Inspection">Move-out Inspection</option><option value="Property Rules">Property Rules</option><option value="Maintenance Agreement">Maintenance Agreement</option><option value="Insurance Requirement">Insurance Requirement</option><option value="Notice">Notice</option><option value="Receipt">Receipt</option><option value="Photo">Photo</option><option value="Identification">Identification</option><option value="Paystub">Paystub</option><option value="Closing Document">Closing Document</option><option value="Title Document">Title Document</option><option value="Insurance Document">Insurance Document</option><option value="Other">Other</option></select></div><div class="form-group"><label for="upload-visibility">Client Visibility</label><select id="upload-visibility" name="visibility"><option value="admin_only">Admin Only</option><option value="client_visible">Client Can View</option><option value="client_downloadable">Client Can Download</option></select></div><div class="form-group full-width"><label for="upload-file">File <span class="required" aria-hidden="true">*</span></label><input id="upload-file" name="file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp" required></div><div class="form-group full-width"><label class="signature-label"><input type="checkbox" id="upload-requires-sig" name="requires_signature"> Requires external signature workflow</label><span class="helper-text">Legally binding signatures must be completed with DocuSign, Dropbox Sign, Adobe Acrobat Sign, or another approved e-signature provider.</span></div><div class="form-group"><label for="upload-signature-provider">Signature Provider</label><select id="upload-signature-provider" name="signature_provider"><option value="">Select…</option><option value="DocuSign">DocuSign</option><option value="Dropbox Sign">Dropbox Sign</option><option value="Adobe Acrobat Sign">Adobe Acrobat Sign</option><option value="Manual Upload">Manual Upload</option></select></div><div class="form-group"><label for="upload-signature-status">Signature Status</label><select id="upload-signature-status" name="signature_status"><option value="available">Available</option><option value="pending_signature">Pending Signature</option><option value="signed">Signed</option><option value="uploaded">Uploaded</option></select></div><div class="form-group full-width"><label for="upload-signature-url">External Signature URL</label><input id="upload-signature-url" name="signature_url" type="url" placeholder="https://"></div><div class="form-group full-width"><label class="signature-label"><input type="checkbox" id="upload-client-edit" name="can_client_edit"> Allow client edits / uploads against this file</label></div><div class="form-group full-width"><label for="upload-notes">Notes</label><textarea id="upload-notes" name="notes"></textarea></div></div><button class="btn-primary" type="submit">Upload File</button><div id="upload-status" class="form-status" aria-live="polite"></div></form></div></div>
 
   <div id="property-assignment-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="property-assignment-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="property-assignment" aria-label="Close">×</button><h2 id="property-assignment-title">Assign Properties</h2><p id="property-assignment-subtitle" class="table-hint"></p><form id="property-assignment-form"><div id="property-assignment-list" class="assignment-list"></div><button class="btn-primary" type="submit">Save Property Assignments</button><div id="property-assignment-status" class="form-status" aria-live="polite"></div></form></div></div>
 
-  <div id="transaction-assignment-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="transaction-assignment-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="transaction-assignment" aria-label="Close">×</button><h2 id="transaction-assignment-title">Assign Transactions</h2><p id="transaction-assignment-subtitle" class="table-hint"></p><form id="transaction-assignment-form"><div id="transaction-assignment-list" class="assignment-list"></div><button class="btn-primary" type="submit">Save Transaction Assignments</button><div id="transaction-assignment-status" class="form-status" aria-live="polite"></div></form></div></div>
+  <div id="account-assignment-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="account-assignment-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="account-assignment" aria-label="Close">×</button><h2 id="account-assignment-title">Assign Accounts</h2><p id="account-assignment-subtitle" class="table-hint"></p><form id="account-assignment-form"><div id="account-assignment-list" class="assignment-list"></div><button class="btn-primary" type="submit">Save Account Assignments</button><div id="account-assignment-status" class="form-status" aria-live="polite"></div></form></div></div>
 
   <div id="site-footer"></div>
 

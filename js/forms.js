@@ -1,6 +1,7 @@
 (function () {
   const PHONE_REGEX = /^[0-9()+\-\s.]{7,20}$/;
   const CONTACT_TYPES_REQUIRING_PROPERTY = ['property_inquiry', 'showing_request'];
+  const DEFAULT_LEAD_STATUS = 'Not Reviewed Yet';
 
   function inquiryNeedsProperty(type) {
     return CONTACT_TYPES_REQUIRING_PROPERTY.includes(type);
@@ -168,7 +169,9 @@
         phone,
         inquiry_type: inquiryType,
         property_interest: null,
-        message
+        message,
+        admin_status: DEFAULT_LEAD_STATUS,
+        admin_notes: null
       }]);
     } else if (inquiryType === 'showing_request' || inquiryType === 'property_inquiry') {
       result = await insertShowingRequest({
@@ -179,7 +182,9 @@
         preferred_date: null,
         preferred_time: null,
         request_type: inquiryType,
-        message
+        message,
+        admin_status: DEFAULT_LEAD_STATUS,
+        admin_notes: null
       });
     } else if (inquiryType === 'contractor_inquiry' || inquiryType === 'house_flip_inquiry' || inquiryType === 'renovation_client_inquiry') {
       result = await supabaseClient.from('renovation_clients').insert([{
@@ -190,9 +195,8 @@
         service_needed: 'Renovation Support',
         project_type: 'Renovation Projects',
         project_description: message,
-        timeline: null,
-        budget_range: null,
-        status: 'not_viewed'
+        status: DEFAULT_LEAD_STATUS,
+        admin_notes: null
       }]);
     } else {
       result = { error: { message: 'Unsupported inquiry type.' } };
@@ -245,7 +249,9 @@
       preferred_date: preferredDate,
       preferred_time: preferredTime,
       request_type: 'showing_request',
-      message
+      message,
+      admin_status: DEFAULT_LEAD_STATUS,
+      admin_notes: null
     });
 
     if (error) {
@@ -279,7 +285,6 @@
     const phoneEl = form.querySelector('[name="phone"]');
     const phone = phoneEl ? phoneEl.value.trim() : '';
     const propertyAddress = addressEl ? addressEl.value.trim() : '';
-    const estimatedEl = form.querySelector('[name="estimated_value"]');
     const conditionEl = form.querySelector('[name="property_condition"]');
     const descEl = form.querySelector('[name="project_description"]');
 
@@ -296,9 +301,8 @@
       service_needed: conditionEl ? conditionEl.value || 'Renovation Support' : 'Renovation Support',
       project_type: 'Renovation Projects',
       project_description: descEl ? descEl.value.trim() || null : null,
-      timeline: null,
-      budget_range: estimatedEl ? estimatedEl.value.trim() || null : null,
-      status: 'not_viewed'
+      status: DEFAULT_LEAD_STATUS,
+      admin_notes: null
     }]);
 
     if (error) {
@@ -351,9 +355,8 @@
         areaEl && areaEl.value.trim() ? `Service Area: ${areaEl.value.trim()}` : '',
         descEl ? descEl.value.trim() : ''
       ].filter(Boolean).join('\n\n') || null,
-      timeline: null,
-      budget_range: null,
-      status: 'not_viewed'
+      status: DEFAULT_LEAD_STATUS,
+      admin_notes: null
     }]);
 
     if (error) {
@@ -366,22 +369,21 @@
     if (messageBox) { messageBox.className = 'form-status success-message'; messageBox.textContent = 'Thank you! Your renovation client inquiry has been received.'; }
   }
 
-  function handleFormSubmission(form) {
-    const formType = form.getAttribute('data-form-type');
-    form.addEventListener('submit', function (event) {
-      event.preventDefault();
-      if (formType === 'contact') submitContactForm(form);
-      else if (formType === 'showing') submitShowingForm(form);
-      else if (formType === 'flip') submitHouseFlipForm(form);
-      else if (formType === 'contractor') submitContractorForm(form);
-    });
+  function handleFormSubmit(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const type = form.getAttribute('data-form-type');
+    if (type === 'contact') submitContactForm(form);
+    else if (type === 'showing') submitShowingForm(form);
+    else if (type === 'house-flip') submitHouseFlipForm(form);
+    else if (type === 'contractor') submitContractorForm(form);
   }
 
   document.addEventListener('DOMContentLoaded', function () {
     populatePropertySelects();
+    document.querySelectorAll('[data-form-type="contact"]').forEach(initContactFormFields);
     document.querySelectorAll('form[data-form-type]').forEach((form) => {
-      if (form.getAttribute('data-form-type') === 'contact') initContactFormFields(form);
-      handleFormSubmission(form);
+      form.addEventListener('submit', handleFormSubmit);
     });
   });
 })();

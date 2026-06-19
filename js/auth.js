@@ -20,6 +20,10 @@
     }
   }
 
+  function getPortalDestination(profile) {
+    return profile.role === 'admin' ? 'admin.html' : 'client-portal.html';
+  }
+
   async function redirectIfLoggedIn() {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
     const session = await getSession();
@@ -30,7 +34,8 @@
       await supabaseClient.auth.signOut();
       return;
     }
-    window.location.replace(profile.role === 'admin' ? 'admin-dashboard.html' : 'client-portal.html');
+    window.location.replace(getPortalDestination(profile));
+    return true;
   }
 
   function initLoginTabs() {
@@ -113,7 +118,7 @@
           return;
         }
 
-        window.location.href = profile.role === 'admin' ? 'admin-dashboard.html' : 'client-portal.html';
+        window.location.href = getPortalDestination(profile);
       } catch (err) {
         if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Unable to sign in. Please try again.'; }
         loginBtn.disabled = false;
@@ -259,30 +264,32 @@
         if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Passwords do not match.'; }
         return;
       }
+      if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Service unavailable. Please try again later.'; }
+        return;
+      }
 
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Updating…'; }
 
       const { error } = await supabaseClient.auth.updateUser({ password });
-
       if (error) {
         if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = error.message; }
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Update Password'; }
-        return;
+      } else {
+        if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password updated successfully. Redirecting to your portal…'; }
+        setTimeout(async function () {
+          const profile = await getCurrentUserProfile();
+          window.location.replace(profile ? getPortalDestination(profile) : 'login.html');
+        }, 1000);
       }
 
-      if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password updated successfully. Redirecting to login…'; }
-      await supabaseClient.auth.signOut();
-      setTimeout(function () { window.location.href = 'login.html'; }, 2000);
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Update Password'; }
     });
   }
 
   document.addEventListener('DOMContentLoaded', async function () {
     initLoginPageMessage();
-
-    if (document.getElementById('login-form')) {
-      await redirectIfLoggedIn();
-    }
-
+    const redirected = await redirectIfLoggedIn();
+    if (redirected) return;
     initLoginTabs();
     initLoginForm();
     initRegisterForm();

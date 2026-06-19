@@ -4,18 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Client Portal | Brandy Renon</title>
-  <meta name="description" content="Secure client portal for real estate transaction documents and property management.">
+  <meta name="description" content="Secure client portal for accounts, property management, files, signatures, and maintenance updates.">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/admin.css">
-  <!-- Prevent flash of protected content before auth guard runs -->
   <style id="auth-guard-style">body { visibility: hidden; }</style>
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <main id="main-content">
-
-    <!-- Top bar -->
     <section class="page-hero">
       <div class="container admin-shell">
         <div class="admin-panel admin-topbar">
@@ -32,80 +29,126 @@
       </div>
     </section>
 
-    <!-- Dashboard tabs -->
     <section class="section">
       <div class="container admin-shell">
         <nav class="portal-tab-bar" aria-label="Dashboard sections">
           <button class="portal-tab active" data-tab="dashboard" type="button">Dashboard</button>
           <button class="portal-tab" data-tab="properties" type="button">Properties</button>
-          <button class="portal-tab" data-tab="transactions" type="button">Transactions</button>
-          <button class="portal-tab" data-tab="documents" type="button">Documents</button>
+          <button class="portal-tab" data-tab="accounts" type="button">Accounts</button>
+          <button class="portal-tab" data-tab="files" type="button">Files</button>
           <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
-          <button class="portal-tab" data-tab="upload" type="button">Upload</button>
         </nav>
 
         <div id="tab-dashboard" class="tab-panel">
           <div class="admin-panel" style="margin-bottom:1.5rem">
             <h2>Client Dashboard</h2>
-            <p class="table-hint">Track document, transaction, and task status in one place.</p>
+            <p class="table-hint">Track your accounts, shared files, signatures, and maintenance updates in one place.</p>
           </div>
           <div class="dashboard-cards dashboard-summary-grid">
             <div class="dashboard-card">
-              <p class="eyebrow">Documents</p>
-              <div id="dashboard-documents-list" class="dashboard-list"></div>
-              <div id="dashboard-documents-empty" class="admin-empty-state" hidden>No document records yet.</div>
+              <p class="eyebrow">Accounts</p>
+              <div id="dashboard-accounts-list" class="dashboard-list"></div>
+              <div id="dashboard-accounts-empty" class="admin-empty-state" hidden>No account records yet.</div>
             </div>
             <div class="dashboard-card">
-              <p class="eyebrow">Transactions</p>
-              <div id="dashboard-transactions-list" class="dashboard-list"></div>
-              <div id="dashboard-transactions-empty" class="admin-empty-state" hidden>No active transactions right now.</div>
+              <p class="eyebrow">Files Needing Action</p>
+              <div id="dashboard-files-list" class="dashboard-list"></div>
+              <div id="dashboard-files-empty" class="admin-empty-state" hidden>No files need your attention.</div>
             </div>
             <div class="dashboard-card">
-              <p class="eyebrow">Tasks</p>
-              <div id="dashboard-tasks-list" class="dashboard-list"></div>
-              <div id="dashboard-tasks-empty" class="admin-empty-state" hidden>No outstanding tasks.</div>
+              <p class="eyebrow">Maintenance</p>
+              <div id="dashboard-maintenance-list" class="dashboard-list"></div>
+              <div id="dashboard-maintenance-empty" class="admin-empty-state" hidden>No maintenance activity yet.</div>
             </div>
           </div>
         </div>
 
-        <!-- Properties tab -->
         <div id="tab-properties" class="tab-panel" hidden>
           <div class="admin-panel" style="margin-bottom:1.5rem">
             <h2>Your Properties</h2>
-            <p class="table-hint">Properties linked to your transaction files.</p>
+            <p class="table-hint">Internal or public properties assigned to your accounts or client profile.</p>
           </div>
           <div id="properties-grid-client" class="dashboard-cards"></div>
           <div id="properties-empty" class="admin-empty-state" hidden>No properties are currently assigned to your account.</div>
         </div>
 
-        <!-- Transactions tab -->
-        <div id="tab-transactions" class="tab-panel" hidden>
+        <div id="tab-accounts" class="tab-panel" hidden>
           <div class="admin-panel" style="margin-bottom:1.5rem">
-            <h2>Transaction Status</h2>
-            <p class="table-hint">Current status of your real estate transactions.</p>
+            <h2>Your Accounts</h2>
+            <p class="table-hint">Accounts group your transaction, rental, lease, property management, renovation, and related file activity.</p>
           </div>
-          <div class="table-card">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Property</th>
-                  <th scope="col">Type</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Started</th>
-                </tr>
-              </thead>
-              <tbody id="transactions-tbody"></tbody>
-            </table>
-            <div id="transactions-empty" class="admin-empty-state" hidden>No transactions found.</div>
+
+          <nav class="portal-tab-bar workflow-tab-bar" aria-label="Client accounts workflow">
+            <button class="portal-tab active" data-workflow-group="client-accounts" data-workflow-target="active" type="button">Active Accounts</button>
+            <button class="portal-tab" data-workflow-group="client-accounts" data-workflow-target="completed" type="button">Completed Accounts</button>
+          </nav>
+
+          <div class="workflow-panel" data-workflow-panel="client-accounts-active">
+            <div id="accounts-active-grid" class="dashboard-cards"></div>
+            <div id="accounts-active-empty" class="admin-empty-state" hidden>No active accounts found.</div>
+          </div>
+
+          <div class="workflow-panel" data-workflow-panel="client-accounts-completed" hidden>
+            <div id="accounts-completed-grid" class="dashboard-cards"></div>
+            <div id="accounts-completed-empty" class="admin-empty-state" hidden>No completed accounts found.</div>
+          </div>
+
+          <div class="form-card" style="margin-top:1.5rem">
+            <div class="admin-panel" style="margin-bottom:1rem">
+              <div>
+                <h3>Submit Account Files</h3>
+                <p class="table-hint">Upload documents only to accounts where your administrator has enabled client uploads.</p>
+              </div>
+            </div>
+            <form id="client-upload-form" novalidate>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="client-upload-account">Account</label>
+                  <select id="client-upload-account" name="account_id"><option value="">Select account…</option></select>
+                </div>
+                <div class="form-group">
+                  <label for="client-upload-category">File Category</label>
+                  <select id="client-upload-category" name="category" required>
+                    <option value="">Select category…</option>
+                    <option value="Contract">Contract</option>
+                    <option value="Lease Agreement">Lease Agreement</option>
+                    <option value="Lease Renewal">Lease Renewal</option>
+                    <option value="Move-in Inspection">Move-in Inspection</option>
+                    <option value="Move-out Inspection">Move-out Inspection</option>
+                    <option value="Property Rules">Property Rules</option>
+                    <option value="Maintenance Agreement">Maintenance Agreement</option>
+                    <option value="Insurance Requirement">Insurance Requirement</option>
+                    <option value="Notice">Notice</option>
+                    <option value="Receipt">Receipt</option>
+                    <option value="Photo">Photo</option>
+                    <option value="Identification">Identification</option>
+                    <option value="Paystub">Paystub</option>
+                    <option value="Closing Document">Closing Document</option>
+                    <option value="Title Document">Title Document</option>
+                    <option value="Insurance Document">Insurance Document</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div class="form-group full-width">
+                  <label for="client-upload-file">File</label>
+                  <input id="client-upload-file" name="file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp" required>
+                </div>
+                <div class="form-group full-width">
+                  <label for="client-upload-notes">Notes (optional)</label>
+                  <textarea id="client-upload-notes" name="notes"></textarea>
+                </div>
+              </div>
+              <button id="client-upload-btn" class="btn-primary" type="submit">Upload File</button>
+              <div id="upload-status" class="form-status" aria-live="polite"></div>
+            </form>
           </div>
         </div>
 
-        <!-- Documents tab -->
-        <div id="tab-documents" class="tab-panel" hidden>
+        <div id="tab-files" class="tab-panel" hidden>
           <div class="admin-panel" style="margin-bottom:1.5rem">
             <div>
-              <h2>Your Documents</h2>
-              <p class="table-hint">Documents shared with you by your agent. Legally binding signatures are completed through approved external e-signature providers.</p>
+              <h2>Your Files</h2>
+              <p class="table-hint">Open, download, or sign files assigned to your accounts, properties, maintenance activity, or client profile.</p>
             </div>
           </div>
           <div class="table-card">
@@ -114,21 +157,23 @@
                 <tr>
                   <th scope="col">File Name</th>
                   <th scope="col">Category</th>
-                  <th scope="col">Date</th>
-                  <th scope="col">Status</th>
+                  <th scope="col">Account</th>
+                  <th scope="col">Property</th>
+                  <th scope="col">Signature</th>
+                  <th scope="col">Uploaded</th>
                   <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody id="documents-tbody"></tbody>
             </table>
-            <div id="documents-empty" class="admin-empty-state" hidden>No documents have been shared with you yet.</div>
+            <div id="documents-empty" class="admin-empty-state" hidden>No files have been shared with you yet.</div>
           </div>
         </div>
 
         <div id="tab-maintenance" class="tab-panel" hidden>
           <div class="admin-panel" style="margin-bottom:1.5rem">
             <h2>Maintenance Requests</h2>
-            <p class="table-hint">Submit requests, upload photos, and track updates from your property manager.</p>
+            <p class="table-hint">Submit requests from inside the portal, attach files, and track admin comments and status updates.</p>
           </div>
           <div class="form-card" style="margin-bottom:1.5rem">
             <form id="maintenance-form" novalidate>
@@ -138,93 +183,74 @@
                   <select id="maintenance-property" name="property_id"><option value="">Select property…</option></select>
                 </div>
                 <div class="form-group">
-                  <label for="maintenance-priority">Priority <span class="required" aria-hidden="true">*</span></label>
+                  <label for="maintenance-account">Account (optional)</label>
+                  <select id="maintenance-account" name="account_id"><option value="">Select account…</option></select>
+                </div>
+                <div class="form-group">
+                  <label for="maintenance-priority">Priority</label>
                   <select id="maintenance-priority" name="priority" required><option value="Medium">Medium</option><option value="Low">Low</option><option value="High">High</option><option value="Emergency">Emergency</option></select>
                 </div>
                 <div class="form-group full-width">
-                  <label for="maintenance-title">Title <span class="required" aria-hidden="true">*</span></label>
+                  <label for="maintenance-title">Title</label>
                   <input id="maintenance-title" name="title" type="text" required>
                 </div>
                 <div class="form-group full-width">
-                  <label for="maintenance-description">Description <span class="required" aria-hidden="true">*</span></label>
+                  <label for="maintenance-description">Description</label>
                   <textarea id="maintenance-description" name="description" required></textarea>
                 </div>
                 <div class="form-group full-width">
-                  <label for="maintenance-photos">Photos (optional)</label>
-                  <input id="maintenance-photos" name="photos" type="file" accept=".png,.jpg,.jpeg,.gif,.webp" multiple>
+                  <label for="maintenance-files">Attach photos, receipts, PDFs, or documents</label>
+                  <input id="maintenance-files" name="files" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp" multiple>
                 </div>
               </div>
               <button id="maintenance-submit-btn" class="btn-primary" type="submit">Submit Request</button>
               <div id="maintenance-form-status" class="form-status" aria-live="polite"></div>
             </form>
           </div>
-          <div class="table-card">
+
+          <nav class="portal-tab-bar workflow-tab-bar" aria-label="Maintenance history workflow">
+            <button class="portal-tab active" data-workflow-group="client-maintenance" data-workflow-target="active" type="button">Active Maintenance</button>
+            <button class="portal-tab" data-workflow-group="client-maintenance" data-workflow-target="completed" type="button">Completed Maintenance</button>
+          </nav>
+
+          <div class="table-card workflow-panel" data-workflow-panel="client-maintenance-active">
             <table>
               <thead>
                 <tr>
                   <th scope="col">Created</th>
                   <th scope="col">Property</th>
+                  <th scope="col">Account</th>
                   <th scope="col">Title</th>
                   <th scope="col">Priority</th>
                   <th scope="col">Status</th>
                   <th scope="col">Admin Comments</th>
-                  <th scope="col">Photos</th>
+                  <th scope="col">Files</th>
                 </tr>
               </thead>
-              <tbody id="maintenance-tbody"></tbody>
+              <tbody id="maintenance-active-tbody"></tbody>
             </table>
-            <div id="maintenance-empty" class="admin-empty-state" hidden>No maintenance requests submitted yet.</div>
+            <div id="maintenance-active-empty" class="admin-empty-state" hidden>No active maintenance requests submitted yet.</div>
+          </div>
+
+          <div class="table-card workflow-panel" data-workflow-panel="client-maintenance-completed" hidden>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Created</th>
+                  <th scope="col">Property</th>
+                  <th scope="col">Account</th>
+                  <th scope="col">Title</th>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Admin Comments</th>
+                  <th scope="col">Files</th>
+                </tr>
+              </thead>
+              <tbody id="maintenance-completed-tbody"></tbody>
+            </table>
+            <div id="maintenance-completed-empty" class="admin-empty-state" hidden>No completed maintenance requests yet.</div>
           </div>
         </div>
-
-        <!-- Upload tab -->
-        <div id="tab-upload" class="tab-panel" hidden>
-          <div class="admin-panel" style="margin-bottom:1.5rem">
-            <h2>Upload Documents</h2>
-            <p class="table-hint">Upload required documents securely. Accepted: PDF, Word, Excel, images (max 10 MB each).</p>
-          </div>
-          <div class="form-card">
-            <form id="client-upload-form" novalidate>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="client-upload-category">Document Category <span class="required" aria-hidden="true">*</span></label>
-                  <select id="client-upload-category" name="category" required>
-                    <option value="">Select category&hellip;</option>
-                    <option value="Lease Agreement">Lease agreements</option>
-                    <option value="Lease Renewal">Lease renewals</option>
-                    <option value="Move-In Inspection Report">Move-in inspection reports</option>
-                    <option value="Move-Out Inspection Report">Move-out inspection reports</option>
-                    <option value="Property Rules">Property rules</option>
-                    <option value="Maintenance Agreement">Maintenance agreements</option>
-                    <option value="Insurance Requirement">Insurance requirements</option>
-                    <option value="Notice">Notices</option>
-                    <option value="Closing Document">Closing documents</option>
-                    <option value="Contract">Contracts</option>
-                    <option value="Paystub">Paystubs</option>
-                    <option value="Identification">Identification</option>
-                    <option value="Title Document">Title documents</option>
-                    <option value="Insurance Document">Insurance documents</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="client-upload-file">File <span class="required" aria-hidden="true">*</span></label>
-                  <input id="client-upload-file" name="file" type="file"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp"
-                    required aria-describedby="upload-hint">
-                  <span id="upload-hint" class="helper-text">PDF, Word, Excel, or image. Max 10 MB.</span>
-                </div>
-                <div class="form-group full-width">
-                  <label for="client-upload-notes">Notes (optional)</label>
-                  <textarea id="client-upload-notes" name="notes" placeholder="Describe the document if needed."></textarea>
-                </div>
-              </div>
-              <button id="client-upload-btn" class="btn-primary" type="submit">Upload Document</button>
-              <div id="upload-status" class="form-status" aria-live="polite"></div>
-            </form>
-          </div>
-        </div>
-
       </div>
     </section>
   </main>
