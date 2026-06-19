@@ -96,6 +96,10 @@
     return `<span class="status-pill ${type}">${escapeHtml(normalized)}</span>`;
   }
 
+  function getSignatureState(doc) {
+    return doc.signature_status || (doc.signed ? 'signed' : (doc.requires_signature ? 'pending_signature' : 'available'));
+  }
+
   function formatDateOnly(value) {
     if (!value) return 'N/A';
     const date = new Date(value);
@@ -111,7 +115,7 @@
   }
 
   function signatureLabel(doc) {
-    const status = doc.signature_status || (doc.signed ? 'signed' : (doc.requires_signature ? 'pending_signature' : 'available'));
+    const status = getSignatureState(doc);
     if (status === 'signed') return `<span class="badge-doc-signed">Signed</span>`;
     if (status === 'pending_signature') return `<span class="badge-doc-required">Pending Signature</span>`;
     if (status === 'uploaded') return `<span class="badge-doc-required">Uploaded</span>`;
@@ -231,7 +235,7 @@
   function renderDashboardFiles() {
     const mount = document.getElementById('dashboard-files-list');
     const empty = document.getElementById('dashboard-files-empty');
-    const rows = allDocuments.filter((doc) => doc.signature_url || doc.signature_status === 'pending_signature').slice(0, 4);
+    const rows = allDocuments.filter((doc) => doc.signature_url || getSignatureState(doc) === 'pending_signature').slice(0, 4);
     if (!rows.length) {
       mount.innerHTML = '';
       empty.hidden = false;
