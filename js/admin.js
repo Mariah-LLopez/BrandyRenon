@@ -142,7 +142,8 @@
   function getFieldIndicator(el) {
     return el.closest('td')?.querySelector('.autosave-indicator') || null;
   }
-    const modal = document.getElementById(id + '-modal');
+
+  function openModal(id) {
     if (!modal) return;
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
@@ -608,7 +609,7 @@
         `<option value="public"${property.visibility === 'public' ? ' selected' : ''}>Public Listing</option>`
       ].join('');
       return `<tr data-property-id="${escapeHtml(property.id)}">
-        <td class="dashboard-cell-wrap"><strong>${escapeHtml(property.property_address)}</strong><textarea class="dashboard-inline-notes dashboard-notes-sm" data-prop-notes rows="2">${escapeHtml(property.notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></td>
+        <td class="dashboard-cell-wrap"><strong>${escapeHtml(property.property_address)}</strong><textarea class="dashboard-inline-notes dashboard-notes-sm" data-prop-notes rows="2" aria-label="Property notes">${escapeHtml(property.notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-prop-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-prop-visibility>${visibilityOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
         <td>${formatDateTime(property.updated_at || property.created_at)}</td>
@@ -1197,41 +1198,25 @@
         <button class="action-link" data-action="delete-doc" data-id="${escapeHtml(doc.id)}" type="button">Delete</button>
       </div>
     </div>`).join('');
-    listEl.addEventListener('click', function handler(event) {
+    // Replace listEl with a clone to remove any previously attached listeners
+    const freshList = listEl.cloneNode(true);
+    listEl.parentNode.replaceChild(freshList, listEl);
+    freshList.addEventListener('click', function (event) {
       const button = event.target.closest('[data-action]');
       if (!button) return;
       handleDocumentAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
-    }, { once: false });
+    });
     const uploadBtn = document.getElementById('account-files-upload-btn');
     if (uploadBtn) {
-      uploadBtn.onclick = () => {
+      const freshUploadBtn = uploadBtn.cloneNode(true);
+      uploadBtn.parentNode.replaceChild(freshUploadBtn, uploadBtn);
+      freshUploadBtn.addEventListener('click', () => {
         closeModal('account-files');
         document.getElementById('upload-account').value = accountId;
         applyUploadAccountDefaults(accountId);
         openModal('upload');
-      };
+      });
     }
-  }
-    const config = LEAD_SECTIONS[sectionKey];
-    const row = button.closest('tr');
-    const status = row.querySelector(`[data-lead-status="${sectionKey}"]`)?.value || 'Not Reviewed Yet';
-    const notes = row.querySelector(`[data-lead-notes="${sectionKey}"]`)?.value.trim() || null;
-    button.disabled = true;
-    button.textContent = 'Saving…';
-    const payload = {
-      [config.statusField]: status,
-      [config.notesField]: notes,
-      updated_at: nowIso(),
-      completed_at: status === 'Completed' ? nowIso() : null
-    };
-    const { error } = await supabaseClient.from(config.table).update(payload).eq('id', rowId);
-    if (error) {
-      button.disabled = false;
-      button.textContent = 'Save';
-      return window.alert(`Unable to save lead: ${error.message}`);
-    }
-    await loadLeadData(sectionKey);
-    renderLeadSection(sectionKey);
   }
 
   async function saveMaintenance(rowId, button) {
@@ -1382,7 +1367,7 @@
     });
     document.getElementById('properties-tbody')?.addEventListener('input', function (event) {
       const el = event.target;
-      if (el.hasAttribute('data-prop-notes')) debouncedUpdate(el, 650, () => autoSaveProperty(el, 'internal_notes', el.value.trim() || null));
+      if (el.hasAttribute('data-prop-notes')) debouncedUpdate(el, 650, () => autoSaveProperty(el, 'notes', el.value.trim() || null));
     });
 
     // ── Autosave: Accounts ───────────────────────────────────────────────────
