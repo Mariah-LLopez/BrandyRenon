@@ -592,15 +592,24 @@ alter table public.properties add column if not exists visibility text;
 alter table public.properties add column if not exists is_public boolean;
 alter table public.properties add column if not exists updated_at timestamptz;
 update public.properties
-set visibility = case
-  when visibility is not null and btrim(visibility) <> '' then visibility
-  when coalesce(is_public, false) then 'public'
-  else 'internal'
-end
-where visibility is null or btrim(visibility) = '';
-update public.properties
-set is_public = (visibility = 'public')
-where is_public is null or is_public <> (visibility = 'public');
+set
+  visibility = case
+    when visibility is not null and btrim(visibility) <> '' then visibility
+    when coalesce(is_public, false) then 'public'
+    else 'internal'
+  end,
+  is_public = case
+    when visibility is not null and btrim(visibility) <> '' then visibility = 'public'
+    else coalesce(is_public, false)
+  end
+where
+  visibility is null
+  or btrim(visibility) = ''
+  or is_public is null
+  or is_public <> case
+    when visibility is not null and btrim(visibility) <> '' then visibility = 'public'
+    else coalesce(is_public, false)
+  end;
 update public.properties
 set updated_at = coalesce(updated_at, created_at, now())
 where updated_at is null;

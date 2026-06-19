@@ -114,7 +114,7 @@
     return escapeHtml(date.toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }));
   }
 
-  function signatureLabel(doc) {
+  function signatureBadge(doc) {
     const status = getSignatureState(doc);
     if (status === 'signed') return `<span class="badge-doc-signed">Signed</span>`;
     if (status === 'pending_signature') return `<span class="badge-doc-required">Pending Signature</span>`;
@@ -242,7 +242,7 @@
       return;
     }
     empty.hidden = true;
-    mount.innerHTML = rows.map((doc) => `<div class="dashboard-summary-item"><span>${escapeHtml(doc.file_name)}</span><span>${signatureLabel(doc)}</span></div>`).join('');
+    mount.innerHTML = rows.map((doc) => `<div class="dashboard-summary-item"><span>${escapeHtml(doc.file_name)}</span><span>${signatureBadge(doc)}</span></div>`).join('');
   }
 
   function renderDashboardMaintenance() {
@@ -300,7 +300,7 @@
         <td>${escapeHtml(doc.category || 'Other')}</td>
         <td>${escapeHtml(getAccountById(doc.account_id)?.account_name || 'Unassigned')}</td>
         <td>${escapeHtml(getPropertyById(doc.property_id)?.property_address || 'Unassigned')}</td>
-        <td>${signatureLabel(doc)}</td>
+        <td>${signatureBadge(doc)}</td>
         <td>${formatDateOnly(doc.created_at)}</td>
         <td><div class="table-actions"><button class="action-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">Open</button>${doc.visibility === 'client_downloadable' || previewMode ? `<button class="action-link" data-action="download-file" data-id="${escapeHtml(doc.id)}" type="button">Download</button>` : ''}${doc.signature_url ? `<button class="action-link badge-doc-required-btn" data-action="sign-file" data-id="${escapeHtml(doc.id)}" type="button">Sign Document</button>` : ''}</div></td>
       </tr>
