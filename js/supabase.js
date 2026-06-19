@@ -12,12 +12,6 @@ try {
   console.error("Supabase initialization failed:", err);
 }
 
-/**
- * Escapes HTML special characters to prevent XSS when inserting
- * user-supplied content via innerHTML.
- * @param {unknown} value
- * @returns {string}
- */
 function escapeHtml(value) {
   const str = value == null ? '' : String(value);
   return str
@@ -28,13 +22,6 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-/**
- * Sanitizes a filename for use in a storage path.
- * Strips all characters except alphanumerics, dots, dashes, and underscores.
- * Prevents path traversal by rejecting any remaining directory separators.
- * @param {string} name
- * @returns {string}
- */
 function sanitizeFilename(name) {
   const safe = String(name || 'upload')
     .replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -48,40 +35,27 @@ async function getSession() {
   return data.session || null;
 }
 
-/**
- * Returns true when the error is most likely caused by a Row Level Security
- * policy denial rather than a network or query error.
- * @param {object} error
- * @returns {boolean}
- */
 function isRLSError(error) {
   return error.code === '42501' || /policy|permission|rls/i.test(error.message || '');
 }
 
-/**
- * Fetches the signed-in user's profile.
- * If no profile row exists, creates a default client profile for the user.
- * Returns null only when the query fails for reasons other than a missing row
- * (e.g. Row Level Security denies access).
- * @returns {Promise<object|null>}
- */
 async function getCurrentUserProfile() {
   const session = await getSession();
   if (!session) return null;
 
   const { data, error } = await supabaseClient
     .from('profiles')
-    .select('id, email, role')
+    .select('id, email, full_name, role, status')
     .eq('id', session.user.id)
     .single();
 
-  // PGRST116 = no rows returned – the user has no profile row yet, so create one.
   if (error && error.code === 'PGRST116') {
     const userEmail = session.user.email || null;
+    const fullName = session.user.user_metadata?.full_name || null;
     const { data: created, error: insertError } = await supabaseClient
       .from('profiles')
-      .insert([{ id: session.user.id, email: userEmail, role: 'client' }])
-      .select('id, email, role')
+      .insert([{ id: session.user.id, email: userEmail, full_name: fullName, role: 'client', status: 'active' }])
+      .select('id, email, full_name, role, status')
       .single();
 
     if (insertError) {
@@ -119,11 +93,6 @@ async function getCurrentUserProfile() {
   return data;
 }
 
-/**
- * Fetches the role ('admin' | 'client') for the signed-in user from the
- * profiles table. Returns null if no session or profile exists.
- * @returns {Promise<string|null>}
- */
 async function getCurrentUserRole() {
   const profile = await getCurrentUserProfile();
   return profile ? profile.role : null;

@@ -13,56 +13,52 @@
   ];
   const USER_ROLES = ['admin', 'client'];
   const USER_STATUSES = ['active', 'inactive'];
+  const LEAD_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
+  const ACCOUNT_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Active', 'Pending Signature', 'Completed', 'Archived'];
+  const ACCOUNT_TYPES = ['Buyer', 'Seller', 'Rental', 'Lease', 'Property Management', 'Renovation', 'Other'];
+  const MAINTENANCE_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
+  const MAINTENANCE_PRIORITIES = ['Low', 'Medium', 'High', 'Emergency'];
   const SIGNATURE_STATUS_LABELS = {
     available: 'Available',
     pending_signature: 'Pending Signature',
     signed: 'Signed',
     uploaded: 'Uploaded'
   };
-  const MAINTENANCE_STATUSES = ['New', 'In Review', 'Scheduled', 'In Progress', 'Completed', 'Closed'];
-  const MAINTENANCE_PRIORITIES = ['Low', 'Medium', 'High', 'Emergency'];
-  const LEAD_STATUS_OPTIONS = [
-    { value: 'not_viewed', label: 'Not Viewed Yet' },
-    { value: 'in_progress', label: 'In Progress' },
-    { value: 'complete', label: 'Complete' }
-  ];
   const LEAD_SECTIONS = {
     contact: {
       table: 'contact_requests',
-      tbodyId: 'lead-contact-tbody',
-      emptyId: 'lead-contact-empty',
       statusField: 'admin_status',
       notesField: 'admin_notes',
-      editable: true,
       columns: ['name', 'email', 'phone', 'inquiry_type', 'property_interest', 'message', 'created_at', 'status', 'notes', 'actions']
     },
     showing: {
       table: 'showing_requests',
-      tbodyId: 'lead-showing-tbody',
-      emptyId: 'lead-showing-empty',
       statusField: 'admin_status',
       notesField: 'admin_notes',
-      editable: true,
       columns: ['name', 'email', 'phone', 'request_type', 'property_address', 'preferred_date', 'preferred_time', 'message', 'created_at', 'status', 'notes', 'actions']
     },
     renovation: {
       table: 'renovation_clients',
-      tbodyId: 'lead-renovation-tbody',
-      emptyId: 'lead-renovation-empty',
       statusField: 'status',
-      editable: false,
-      columns: ['full_name', 'email', 'phone', 'property_address', 'service_needed', 'project_type', 'project_description', 'timeline', 'budget_range', 'status', 'created_at']
+      notesField: 'admin_notes',
+      columns: ['full_name', 'email', 'phone', 'property_address', 'service_needed', 'project_type', 'project_description', 'created_at', 'status', 'notes', 'actions']
     }
   };
 
   let adminUserId = null;
   let allUsers = [];
   let allProperties = [];
-  let allTransactions = [];
-  let allDocuments = [];
+  let allAccounts = [];
+  let allAccountAssignments = [];
   let allPropertyAssignments = [];
+  let allDocuments = [];
   let allMaintenanceRequests = [];
+  let allMaintenanceFiles = [];
   let allLeads = { contact: [], showing: [], renovation: [] };
+
+  function nowIso() {
+    return new Date().toISOString();
+  }
 
   function hasAllowedExtension(name) {
     const lower = (name || '').toLowerCase();
@@ -71,6 +67,38 @@
 
   function isAllowedMime(mime) {
     return ALLOWED_MIME_TYPES.includes((mime || '').toLowerCase());
+  }
+
+  function normalizeLeadStatus(value) {
+    const map = {
+      not_viewed: 'Not Reviewed Yet',
+      not_reviewed_yet: 'Not Reviewed Yet',
+      complete: 'Completed',
+      completed: 'Completed',
+      in_progress: 'In Progress'
+    };
+    return map[String(value || '').toLowerCase()] || (LEAD_STATUSES.includes(value) ? value : 'Not Reviewed Yet');
+  }
+
+  function normalizeMaintenanceStatus(value) {
+    const map = {
+      new: 'Not Reviewed Yet',
+      'in review': 'In Progress',
+      scheduled: 'In Progress',
+      'in progress': 'In Progress',
+      completed: 'Completed',
+      closed: 'Completed'
+    };
+    return map[String(value || '').toLowerCase()] || (MAINTENANCE_STATUSES.includes(value) ? value : 'Not Reviewed Yet');
+  }
+
+  function normalizeAccountStatus(value) {
+    const map = {
+      pending: 'In Progress',
+      closed: 'Completed',
+      cancelled: 'Archived'
+    };
+    return map[String(value || '').toLowerCase()] || (ACCOUNT_STATUSES.includes(value) ? value : 'Not Reviewed Yet');
   }
 
   function openModal(id) {
@@ -96,17 +124,13 @@
 
     document.querySelectorAll('.modal').forEach((modal) => {
       modal.addEventListener('click', function (event) {
-        if (event.target === modal) {
-          closeModal(modal.id.replace('-modal', ''));
-        }
+        if (event.target === modal) closeModal(modal.id.replace('-modal', ''));
       });
     });
 
     document.addEventListener('keydown', function (event) {
       if (event.key !== 'Escape') return;
-      document.querySelectorAll('.modal.is-open').forEach((modal) => {
-        closeModal(modal.id.replace('-modal', ''));
-      });
+      document.querySelectorAll('.modal.is-open').forEach((modal) => closeModal(modal.id.replace('-modal', '')));
     });
   }
 
@@ -117,12 +141,11 @@
       else params.delete(key);
     });
     const query = params.toString();
-    const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash || ''}`;
-    window.history.replaceState({}, '', nextUrl);
+    window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash || ''}`);
   }
 
   function setActiveMainTab(tabKey) {
-    document.querySelectorAll('.portal-tab-bar:not(.leads-sub-tabs) .portal-tab').forEach((button) => {
+    document.querySelectorAll('.portal-tab-bar:not(.leads-sub-tabs):not(.workflow-tab-bar) .portal-tab').forEach((button) => {
       const active = button.getAttribute('data-tab') === tabKey;
       button.classList.toggle('active', active);
       button.setAttribute('aria-selected', active ? 'true' : 'false');
@@ -133,19 +156,30 @@
   }
 
   function setActiveLeadTab(tabKey) {
-    const targetTab = LEAD_SECTIONS[tabKey] ? tabKey : 'contact';
+    const target = LEAD_SECTIONS[tabKey] ? tabKey : 'contact';
     document.querySelectorAll('.leads-sub-tabs .portal-tab').forEach((button) => {
-      const active = button.getAttribute('data-lead-tab') === targetTab;
+      const active = button.getAttribute('data-lead-tab') === target;
       button.classList.toggle('active', active);
       button.setAttribute('aria-selected', active ? 'true' : 'false');
     });
     document.querySelectorAll('.lead-tab-panel').forEach((panel) => {
-      panel.hidden = panel.id !== `lead-tab-${targetTab}`;
+      panel.hidden = panel.id !== `lead-tab-${target}`;
+    });
+  }
+
+  function setWorkflowTab(group, target) {
+    document.querySelectorAll(`[data-workflow-group="${group}"]`).forEach((button) => {
+      const active = button.getAttribute('data-workflow-target') === target;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll(`[data-workflow-panel^="${group}-"]`).forEach((panel) => {
+      panel.hidden = panel.getAttribute('data-workflow-panel') !== `${group}-${target}`;
     });
   }
 
   function initTabs() {
-    document.querySelectorAll('.portal-tab-bar:not(.leads-sub-tabs) .portal-tab').forEach((button) => {
+    document.querySelectorAll('.portal-tab-bar .portal-tab[data-tab]').forEach((button) => {
       button.addEventListener('click', function () {
         const tabKey = button.getAttribute('data-tab');
         setActiveMainTab(tabKey);
@@ -161,54 +195,16 @@
       });
     });
 
+    document.querySelectorAll('.workflow-tab-bar .portal-tab').forEach((button) => {
+      button.addEventListener('click', function () {
+        setWorkflowTab(button.getAttribute('data-workflow-group'), button.getAttribute('data-workflow-target'));
+      });
+    });
+
     const params = new URLSearchParams(window.location.search);
     setActiveMainTab(params.get('tab') || 'users');
     setActiveLeadTab(params.get('leadTab') || 'contact');
-  }
-
-  function statusBadge(status) {
-    const map = { Active: 'badge-active', Pending: 'badge-pending', Sold: 'badge-sold', 'Coming Soon': 'badge-coming-soon', Closed: 'badge-sold', Cancelled: 'badge-hidden' };
-    return `<span class="status-badge ${map[status] || 'badge-coming-soon'}">${escapeHtml(status || 'N/A')}</span>`;
-  }
-
-  function visibilityLabel(value) {
-    return { admin_only: 'Admin Only', client_visible: 'Client View', client_downloadable: 'Client Download' }[value] || value || 'N/A';
-  }
-
-  function clientAccessLabel(doc) {
-    if (!doc.can_client_view) return 'Hidden from client';
-    if (doc.can_client_edit) return 'View + Edit';
-    return doc.visibility === 'client_downloadable' ? 'View + Download' : 'View only';
-  }
-
-  function signatureStatusLabel(value) {
-    return SIGNATURE_STATUS_LABELS[value] || SIGNATURE_STATUS_LABELS.available;
-  }
-
-  function sigBadge(doc) {
-    const status = doc.signature_status || (doc.signed ? 'signed' : (doc.requires_signature ? 'pending_signature' : 'available'));
-    if (status === 'signed') {
-      return `<span class="badge-doc-signed">Signed ${escapeHtml(formatDateOnly(doc.signed_at))}</span>`;
-    }
-    if (status === 'pending_signature') {
-      return '<span class="badge-doc-required">Pending Signature</span>';
-    }
-    if (status === 'uploaded') {
-      return '<span class="badge-doc-required">Uploaded</span>';
-    }
-    return '<span class="badge-doc-none">Available</span>';
-  }
-
-  function formatTransactionType(value) {
-    const map = {
-      purchase: 'Purchase',
-      sale: 'Sale',
-      lease: 'Lease',
-      property_management: 'Property Management',
-      rental: 'Rental',
-      flip: 'Flip'
-    };
-    return map[value] || value || 'N/A';
+    [['accounts', 'active'], ['maintenance', 'active'], ['lead-contact', 'active'], ['lead-showing', 'active'], ['lead-renovation', 'active']].forEach(([group, target]) => setWorkflowTab(group, target));
   }
 
   function formatDateOnly(value) {
@@ -222,23 +218,16 @@
     if (!value) return 'N/A';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return escapeHtml(value);
-    return escapeHtml(date.toLocaleString([], {
-      year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
-    }));
+    return escapeHtml(date.toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }));
   }
 
   function formatTimeString(value) {
     if (!value) return 'N/A';
-    const match = String(value).trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    const match = String(value).trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
     if (!match) return escapeHtml(value);
-    const hours = Number(match[1]);
-    const minutes = Number(match[2]);
-    if (Number.isNaN(hours) || Number.isNaN(minutes) || hours > 23 || minutes > 59) {
-      return escapeHtml(value);
-    }
-    const parsed = new Date();
-    parsed.setHours(hours, minutes, 0, 0);
-    return escapeHtml(parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+    const date = new Date();
+    date.setHours(Number(match[1]), Number(match[2]), 0, 0);
+    return escapeHtml(date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
   }
 
   function formatInquiryType(value) {
@@ -259,13 +248,88 @@
     return labels[value] || value || 'N/A';
   }
 
+  function statusPill(status) {
+    const normalized = status || 'Not Reviewed Yet';
+    const lower = normalized.toLowerCase();
+    let type = 'active';
+    if (lower.includes('not reviewed')) type = 'review';
+    else if (lower.includes('progress') || lower.includes('pending')) type = 'progress';
+    else if (lower.includes('completed') || lower.includes('signed')) type = 'success';
+    else if (lower.includes('archived')) type = 'archived';
+    return `<span class="status-pill ${type}">${escapeHtml(normalized)}</span>`;
+  }
+
+  function signatureStatusLabel(value) {
+    return SIGNATURE_STATUS_LABELS[value] || SIGNATURE_STATUS_LABELS.available;
+  }
+
+  function sigBadge(doc) {
+    const status = doc.signature_status || (doc.signed ? 'signed' : (doc.requires_signature ? 'pending_signature' : 'available'));
+    if (status === 'signed') return `<span class="badge-doc-signed">${escapeHtml(signatureStatusLabel(status))}</span>`;
+    if (status === 'pending_signature') return `<span class="badge-doc-required">${escapeHtml(signatureStatusLabel(status))}</span>`;
+    if (status === 'uploaded') return `<span class="badge-doc-required">Uploaded</span>`;
+    return `<span class="badge-doc-none">${escapeHtml(signatureStatusLabel(status))}</span>`;
+  }
+
+  function visibilityLabel(value) {
+    return { admin_only: 'Admin Only', client_visible: 'Client View', client_downloadable: 'Client Download' }[value] || value || 'N/A';
+  }
+
+  function clientAccessLabel(doc) {
+    if (!doc.can_client_view) return 'Hidden from client';
+    if (doc.can_client_edit) return 'View + Edit';
+    return doc.visibility === 'client_downloadable' ? 'View + Download' : 'View only';
+  }
+
+  function getPropertyById(propertyId) {
+    return allProperties.find((property) => property.id === propertyId) || null;
+  }
+
+  function getAccountById(accountId) {
+    return allAccounts.find((account) => account.id === accountId) || null;
+  }
+
+  function getUserById(userId) {
+    return allUsers.find((user) => user.id === userId) || null;
+  }
+
+  function getAccountClientIds(accountId) {
+    return allAccountAssignments.filter((assignment) => assignment.account_id === accountId).map((assignment) => assignment.client_id);
+  }
+
+  function getAccountClientLabels(accountId) {
+    const labels = getAccountClientIds(accountId)
+      .map((clientId) => getUserById(clientId))
+      .filter(Boolean)
+      .map((user) => user.full_name || user.email);
+    return labels.length ? labels.join(', ') : 'Unassigned';
+  }
+
+  function getAssignedPropertyIds(userId) {
+    const direct = allPropertyAssignments.filter((assignment) => assignment.client_id === userId).map((assignment) => assignment.property_id);
+    const accountLinked = allAccounts.filter((account) => getAccountClientIds(account.id).includes(userId) && account.property_id).map((account) => account.property_id);
+    return Array.from(new Set([...direct, ...accountLinked]));
+  }
+
+  function getPropertySummary(userId) {
+    const labels = getAssignedPropertyIds(userId).map((propertyId) => getPropertyById(propertyId)?.property_address).filter(Boolean);
+    if (!labels.length) return 'None assigned';
+    return labels.length <= 2 ? labels.join(', ') : `${labels.slice(0, 2).join(', ')} +${labels.length - 2} more`;
+  }
+
+  function getAccountSummary(userId) {
+    const labels = allAccounts
+      .filter((account) => getAccountClientIds(account.id).includes(userId))
+      .map((account) => account.account_name)
+      .filter(Boolean);
+    if (!labels.length) return 'None assigned';
+    return labels.length <= 2 ? labels.join(', ') : `${labels.slice(0, 2).join(', ')} +${labels.length - 2} more`;
+  }
+
   function populateUserSelect(select, blankLabel) {
     if (!select) return;
     const current = select.value;
-    const options = allUsers
-      .filter((user) => user.role === 'client')
-      .map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.full_name || user.email)}</option>`)
-      .join('');
+    const options = allUsers.filter((user) => user.role === 'client').map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.full_name || user.email)}</option>`).join('');
     select.innerHTML = `<option value="">${escapeHtml(blankLabel || 'No specific client')}</option>${options}`;
     if (current) select.value = current;
   }
@@ -273,17 +337,34 @@
   function populatePropertySelect(select) {
     if (!select) return;
     const current = select.value;
-    const hasNone = select.querySelector('option[value=""]');
-    const noneText = hasNone ? hasNone.textContent : 'No specific property';
+    const noneText = select.querySelector('option[value=""]')?.textContent || 'No specific property';
     select.innerHTML = `<option value="">${escapeHtml(noneText)}</option>${allProperties.map((property) => `<option value="${escapeHtml(property.id)}">${escapeHtml(property.property_address)}</option>`).join('')}`;
     if (current) select.value = current;
+  }
+
+  function populateAccountSelect(select, blankLabel) {
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = `<option value="">${escapeHtml(blankLabel || 'No specific account')}</option>${allAccounts.map((account) => `<option value="${escapeHtml(account.id)}">${escapeHtml(account.account_name)}</option>`).join('')}`;
+    if (current) select.value = current;
+  }
+
+  function applyUploadAccountDefaults(accountId) {
+    const uploadProperty = document.getElementById('upload-property');
+    const uploadClient = document.getElementById('upload-client');
+    if (!accountId) return;
+    const account = getAccountById(accountId);
+    if (!account) return;
+    if (uploadProperty && account.property_id) uploadProperty.value = account.property_id;
+    const clientIds = getAccountClientIds(accountId);
+    if (uploadClient && clientIds.length === 1) uploadClient.value = clientIds[0];
   }
 
   async function getStorageUrl(bucket, filePath) {
     if (!bucket || !filePath) return null;
     const { data: signedData, error: signedError } = await supabaseClient.storage.from(bucket).createSignedUrl(filePath, 300);
     if (!signedError && signedData?.signedUrl) return signedData.signedUrl;
-    const { data: publicData } = supabaseClient.storage.from(bucket).getPublicUrl(filePath);
+    const { data: publicData } = await supabaseClient.storage.from(bucket).getPublicUrl(filePath);
     return publicData?.publicUrl || null;
   }
 
@@ -301,8 +382,7 @@
       const url = await getDocumentUrl(doc);
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (error) {
-      console.error('Open document error:', error);
-      window.alert(`Unable to open document: ${error.message}`);
+      window.alert(`Unable to open file: ${error.message}`);
     }
   }
 
@@ -317,64 +397,82 @@
       const objectUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;
-      link.download = doc.file_name || 'document';
+      link.download = doc.file_name || 'file';
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(objectUrl);
     } catch (error) {
-      console.error('Download document error:', error);
-      window.alert(`Unable to download document: ${error.message}`);
+      window.alert(`Unable to download file: ${error.message}`);
+    }
+  }
+
+  function getMaintenanceFiles(requestId) {
+    return allMaintenanceFiles.filter((file) => file.maintenance_request_id === requestId);
+  }
+
+  async function openMaintenanceFile(fileId, download) {
+    const file = allMaintenanceFiles.find((item) => item.id === fileId);
+    if (!file) return;
+    try {
+      const url = await getStorageUrl(file.bucket_name || 'maintenance-files', file.file_path);
+      if (!download) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = file.file_name || 'maintenance-file';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      window.alert(`Unable to access maintenance file: ${error.message}`);
     }
   }
 
   async function loadUsersData() {
     const { data, error } = await supabaseClient.rpc('get_admin_user_profiles');
     if (error) {
-      console.error('Users RPC error:', error);
       const fallback = await supabaseClient.from('profiles').select('*').order('created_at', { ascending: false });
-      if (fallback.error) {
-        console.error('Users fallback error:', fallback.error);
-        return;
-      }
-      allUsers = (fallback.data || []).map((row) => ({ ...row, last_login_at: null }));
+      if (fallback.error) return;
+      allUsers = fallback.data || [];
     } else {
       allUsers = data || [];
     }
     populateUserSelect(document.getElementById('upload-client'));
-    populateUserSelect(document.getElementById('txn-client'), 'Select client…');
+    populateUserSelect(document.getElementById('account-client'), 'No client selected');
   }
 
   async function loadPropertiesData() {
-    const { data, error } = await supabaseClient.from('properties').select('*').order('created_at', { ascending: false });
-    if (error) {
-      console.error('Properties error:', error);
-      return;
-    }
+    const { data, error } = await supabaseClient.from('properties').select('*').order('updated_at', { ascending: false });
+    if (error) return;
     allProperties = data || [];
     populatePropertySelect(document.getElementById('upload-property'));
-    populatePropertySelect(document.getElementById('txn-property'));
-    populatePropertySelect(document.getElementById('admin-maint-property-filter'));
+    populatePropertySelect(document.getElementById('account-property'));
   }
 
-  async function loadTransactionsData() {
-    const { data, error } = await supabaseClient
-      .from('transactions')
-      .select('*, properties(property_address), profiles!transactions_client_id_fkey(full_name, email)')
-      .order('created_at', { ascending: false });
-    if (error) {
-      console.error('Transactions error:', error);
-      return;
-    }
-    allTransactions = data || [];
+  async function loadAccountsData() {
+    const { data, error } = await supabaseClient.from('accounts').select('*').order('updated_at', { ascending: false });
+    if (error) return;
+    allAccounts = (data || []).map((account) => ({ ...account, status: normalizeAccountStatus(account.status) }));
+    populateAccountSelect(document.getElementById('upload-account'));
+  }
+
+  async function loadAccountAssignmentsData() {
+    const { data, error } = await supabaseClient.from('account_clients').select('account_id, client_id');
+    if (error) return;
+    allAccountAssignments = data || [];
   }
 
   async function loadPropertyAssignmentsData() {
     const { data, error } = await supabaseClient.from('client_property_assignments').select('client_id, property_id');
-    if (error) {
-      console.error('Property assignments error:', error);
-      return;
-    }
+    if (error) return;
     allPropertyAssignments = data || [];
   }
 
@@ -383,103 +481,67 @@
       .from('documents')
       .select('*, profiles!documents_client_id_fkey(full_name, email)')
       .order('created_at', { ascending: false });
-    if (error) {
-      console.error('Documents error:', error);
-      return;
-    }
+    if (error) return;
     allDocuments = data || [];
   }
 
   async function loadMaintenanceData() {
-    const { data, error } = await supabaseClient
-      .from('maintenance_requests')
-      .select('*, profiles!maintenance_requests_client_id_fkey(full_name, email), properties(property_address)')
-      .order('created_at', { ascending: false });
-    if (error) {
-      console.error('Maintenance requests error:', error);
-      return;
+    const [requests, files] = await Promise.all([
+      supabaseClient.from('maintenance_requests').select('*, profiles!maintenance_requests_client_id_fkey(full_name, email)').order('created_at', { ascending: false }),
+      supabaseClient.from('maintenance_files').select('*').order('created_at', { ascending: false })
+    ]);
+    if (!requests.error) {
+      allMaintenanceRequests = (requests.data || []).map((request) => ({ ...request, status: normalizeMaintenanceStatus(request.status) }));
     }
-    allMaintenanceRequests = data || [];
+    if (!files.error) allMaintenanceFiles = files.data || [];
   }
 
   async function loadLeadData(sectionKey) {
-    const section = LEAD_SECTIONS[sectionKey];
-    if (!section) return;
-    const { data, error } = await supabaseClient.from(section.table).select('*').order('created_at', { ascending: false });
-    if (error) {
-      console.error(`${section.table} error:`, error);
-      return;
-    }
-    allLeads[sectionKey] = data || [];
+    const config = LEAD_SECTIONS[sectionKey];
+    if (!config) return;
+    const { data, error } = await supabaseClient.from(config.table).select('*').order('created_at', { ascending: false });
+    if (error) return;
+    allLeads[sectionKey] = (data || []).map((row) => ({
+      ...row,
+      [config.statusField]: normalizeLeadStatus(row[config.statusField]),
+      [config.notesField]: row[config.notesField] || null
+    }));
   }
 
   async function loadAllLeadData() {
     await Promise.all(Object.keys(LEAD_SECTIONS).map(loadLeadData));
   }
 
-  function getAssignedPropertyIds(userId) {
-    const manual = allPropertyAssignments.filter((assignment) => assignment.client_id === userId).map((assignment) => assignment.property_id);
-    const transactionLinked = allTransactions.filter((transaction) => transaction.client_id === userId && transaction.property_id).map((transaction) => transaction.property_id);
-    return Array.from(new Set([...manual, ...transactionLinked]));
-  }
-
-  function getPropertySummary(userId) {
-    const labels = getAssignedPropertyIds(userId)
-      .map((propertyId) => allProperties.find((property) => property.id === propertyId)?.property_address)
-      .filter(Boolean);
-    if (!labels.length) return 'None assigned';
-    if (labels.length <= 2) return labels.join(', ');
-    return `${labels.slice(0, 2).join(', ')} +${labels.length - 2} more`;
-  }
-
-  function getTransactionSummary(userId) {
-    const labels = allTransactions
-      .filter((transaction) => transaction.client_id === userId)
-      .map((transaction) => transaction.properties?.property_address || transaction.id)
-      .filter(Boolean);
-    if (!labels.length) return 'None assigned';
-    if (labels.length <= 2) return labels.join(', ');
-    return `${labels.slice(0, 2).join(', ')} +${labels.length - 2} more`;
-  }
-
   function renderUsers() {
     const tbody = document.getElementById('users-tbody');
     const empty = document.getElementById('users-empty');
-    if (!tbody) return;
-
     const term = (document.getElementById('user-search')?.value || '').trim().toLowerCase();
     const filtered = allUsers.filter((user) => {
       if (!term) return true;
       return [user.full_name, user.email, user.role, user.status].some((value) => String(value || '').toLowerCase().includes(term));
     });
-
     if (!filtered.length) {
       tbody.innerHTML = '';
-      if (empty) empty.hidden = false;
+      empty.hidden = false;
       return;
     }
-    if (empty) empty.hidden = true;
-
+    empty.hidden = true;
     tbody.innerHTML = filtered.map((user) => {
       const roleOptions = USER_ROLES.map((role) => `<option value="${role}"${role === user.role ? ' selected' : ''}>${role.charAt(0).toUpperCase() + role.slice(1)}</option>`).join('');
       const statusOptions = USER_STATUSES.map((status) => `<option value="${status}"${status === (user.status || 'active') ? ' selected' : ''}>${status.charAt(0).toUpperCase() + status.slice(1)}</option>`).join('');
       const clientActions = user.role === 'client'
-        ? `
-          <button class="action-link" data-action="assign-properties" data-id="${escapeHtml(user.id)}" type="button">Assign Properties</button>
-          <button class="action-link" data-action="assign-transactions" data-id="${escapeHtml(user.id)}" type="button">Assign Transactions</button>
-          <button class="action-link" data-action="view-client" data-id="${escapeHtml(user.id)}" type="button">View as Client</button>`
+        ? `<button class="action-link" data-action="assign-properties" data-id="${escapeHtml(user.id)}" type="button">Assign Properties</button>
+           <button class="action-link" data-action="assign-accounts" data-id="${escapeHtml(user.id)}" type="button">Assign Accounts</button>
+           <button class="action-link" data-action="view-client" data-id="${escapeHtml(user.id)}" type="button">View as Client</button>`
         : '';
       return `<tr data-user-id="${escapeHtml(user.id)}">
         <td>${escapeHtml(user.email)}</td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-user-role>${roleOptions}</select></td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-user-status>${statusOptions}</select></td>
-        <td>${escapeHtml(formatDateOnly(user.created_at))}</td>
+        <td>${formatDateOnly(user.created_at)}</td>
         <td class="dashboard-cell-wrap">${escapeHtml(getPropertySummary(user.id))}</td>
-        <td class="dashboard-cell-wrap">${escapeHtml(getTransactionSummary(user.id))}</td>
-        <td class="users-actions-cell"><div class="table-actions table-actions-stack">
-          <button class="action-link" data-action="save-user" data-id="${escapeHtml(user.id)}" type="button">Save</button>
-          ${clientActions}
-        </div></td>
+        <td class="dashboard-cell-wrap">${escapeHtml(getAccountSummary(user.id))}</td>
+        <td class="users-actions-cell"><div class="table-actions table-actions-stack"><button class="action-link" data-action="save-user" data-id="${escapeHtml(user.id)}" type="button">Save</button>${clientActions}</div></td>
       </tr>`;
     }).join('');
   }
@@ -487,179 +549,155 @@
   function renderProperties() {
     const tbody = document.getElementById('properties-tbody');
     const empty = document.getElementById('properties-empty');
-    if (!tbody) return;
     if (!allProperties.length) {
       tbody.innerHTML = '';
-      if (empty) empty.hidden = false;
+      empty.hidden = false;
       return;
     }
-    if (empty) empty.hidden = true;
-
+    empty.hidden = true;
     tbody.innerHTML = allProperties.map((property) => `<tr>
-      <td>${escapeHtml(property.property_address)}</td>
-      <td>${statusBadge(property.property_status)}</td>
-      <td>${property.purchase_price ? '$' + Number(property.purchase_price).toLocaleString() : 'N/A'}</td>
-      <td>${property.sale_price ? '$' + Number(property.sale_price).toLocaleString() : 'N/A'}</td>
-      <td>${escapeHtml(formatDateOnly(property.created_at))}</td>
+      <td class="dashboard-cell-wrap"><strong>${escapeHtml(property.property_address)}</strong>${property.notes ? `<div class="table-hint">${escapeHtml(property.notes)}</div>` : ''}</td>
+      <td>${statusPill(property.property_status || 'Active')}</td>
+      <td>${escapeHtml(property.visibility === 'public' ? 'Public Listing' : 'Internal Property')}</td>
+      <td>${property.is_public ? 'Yes' : 'No'}</td>
+      <td>${formatDateTime(property.updated_at || property.created_at)}</td>
       <td><div class="table-actions"><button class="action-link" data-action="delete-property" data-id="${escapeHtml(property.id)}" type="button">Delete</button></div></td>
     </tr>`).join('');
   }
 
-  function renderTransactions() {
-    const tbody = document.getElementById('transactions-tbody');
-    const empty = document.getElementById('transactions-empty');
-    if (!tbody) return;
-    if (!allTransactions.length) {
-      tbody.innerHTML = '';
-      if (empty) empty.hidden = false;
-      return;
-    }
-    if (empty) empty.hidden = true;
-
-    tbody.innerHTML = allTransactions.map((transaction) => `<tr>
-      <td>${escapeHtml(transaction.properties?.property_address || 'N/A')}</td>
-      <td>${escapeHtml(transaction.profiles?.full_name || transaction.profiles?.email || 'Unassigned')}</td>
-      <td>${escapeHtml(formatTransactionType(transaction.transaction_type))}</td>
-      <td>${statusBadge(transaction.status)}</td>
-      <td>${escapeHtml(formatDateOnly(transaction.created_at))}</td>
-      <td><div class="table-actions"><button class="action-link" data-action="delete-transaction" data-id="${escapeHtml(transaction.id)}" type="button">Delete</button></div></td>
-    </tr>`).join('');
+  function renderAccounts() {
+    const groups = {
+      active: { tbody: document.getElementById('accounts-active-tbody'), empty: document.getElementById('accounts-active-empty'), rows: allAccounts.filter((account) => account.status !== 'Completed') },
+      completed: { tbody: document.getElementById('accounts-completed-tbody'), empty: document.getElementById('accounts-completed-empty'), rows: allAccounts.filter((account) => account.status === 'Completed') }
+    };
+    Object.entries(groups).forEach(([groupKey, config]) => {
+      if (!config.rows.length) {
+        config.tbody.innerHTML = '';
+        config.empty.hidden = false;
+        return;
+      }
+      config.empty.hidden = true;
+      config.tbody.innerHTML = config.rows.map((account) => `<tr>
+        <td class="dashboard-cell-wrap"><strong>${escapeHtml(account.account_name)}</strong>${account.client_notes ? `<div class="table-hint">${escapeHtml(account.client_notes)}</div>` : ''}</td>
+        <td>${escapeHtml(getAccountClientLabels(account.id))}</td>
+        <td>${escapeHtml(getPropertyById(account.property_id)?.property_address || 'Unassigned')}</td>
+        <td>${escapeHtml(account.account_type || 'Other')}</td>
+        <td>${statusPill(account.status)}</td>
+        <td>${formatDateTime(groupKey === 'completed' ? (account.completed_at || account.updated_at) : account.updated_at)}</td>
+        <td><div class="table-actions table-actions-stack"><button class="action-link" data-action="account-upload" data-id="${escapeHtml(account.id)}" type="button">Upload File</button><button class="action-link" data-action="delete-account" data-id="${escapeHtml(account.id)}" type="button">Delete</button></div></td>
+      </tr>`).join('');
+    });
   }
 
   function renderDocuments() {
     const tbody = document.getElementById('documents-tbody');
     const empty = document.getElementById('documents-empty');
-    if (!tbody) return;
-
     const visibilityFilter = document.getElementById('admin-filter-visibility')?.value || '';
     const signatureFilter = document.getElementById('admin-filter-signed')?.value || '';
     let filtered = allDocuments.slice();
     if (visibilityFilter) filtered = filtered.filter((doc) => doc.visibility === visibilityFilter);
-    if (signatureFilter === 'required') filtered = filtered.filter((doc) => doc.requires_signature || doc.signature_status === 'pending_signature');
+    if (signatureFilter === 'required') filtered = filtered.filter((doc) => doc.requires_signature || doc.signature_url);
     if (signatureFilter === 'signed') filtered = filtered.filter((doc) => (doc.signature_status || (doc.signed ? 'signed' : 'available')) === 'signed');
-    if (signatureFilter === 'unsigned') filtered = filtered.filter((doc) => (doc.signature_status || (doc.requires_signature ? 'pending_signature' : 'available')) === 'pending_signature');
-
+    if (signatureFilter === 'pending') filtered = filtered.filter((doc) => (doc.signature_status || (doc.requires_signature ? 'pending_signature' : 'available')) === 'pending_signature');
     if (!filtered.length) {
       tbody.innerHTML = '';
-      if (empty) empty.hidden = false;
+      empty.hidden = false;
       return;
     }
-    if (empty) empty.hidden = true;
-
+    empty.hidden = true;
     tbody.innerHTML = filtered.map((doc) => {
-      const clientInfo = doc.profiles ? (doc.profiles.full_name || doc.profiles.email) : 'N/A';
-      const showSignatureActions = doc.requires_signature || doc.signature_status === 'pending_signature' || doc.signature_url;
-      const signatureMeta = doc.signature_provider
-        ? `<div class="table-hint">${escapeHtml(doc.signature_provider)}${doc.signature_url ? ' · link added' : ''}</div>`
-        : '';
+      const account = getAccountById(doc.account_id);
+      const property = getPropertyById(doc.property_id);
+      const clientInfo = doc.profiles ? (doc.profiles.full_name || doc.profiles.email) : (getUserById(doc.client_id)?.full_name || getUserById(doc.client_id)?.email || 'N/A');
+      const signatureMeta = [doc.signature_provider, doc.signature_url ? 'link added' : ''].filter(Boolean).join(' · ');
       return `<tr>
         <td><button class="action-link document-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">${escapeHtml(doc.file_name)}</button></td>
-        <td>${escapeHtml(doc.category) || 'N/A'}</td>
+        <td>${escapeHtml(doc.category || 'Other')}</td>
+        <td>${escapeHtml(account?.account_name || 'Unassigned')}</td>
+        <td>${escapeHtml(property?.property_address || 'Unassigned')}</td>
         <td>${escapeHtml(clientInfo)}</td>
-        <td>${escapeHtml(visibilityLabel(doc.visibility))}</td>
         <td>${escapeHtml(clientAccessLabel(doc))}</td>
-        <td>${sigBadge(doc)}${signatureMeta}</td>
-        <td>${escapeHtml(formatDateOnly(doc.created_at))}</td>
-        <td><div class="table-actions table-actions-stack">
-          <button class="action-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">Open</button>
-          <button class="action-link" data-action="download-doc" data-id="${escapeHtml(doc.id)}" type="button">Download</button>
-          <button class="action-link" data-action="toggle-doc" data-id="${escapeHtml(doc.id)}" type="button">${doc.hidden ? 'Unhide' : 'Hide'}</button>
-          <button class="action-link" data-action="delete-doc" data-id="${escapeHtml(doc.id)}" type="button">Delete</button>
-          ${showSignatureActions ? `<button class="action-link" data-action="set-signature-link" data-id="${escapeHtml(doc.id)}" type="button">${doc.signature_url ? 'Edit Signature Link' : 'Add Signature Link'}</button>` : ''}
-          ${showSignatureActions ? `<button class="action-link" data-action="cycle-signature-status" data-id="${escapeHtml(doc.id)}" type="button">Update Signature Status</button>` : ''}
-        </div></td>
+        <td>${sigBadge(doc)}${signatureMeta ? `<div class="table-hint">${escapeHtml(signatureMeta)}</div>` : ''}</td>
+        <td>${formatDateTime(doc.created_at)}</td>
+        <td><div class="table-actions table-actions-stack"><button class="action-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">Open</button><button class="action-link" data-action="download-doc" data-id="${escapeHtml(doc.id)}" type="button">Download</button><button class="action-link" data-action="edit-signature" data-id="${escapeHtml(doc.id)}" type="button">Edit Signature</button><button class="action-link" data-action="toggle-doc" data-id="${escapeHtml(doc.id)}" type="button">${doc.hidden ? 'Unhide' : 'Hide'}</button><button class="action-link" data-action="delete-doc" data-id="${escapeHtml(doc.id)}" type="button">Delete</button></div></td>
       </tr>`;
     }).join('');
   }
 
-  function renderMaintenanceRequests() {
-    const tbody = document.getElementById('maintenance-tbody');
-    const empty = document.getElementById('maintenance-empty');
-    if (!tbody) return;
-
-    const statusFilter = document.getElementById('admin-maint-status-filter')?.value || '';
-    const priorityFilter = document.getElementById('admin-maint-priority-filter')?.value || '';
-    const propertyFilter = document.getElementById('admin-maint-property-filter')?.value || '';
-
-    let filtered = allMaintenanceRequests.slice();
-    if (statusFilter) filtered = filtered.filter((request) => request.status === statusFilter);
-    if (priorityFilter) filtered = filtered.filter((request) => request.priority === priorityFilter);
-    if (propertyFilter) filtered = filtered.filter((request) => request.property_id === propertyFilter);
-
-    if (!filtered.length) {
-      tbody.innerHTML = '';
-      if (empty) empty.hidden = false;
-      return;
-    }
-    if (empty) empty.hidden = true;
-
-    tbody.innerHTML = filtered.map((request) => {
-      const photoLinks = Array.isArray(request.photo_paths) && request.photo_paths.length
-        ? `<div class="maintenance-photo-links">${request.photo_paths.map((photoPath, index) => `<button class="action-link" data-action="open-maint-photo" data-id="${escapeHtml(request.id)}" data-photo-index="${index}" type="button">Photo ${index + 1}</button>`).join('')}</div>`
-        : 'None';
-      return `<tr>
-        <td>${escapeHtml(formatDateTime(request.created_at))}</td>
-        <td>${escapeHtml(request.profiles?.full_name || request.profiles?.email || 'N/A')}</td>
-        <td>${escapeHtml(request.properties?.property_address || 'Unassigned')}</td>
-        <td class="dashboard-cell-wrap">${escapeHtml(request.title || 'N/A')}<div class="table-hint">${escapeHtml(request.description || '')}</div></td>
-        <td><select class="dashboard-inline-select" data-maint-priority>${MAINTENANCE_PRIORITIES.map((priority) => `<option value="${priority}"${priority === (request.priority || 'Medium') ? ' selected' : ''}>${priority}</option>`).join('')}</select></td>
-        <td><select class="dashboard-inline-select" data-maint-status>${MAINTENANCE_STATUSES.map((status) => `<option value="${status}"${status === (request.status || 'New') ? ' selected' : ''}>${status}</option>`).join('')}</select></td>
-        <td><textarea class="dashboard-inline-notes" data-maint-comments rows="3">${escapeHtml(request.admin_comments || '')}</textarea></td>
-        <td>${photoLinks}</td>
-        <td><div class="table-actions"><button class="action-link" data-action="save-maintenance" data-id="${escapeHtml(request.id)}" type="button">Save</button></div></td>
-      </tr>`;
-    }).join('');
+  function renderMaintenanceTables() {
+    const groups = {
+      active: { tbody: document.getElementById('maintenance-active-tbody'), empty: document.getElementById('maintenance-active-empty'), rows: allMaintenanceRequests.filter((request) => request.status !== 'Completed') },
+      completed: { tbody: document.getElementById('maintenance-completed-tbody'), empty: document.getElementById('maintenance-completed-empty'), rows: allMaintenanceRequests.filter((request) => request.status === 'Completed') }
+    };
+    Object.values(groups).forEach((config) => {
+      if (!config.rows.length) {
+        config.tbody.innerHTML = '';
+        config.empty.hidden = false;
+        return;
+      }
+      config.empty.hidden = true;
+      config.tbody.innerHTML = config.rows.map((request) => {
+        const files = getMaintenanceFiles(request.id);
+        const fileLinks = files.length
+          ? `<div class="file-link-grid">${files.map((file) => `<button class="action-link" data-action="open-maint-file" data-id="${escapeHtml(file.id)}" type="button">${escapeHtml(file.file_name)}</button><button class="action-link" data-action="download-maint-file" data-id="${escapeHtml(file.id)}" type="button">Download</button>`).join('')}</div>`
+          : 'None';
+        const priorityOptions = MAINTENANCE_PRIORITIES.map((priority) => `<option value="${priority}"${priority === (request.priority || 'Medium') ? ' selected' : ''}>${priority}</option>`).join('');
+        const statusOptions = MAINTENANCE_STATUSES.map((status) => `<option value="${status}"${status === request.status ? ' selected' : ''}>${status}</option>`).join('');
+        return `<tr data-maintenance-id="${escapeHtml(request.id)}">
+          <td>${formatDateTime(request.created_at)}</td>
+          <td>${escapeHtml(getUserById(request.client_id)?.full_name || getUserById(request.client_id)?.email || 'N/A')}</td>
+          <td>${escapeHtml(getPropertyById(request.property_id)?.property_address || 'Unassigned')}</td>
+          <td>${escapeHtml(getAccountById(request.account_id)?.account_name || 'Unassigned')}</td>
+          <td class="dashboard-cell-wrap"><strong>${escapeHtml(request.title || 'N/A')}</strong><div class="table-hint">${escapeHtml(request.description || '')}</div></td>
+          <td><select class="dashboard-inline-select" data-maint-priority>${priorityOptions}</select></td>
+          <td><select class="dashboard-inline-select" data-maint-status>${statusOptions}</select></td>
+          <td><textarea class="dashboard-inline-notes" data-maint-comments rows="3">${escapeHtml(request.admin_comments || '')}</textarea></td>
+          <td>${fileLinks}</td>
+          <td><div class="table-actions"><button class="action-link" data-action="save-maintenance" data-id="${escapeHtml(request.id)}" type="button">Save</button></div></td>
+        </tr>`;
+      }).join('');
+    });
   }
 
   function renderLeadStatusSelect(sectionKey, row) {
     const config = LEAD_SECTIONS[sectionKey];
-    const statusField = config?.statusField || 'admin_status';
-    const current = row[statusField] || 'not_viewed';
-    return `<select class="dashboard-inline-select" data-lead-status="${escapeHtml(sectionKey)}">${LEAD_STATUS_OPTIONS.map((option) => `<option value="${option.value}"${option.value === current ? ' selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}</select>`;
+    const current = normalizeLeadStatus(row[config.statusField]);
+    return `<select class="dashboard-inline-select" data-lead-status="${escapeHtml(sectionKey)}">${LEAD_STATUSES.map((option) => `<option value="${escapeHtml(option)}"${option === current ? ' selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select>`;
   }
 
   function renderLeadNotes(sectionKey, row) {
     const config = LEAD_SECTIONS[sectionKey];
-    const notesField = config?.notesField || 'admin_notes';
-    return `<textarea class="dashboard-inline-notes" data-lead-notes="${escapeHtml(sectionKey)}" rows="4">${escapeHtml(row[notesField] || '')}</textarea>`;
+    return `<textarea class="dashboard-inline-notes" data-lead-notes="${escapeHtml(sectionKey)}" rows="4">${escapeHtml(row[config.notesField] || '')}</textarea>`;
   }
 
-  function renderLeadCell(sectionKey, config, field, row) {
-    if (field === 'status') {
-      if (config.editable) return renderLeadStatusSelect(sectionKey, row);
-      return escapeHtml(row[config.statusField || 'status'] || 'N/A');
-    }
-    if (field === 'notes') return config.editable ? renderLeadNotes(sectionKey, row) : 'N/A';
-    if (field === 'actions') return config.editable ? `<button class="action-link" data-action="save-lead" data-section="${escapeHtml(sectionKey)}" data-id="${escapeHtml(row.id)}" type="button">Save</button>` : 'N/A';
+  function renderLeadCell(sectionKey, field, row) {
+    const config = LEAD_SECTIONS[sectionKey];
+    if (field === 'status') return renderLeadStatusSelect(sectionKey, row);
+    if (field === 'notes') return renderLeadNotes(sectionKey, row);
+    if (field === 'actions') return `<button class="action-link" data-action="save-lead" data-section="${escapeHtml(sectionKey)}" data-id="${escapeHtml(row.id)}" type="button">Save</button>`;
     if (field === 'created_at') return formatDateTime(row.created_at);
     if (field === 'preferred_date') return formatDateOnly(row.preferred_date);
     if (field === 'preferred_time') return formatTimeString(row.preferred_time);
     if (field === 'inquiry_type' || field === 'request_type') return escapeHtml(formatInquiryType(row[field]));
     const value = row[field];
-    if (value === null || value === undefined || String(value).trim() === '') return 'N/A';
-    return escapeHtml(value);
+    return value == null || String(value).trim() === '' ? 'N/A' : escapeHtml(value);
   }
 
   function renderLeadSection(sectionKey) {
     const config = LEAD_SECTIONS[sectionKey];
-    const tbody = document.getElementById(config.tbodyId);
-    const empty = document.getElementById(config.emptyId);
-    if (!tbody) return;
-
     const rows = allLeads[sectionKey] || [];
-    if (!rows.length) {
-      tbody.innerHTML = '';
-      if (empty) empty.hidden = false;
-      return;
-    }
-    if (empty) empty.hidden = true;
-
-    tbody.innerHTML = rows.map((row) => `<tr data-row-id="${escapeHtml(row.id)}">
-      ${config.columns.map((field) => {
-        const cellClass = ['message', 'property_interest', 'property_address', 'project_description', 'service_area', 'notes'].includes(field) ? ' class="dashboard-cell-wrap"' : '';
-        return `<td${cellClass}>${renderLeadCell(sectionKey, config, field, row)}</td>`;
-      }).join('')}
-    </tr>`).join('');
+    ['active', 'completed'].forEach((group) => {
+      const tbody = document.getElementById(`lead-${sectionKey}-${group}-tbody`);
+      const empty = document.getElementById(`lead-${sectionKey}-${group}-empty`);
+      const filtered = rows.filter((row) => normalizeLeadStatus(row[config.statusField]) === 'Completed' ? group === 'completed' : group === 'active');
+      if (!filtered.length) {
+        tbody.innerHTML = '';
+        empty.hidden = false;
+        return;
+      }
+      empty.hidden = true;
+      tbody.innerHTML = filtered.map((row) => `<tr data-row-id="${escapeHtml(row.id)}">${config.columns.map((field) => `<td${['message', 'property_interest', 'property_address', 'project_description', 'notes'].includes(field) ? ' class="dashboard-cell-wrap"' : ''}>${renderLeadCell(sectionKey, field, row)}</td>`).join('')}</tr>`).join('');
+    });
   }
 
   function renderAllLeadSections() {
@@ -672,135 +710,143 @@
     const statusEl = document.getElementById('invite-status');
     const email = form.querySelector('[name="email"]').value.trim();
     const fullName = form.querySelector('[name="full_name"]').value.trim();
-    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
     if (!email) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Email is required.'; }
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Email is required.';
       return;
     }
-
-    const { error } = await supabaseClient.auth.signInWithOtp({
-      email,
-      options: { data: { full_name: fullName, role: 'client' }, shouldCreateUser: true }
-    });
+    const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { data: { full_name: fullName, role: 'client' }, shouldCreateUser: true } });
     if (error) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Invitation failed: ' + error.message; }
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Invitation failed: ' + error.message;
       return;
     }
-
-    if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = `Invitation sent to ${email}.`; }
+    statusEl.className = 'form-status success-message';
+    statusEl.textContent = `Invitation sent to ${email}.`;
     form.reset();
     await loadUsersData();
     renderUsers();
-    setTimeout(() => closeModal('invite'), 1500);
+    setTimeout(() => closeModal('invite'), 1200);
   }
 
   async function handleAddProperty(event) {
     event.preventDefault();
     const form = document.getElementById('property-form');
     const statusEl = document.getElementById('property-status');
-    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
-    const address = form.querySelector('[name="property_address"]').value.trim();
-    if (!address) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Address is required.'; }
+    const propertyAddress = form.querySelector('[name="property_address"]').value.trim();
+    const visibility = form.querySelector('[name="visibility"]').value;
+    if (!propertyAddress) {
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Address is required.';
       return;
     }
-
-    const { error } = await supabaseClient.from('properties').insert([{
-      property_address: address,
+    const payload = {
+      property_address: propertyAddress,
       property_status: form.querySelector('[name="property_status"]').value,
-      purchase_price: form.querySelector('[name="purchase_price"]').value || null,
-      sale_price: form.querySelector('[name="sale_price"]').value || null,
-      notes: form.querySelector('[name="notes"]').value.trim() || null
-    }]);
+      visibility,
+      is_public: visibility === 'public',
+      notes: form.querySelector('[name="notes"]').value.trim() || null,
+      updated_at: nowIso()
+    };
+    const { error } = await supabaseClient.from('properties').insert([payload]);
     if (error) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Failed: ' + error.message; }
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Failed: ' + error.message;
       return;
     }
-
-    if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Property saved.'; }
+    statusEl.className = 'form-status success-message';
+    statusEl.textContent = 'Property saved.';
     form.reset();
     await loadPropertiesData();
     renderProperties();
     renderUsers();
-    setTimeout(() => closeModal('property'), 1500);
+    setTimeout(() => closeModal('property'), 1200);
   }
 
-  async function handleAddTransaction(event) {
+  async function handleAddAccount(event) {
     event.preventDefault();
-    const form = document.getElementById('transaction-form');
-    const statusEl = document.getElementById('transaction-status');
-    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
-    const propertyId = form.querySelector('[name="property_id"]').value;
-    const clientId = form.querySelector('[name="client_id"]').value;
-    if (!propertyId || !clientId) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Property and client are required.'; }
+    const form = document.getElementById('account-form');
+    const statusEl = document.getElementById('account-status-message');
+    const accountName = form.querySelector('[name="account_name"]').value.trim();
+    if (!accountName) {
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Account name is required.';
       return;
     }
-
-    const { error } = await supabaseClient.from('transactions').insert([{
-      property_id: propertyId,
-      client_id: clientId,
-      transaction_type: form.querySelector('[name="transaction_type"]').value,
-      status: form.querySelector('[name="status"]').value,
-      notes: form.querySelector('[name="notes"]').value.trim() || null
-    }]);
+    const status = normalizeAccountStatus(form.querySelector('[name="status"]').value);
+    const payload = {
+      account_name: accountName,
+      property_id: form.querySelector('[name="property_id"]').value || null,
+      account_type: form.querySelector('[name="account_type"]').value || 'Other',
+      status,
+      client_upload_enabled: !!form.querySelector('[name="client_upload_enabled"]').checked,
+      transaction_details: form.querySelector('[name="transaction_details"]').value.trim() || null,
+      internal_notes: form.querySelector('[name="internal_notes"]').value.trim() || null,
+      client_notes: form.querySelector('[name="client_notes"]').value.trim() || null,
+      required_tasks: form.querySelector('[name="required_tasks"]').value.trim() || null,
+      updated_at: nowIso(),
+      completed_at: status === 'Completed' ? nowIso() : null
+    };
+    const { data, error } = await supabaseClient.from('accounts').insert([payload]).select().single();
     if (error) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Failed: ' + error.message; }
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Failed: ' + error.message;
       return;
     }
-
-    if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Transaction created.'; }
+    const clientId = form.querySelector('[name="primary_client_id"]').value || null;
+    if (clientId) {
+      await supabaseClient.from('account_clients').upsert([{ account_id: data.id, client_id: clientId }], { onConflict: 'account_id,client_id' });
+    }
+    statusEl.className = 'form-status success-message';
+    statusEl.textContent = 'Account created.';
     form.reset();
-    await loadTransactionsData();
-    renderTransactions();
+    await Promise.all([loadAccountsData(), loadAccountAssignmentsData()]);
+    renderAccounts();
     renderUsers();
-    setTimeout(() => closeModal('transaction'), 1500);
+    setTimeout(() => closeModal('account'), 1200);
   }
 
   async function handleUpload(event) {
     event.preventDefault();
     const form = document.getElementById('upload-form');
     const statusEl = document.getElementById('upload-status');
-    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
     const fileInput = document.getElementById('upload-file');
-    const file = fileInput ? fileInput.files[0] : null;
+    const file = fileInput?.files?.[0] || null;
     if (!file) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Please select a file.'; }
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Please select a file.';
       return;
     }
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = `File must be under ${MAX_FILE_SIZE_MB} MB.`; }
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = `File must be under ${MAX_FILE_SIZE_MB} MB.`;
       return;
     }
     if (!isAllowedMime(file.type) || !hasAllowedExtension(file.name)) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Unsupported file type.'; }
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Unsupported file type.';
       return;
     }
-
+    const accountId = form.querySelector('[name="account_id"]').value || null;
+    const account = getAccountById(accountId);
     const clientId = form.querySelector('[name="client_id"]').value || null;
-    const propertyId = form.querySelector('[name="property_id"]').value || null;
+    const propertyId = form.querySelector('[name="property_id"]').value || account?.property_id || null;
     const visibility = form.querySelector('[name="visibility"]').value;
     const requiresSignature = document.getElementById('upload-requires-sig').checked;
     const canClientEdit = document.getElementById('upload-client-edit').checked || requiresSignature;
     const canClientView = visibility !== 'admin_only';
-    const safeFilename = sanitizeFilename(file.name);
-    const uniquePrefix = (typeof crypto !== 'undefined' && crypto.randomUUID)
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const filePath = clientId
-      ? `admin/users/${clientId}/${uniquePrefix}-${safeFilename}`
-      : propertyId
-        ? `admin/${propertyId}/${uniquePrefix}-${safeFilename}`
-        : `admin/${uniquePrefix}-${safeFilename}`;
     const bucketName = file.type.startsWith('image/') ? 'property-images' : 'property-documents';
-
+    const uniquePrefix = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const filePath = `${accountId || clientId || 'admin'}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
     const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
     if (storageError) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Upload failed: ' + storageError.message; }
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Upload failed: ' + storageError.message;
       return;
     }
-
-    const { error: dbError } = await supabaseClient.from('documents').insert([{
+    const signatureUrl = form.querySelector('[name="signature_url"]').value.trim();
+    const payload = {
+      account_id: accountId,
       client_id: clientId,
       property_id: propertyId,
       uploaded_by: adminUserId,
@@ -809,51 +855,48 @@
       bucket_name: bucketName,
       file_type: file.type,
       file_size: file.size,
-      category: form.querySelector('[name="category"]').value || null,
+      category: form.querySelector('[name="category"]').value || 'Other',
       visibility,
       can_client_view: canClientView,
       can_client_edit: canClientEdit,
       requires_signature: requiresSignature,
+      signature_provider: form.querySelector('[name="signature_provider"]').value || null,
+      signature_status: form.querySelector('[name="signature_status"]').value || (requiresSignature ? 'pending_signature' : 'available'),
+      signature_url: signatureUrl || null,
       notes: form.querySelector('[name="notes"]').value.trim() || null,
-      hidden: false
-    }]);
+      hidden: false,
+      updated_at: nowIso()
+    };
+    const { error: dbError } = await supabaseClient.from('documents').insert([payload]);
     if (dbError) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'File saved but record failed: ' + dbError.message; }
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'File saved but record failed: ' + dbError.message;
       return;
     }
-
-    if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Document uploaded successfully.'; }
+    statusEl.className = 'form-status success-message';
+    statusEl.textContent = 'File uploaded successfully.';
     form.reset();
     await loadDocumentsData();
     renderDocuments();
-    setTimeout(() => closeModal('upload'), 1500);
+    setTimeout(() => closeModal('upload'), 1200);
   }
 
   async function saveUser(userId, row) {
     const role = row.querySelector('[data-user-role]')?.value;
     const status = row.querySelector('[data-user-status]')?.value;
     const { error } = await supabaseClient.from('profiles').update({ role, status }).eq('id', userId);
-    if (error) {
-      window.alert(`Unable to save user: ${error.message}`);
-      return;
-    }
+    if (error) return window.alert(`Unable to save user: ${error.message}`);
     await loadUsersData();
     renderUsers();
-    if (userId === adminUserId && role !== 'admin') {
-      window.location.href = 'client-portal.html';
-    }
   }
 
   function openPropertyAssignmentModal(userId) {
-    const user = allUsers.find((item) => item.id === userId);
     const list = document.getElementById('property-assignment-list');
     const subtitle = document.getElementById('property-assignment-subtitle');
     const form = document.getElementById('property-assignment-form');
-    const statusEl = document.getElementById('property-assignment-status');
-    if (!list || !form) return;
-    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
+    const user = getUserById(userId);
     form.dataset.userId = userId;
-    if (subtitle) subtitle.textContent = user ? `Assign properties to ${user.full_name || user.email}.` : '';
+    subtitle.textContent = user ? `Assign properties to ${user.full_name || user.email}.` : '';
     const assigned = new Set(getAssignedPropertyIds(userId));
     list.innerHTML = allProperties.length
       ? allProperties.map((property) => `<label class="assignment-option"><input type="checkbox" value="${escapeHtml(property.id)}"${assigned.has(property.id) ? ' checked' : ''}> <span>${escapeHtml(property.property_address)}</span></label>`).join('')
@@ -861,25 +904,18 @@
     openModal('property-assignment');
   }
 
-  function openTransactionAssignmentModal(userId) {
-    const user = allUsers.find((item) => item.id === userId);
-    const list = document.getElementById('transaction-assignment-list');
-    const subtitle = document.getElementById('transaction-assignment-subtitle');
-    const form = document.getElementById('transaction-assignment-form');
-    const statusEl = document.getElementById('transaction-assignment-status');
-    if (!list || !form) return;
-    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
+  function openAccountAssignmentModal(userId) {
+    const list = document.getElementById('account-assignment-list');
+    const subtitle = document.getElementById('account-assignment-subtitle');
+    const form = document.getElementById('account-assignment-form');
+    const user = getUserById(userId);
     form.dataset.userId = userId;
-    if (subtitle) subtitle.textContent = user ? `Assign transactions to ${user.full_name || user.email}.` : '';
-    list.innerHTML = allTransactions.length
-      ? allTransactions.map((transaction) => {
-        const checked = transaction.client_id === userId;
-        const assignedTo = transaction.profiles?.full_name || transaction.profiles?.email;
-        const detail = `${transaction.properties?.property_address || 'No property'} · ${transaction.transaction_type} · ${transaction.status}${assignedTo ? ` · ${assignedTo}` : ''}`;
-        return `<label class="assignment-option"><input type="checkbox" value="${escapeHtml(transaction.id)}"${checked ? ' checked' : ''}> <span>${escapeHtml(detail)}</span></label>`;
-      }).join('')
-      : '<p class="admin-empty-state">No transactions are available yet.</p>';
-    openModal('transaction-assignment');
+    subtitle.textContent = user ? `Assign accounts to ${user.full_name || user.email}.` : '';
+    const assigned = new Set(allAccountAssignments.filter((assignment) => assignment.client_id === userId).map((assignment) => assignment.account_id));
+    list.innerHTML = allAccounts.length
+      ? allAccounts.map((account) => `<label class="assignment-option"><input type="checkbox" value="${escapeHtml(account.id)}"${assigned.has(account.id) ? ' checked' : ''}> <span>${escapeHtml(account.account_name)} · ${escapeHtml(account.account_type || 'Other')} · ${escapeHtml(account.status)}</span></label>`).join('')
+      : '<p class="admin-empty-state">No accounts are available yet.</p>';
+    openModal('account-assignment');
   }
 
   async function savePropertyAssignments(event) {
@@ -888,84 +924,121 @@
     const statusEl = document.getElementById('property-assignment-status');
     const userId = form.dataset.userId;
     const selectedIds = Array.from(form.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
-    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
-
     const { error: deleteError } = await supabaseClient.from('client_property_assignments').delete().eq('client_id', userId);
     if (deleteError) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = deleteError.message; }
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = deleteError.message;
       return;
     }
-
     if (selectedIds.length) {
       const { error: insertError } = await supabaseClient.from('client_property_assignments').insert(selectedIds.map((propertyId) => ({ client_id: userId, property_id: propertyId })));
       if (insertError) {
-        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = insertError.message; }
+        statusEl.className = 'form-status error-message';
+        statusEl.textContent = insertError.message;
         return;
       }
     }
-
+    statusEl.className = 'form-status success-message';
+    statusEl.textContent = 'Property assignments updated.';
     await loadPropertyAssignmentsData();
     renderUsers();
-    if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Property assignments updated.'; }
     setTimeout(() => closeModal('property-assignment'), 1200);
   }
 
-  async function saveTransactionAssignments(event) {
+  async function saveAccountAssignments(event) {
     event.preventDefault();
-    const form = document.getElementById('transaction-assignment-form');
-    const statusEl = document.getElementById('transaction-assignment-status');
+    const form = document.getElementById('account-assignment-form');
+    const statusEl = document.getElementById('account-assignment-status');
     const userId = form.dataset.userId;
     const selectedIds = Array.from(form.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
-    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
-
-    const currentIds = allTransactions.filter((transaction) => transaction.client_id === userId).map((transaction) => transaction.id);
-    const idsToClear = currentIds.filter((id) => !selectedIds.includes(id));
-    const updates = [];
-    idsToClear.forEach((id) => updates.push(supabaseClient.from('transactions').update({ client_id: null }).eq('id', id)));
-    selectedIds.forEach((id) => updates.push(supabaseClient.from('transactions').update({ client_id: userId }).eq('id', id)));
-    const results = await Promise.all(updates);
-    const failed = results.find((result) => result.error);
-    if (failed) {
-      if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = failed.error.message; }
+    const { error: deleteError } = await supabaseClient.from('account_clients').delete().eq('client_id', userId);
+    if (deleteError) {
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = deleteError.message;
       return;
     }
-
-    await loadTransactionsData();
-    renderTransactions();
+    if (selectedIds.length) {
+      const { error: insertError } = await supabaseClient.from('account_clients').insert(selectedIds.map((accountId) => ({ account_id: accountId, client_id: userId })));
+      if (insertError) {
+        statusEl.className = 'form-status error-message';
+        statusEl.textContent = insertError.message;
+        return;
+      }
+    }
+    statusEl.className = 'form-status success-message';
+    statusEl.textContent = 'Account assignments updated.';
+    await loadAccountAssignmentsData();
     renderUsers();
-    if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Transaction assignments updated.'; }
-    setTimeout(() => closeModal('transaction-assignment'), 1200);
+    renderAccounts();
+    setTimeout(() => closeModal('account-assignment'), 1200);
   }
 
   async function saveLead(sectionKey, rowId, button) {
     const config = LEAD_SECTIONS[sectionKey];
-    if (!config || !config.editable) return;
-    const tbody = document.getElementById(config.tbodyId);
-    const row = tbody ? tbody.querySelector(`tr[data-row-id="${rowId}"]`) : null;
-    if (!row) return;
-    const adminStatus = row.querySelector(`[data-lead-status="${sectionKey}"]`)?.value || 'not_viewed';
-    const adminNotes = row.querySelector(`[data-lead-notes="${sectionKey}"]`)?.value.trim() || null;
-    const statusField = config.statusField || 'admin_status';
-    const updatePayload = { [statusField]: adminStatus };
-    if (config.notesField) updatePayload[config.notesField] = adminNotes;
-
-    if (button) {
-      button.disabled = true;
-      button.textContent = 'Saving…';
-    }
-
-    const { error } = await supabaseClient.from(config.table).update(updatePayload).eq('id', rowId);
+    const row = button.closest('tr');
+    const status = row.querySelector(`[data-lead-status="${sectionKey}"]`)?.value || 'Not Reviewed Yet';
+    const notes = row.querySelector(`[data-lead-notes="${sectionKey}"]`)?.value.trim() || null;
+    button.disabled = true;
+    button.textContent = 'Saving…';
+    const payload = {
+      [config.statusField]: status,
+      [config.notesField]: notes,
+      updated_at: nowIso(),
+      completed_at: status === 'Completed' ? nowIso() : null
+    };
+    const { error } = await supabaseClient.from(config.table).update(payload).eq('id', rowId);
     if (error) {
-      window.alert(`Unable to save lead: ${error.message}`);
-      if (button) {
-        button.disabled = false;
-        button.textContent = 'Save';
-      }
-      return;
+      button.disabled = false;
+      button.textContent = 'Save';
+      return window.alert(`Unable to save lead: ${error.message}`);
     }
-
     await loadLeadData(sectionKey);
     renderLeadSection(sectionKey);
+  }
+
+  async function saveMaintenance(rowId, button) {
+    const row = button.closest('tr');
+    const status = row.querySelector('[data-maint-status]')?.value || 'Not Reviewed Yet';
+    const priority = row.querySelector('[data-maint-priority]')?.value || 'Medium';
+    const adminComments = row.querySelector('[data-maint-comments]')?.value.trim() || null;
+    button.disabled = true;
+    button.textContent = 'Saving…';
+    const { error } = await supabaseClient.from('maintenance_requests').update({
+      status,
+      priority,
+      admin_comments: adminComments,
+      updated_at: nowIso(),
+      completed_at: status === 'Completed' ? nowIso() : null
+    }).eq('id', rowId);
+    if (error) {
+      button.disabled = false;
+      button.textContent = 'Save';
+      return window.alert(`Unable to save maintenance request: ${error.message}`);
+    }
+    await loadMaintenanceData();
+    renderMaintenanceTables();
+  }
+
+  async function editSignatureMetadata(docId) {
+    const doc = allDocuments.find((item) => item.id === docId);
+    if (!doc) return;
+    const provider = window.prompt('Signature provider (DocuSign, Dropbox Sign, Adobe Acrobat Sign, Manual Upload):', doc.signature_provider || '');
+    if (provider === null) return;
+    const status = window.prompt('Signature status (available, pending_signature, signed, uploaded):', doc.signature_status || (doc.requires_signature ? 'pending_signature' : 'available'));
+    if (status === null) return;
+    const signatureUrl = window.prompt('External signature URL (leave blank to clear):', doc.signature_url || '');
+    if (signatureUrl === null) return;
+    const requiresSignature = !!(provider || signatureUrl || status === 'pending_signature' || status === 'signed');
+    const { error } = await supabaseClient.from('documents').update({
+      requires_signature: requiresSignature,
+      signature_provider: provider || null,
+      signature_status: status || (requiresSignature ? 'pending_signature' : 'available'),
+      signature_url: signatureUrl.trim() || null,
+      updated_at: nowIso()
+    }).eq('id', docId);
+    if (error) return window.alert(error.message);
+    await loadDocumentsData();
+    renderDocuments();
   }
 
   async function handleDocumentAction(action, docId) {
@@ -973,27 +1046,19 @@
     if (!doc) return;
     if (action === 'open-doc') return openDocument(docId);
     if (action === 'download-doc') return downloadDocument(docId);
+    if (action === 'edit-signature') return editSignatureMetadata(docId);
     if (action === 'toggle-doc') {
-      const { error } = await supabaseClient.from('documents').update({ hidden: !doc.hidden }).eq('id', docId);
-      if (error) { window.alert(error.message); return; }
+      const { error } = await supabaseClient.from('documents').update({ hidden: !doc.hidden, updated_at: nowIso() }).eq('id', docId);
+      if (error) return window.alert(error.message);
       await loadDocumentsData();
       renderDocuments();
       return;
     }
     if (action === 'delete-doc') {
-      if (!window.confirm('Delete this document? This cannot be undone.')) return;
-      if (doc.bucket_name && doc.file_path) {
-        await supabaseClient.storage.from(doc.bucket_name).remove([doc.file_path]);
-      }
+      if (!window.confirm('Delete this file? This cannot be undone.')) return;
+      if (doc.bucket_name && doc.file_path) await supabaseClient.storage.from(doc.bucket_name).remove([doc.file_path]);
       const { error } = await supabaseClient.from('documents').delete().eq('id', docId);
-      if (error) { window.alert(error.message); return; }
-      await loadDocumentsData();
-      renderDocuments();
-      return;
-    }
-    if (action === 'require-sig') {
-      const { error } = await supabaseClient.from('documents').update({ requires_signature: true, can_client_edit: true }).eq('id', docId);
-      if (error) { window.alert(error.message); return; }
+      if (error) return window.alert(error.message);
       await loadDocumentsData();
       renderDocuments();
     }
@@ -1003,75 +1068,62 @@
     if (action !== 'delete-property') return;
     if (!window.confirm('Delete this property? This cannot be undone.')) return;
     const { error } = await supabaseClient.from('properties').delete().eq('id', propertyId);
-    if (error) { window.alert(error.message); return; }
+    if (error) return window.alert(error.message);
     await loadPropertiesData();
     renderProperties();
     renderUsers();
   }
 
-  async function handleTransactionAction(action, transactionId) {
-    if (action !== 'delete-transaction') return;
-    if (!window.confirm('Delete this transaction? This cannot be undone.')) return;
-    const { error } = await supabaseClient.from('transactions').delete().eq('id', transactionId);
-    if (error) { window.alert(error.message); return; }
-    await loadTransactionsData();
-    renderTransactions();
+  async function handleAccountAction(action, accountId) {
+    if (action === 'account-upload') {
+      document.getElementById('upload-account').value = accountId;
+      applyUploadAccountDefaults(accountId);
+      openModal('upload');
+      return;
+    }
+    if (action !== 'delete-account') return;
+    if (!window.confirm('Delete this account? This cannot be undone.')) return;
+    const { error } = await supabaseClient.from('accounts').delete().eq('id', accountId);
+    if (error) return window.alert(error.message);
+    await Promise.all([loadAccountsData(), loadAccountAssignmentsData()]);
+    renderAccounts();
     renderUsers();
   }
 
   function revealPage() {
-    const style = document.getElementById('auth-guard-style');
-    if (style) style.remove();
+    document.getElementById('auth-guard-style')?.remove();
     document.body.style.visibility = 'visible';
   }
 
   async function renderAdminPage() {
-    if (typeof supabaseClient === 'undefined' || !supabaseClient) {
-      window.location.replace('login.html');
-      return;
-    }
-
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) return window.location.replace('login.html');
     const session = await getSession();
-    if (!session) {
-      window.location.replace('login.html');
-      return;
-    }
-
+    if (!session) return window.location.replace('login.html');
     const profile = await getCurrentUserProfile();
-    if (!profile || profile.role !== 'admin') {
-      window.location.replace(profile && profile.role === 'client' ? 'client-portal.html' : 'login.html');
-      return;
-    }
-
+    if (!profile || profile.role !== 'admin') return window.location.replace(profile && profile.role === 'client' ? 'client-portal.html' : 'login.html');
     adminUserId = session.user.id;
     revealPage();
-    const userDisplay = document.getElementById('logged-in-user');
-    if (userDisplay) userDisplay.textContent = session.user.email;
-
+    document.getElementById('logged-in-user').textContent = session.user.email;
     document.getElementById('logout-button')?.addEventListener('click', async function () {
       await supabaseClient.auth.signOut();
       window.location.href = 'login.html';
     });
-
     initTabs();
     setupModalClose();
-
     document.getElementById('open-invite-modal')?.addEventListener('click', () => openModal('invite'));
     document.getElementById('open-property-modal')?.addEventListener('click', () => openModal('property'));
-    document.getElementById('open-transaction-modal')?.addEventListener('click', () => openModal('transaction'));
+    document.getElementById('open-account-modal')?.addEventListener('click', () => openModal('account'));
     document.getElementById('open-upload-modal')?.addEventListener('click', () => openModal('upload'));
-
+    document.getElementById('upload-account')?.addEventListener('change', function () { applyUploadAccountDefaults(this.value); });
     document.getElementById('invite-form')?.addEventListener('submit', handleInvite);
     document.getElementById('property-form')?.addEventListener('submit', handleAddProperty);
-    document.getElementById('transaction-form')?.addEventListener('submit', handleAddTransaction);
+    document.getElementById('account-form')?.addEventListener('submit', handleAddAccount);
     document.getElementById('upload-form')?.addEventListener('submit', handleUpload);
     document.getElementById('property-assignment-form')?.addEventListener('submit', savePropertyAssignments);
-    document.getElementById('transaction-assignment-form')?.addEventListener('submit', saveTransactionAssignments);
-
+    document.getElementById('account-assignment-form')?.addEventListener('submit', saveAccountAssignments);
     document.getElementById('user-search')?.addEventListener('input', renderUsers);
-    [document.getElementById('admin-filter-visibility'), document.getElementById('admin-filter-signed')].forEach((el) => {
-      if (el) el.addEventListener('change', renderDocuments);
-    });
+    document.getElementById('admin-filter-visibility')?.addEventListener('change', renderDocuments);
+    document.getElementById('admin-filter-signed')?.addEventListener('change', renderDocuments);
 
     document.getElementById('users-tbody')?.addEventListener('click', function (event) {
       const button = event.target.closest('[data-action]');
@@ -1079,56 +1131,68 @@
       const action = button.getAttribute('data-action');
       const userId = button.getAttribute('data-id');
       const row = button.closest('tr');
-      if (!action || !userId) return;
       if (action === 'save-user' && row) saveUser(userId, row);
       if (action === 'assign-properties') openPropertyAssignmentModal(userId);
-      if (action === 'assign-transactions') openTransactionAssignmentModal(userId);
+      if (action === 'assign-accounts') openAccountAssignmentModal(userId);
       if (action === 'view-client') window.location.href = `client-portal.html?view_as_client=${encodeURIComponent(userId)}`;
     });
 
     document.getElementById('properties-tbody')?.addEventListener('click', function (event) {
       const button = event.target.closest('[data-action]');
-      if (!button) return;
-      handlePropertyAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
+      if (button) handlePropertyAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
     });
 
-    document.getElementById('transactions-tbody')?.addEventListener('click', function (event) {
-      const button = event.target.closest('[data-action]');
-      if (!button) return;
-      handleTransactionAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
+    ['accounts-active-tbody', 'accounts-completed-tbody'].forEach((tbodyId) => {
+      document.getElementById(tbodyId)?.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-action]');
+        if (button) handleAccountAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
+      });
     });
 
     document.getElementById('documents-tbody')?.addEventListener('click', function (event) {
       const button = event.target.closest('[data-action]');
-      if (!button) return;
-      handleDocumentAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
+      if (button) handleDocumentAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
     });
 
-    Object.values(LEAD_SECTIONS).forEach((section) => {
-      document.getElementById(section.tbodyId)?.addEventListener('click', function (event) {
-        const button = event.target.closest('[data-action="save-lead"]');
+    ['maintenance-active-tbody', 'maintenance-completed-tbody'].forEach((tbodyId) => {
+      document.getElementById(tbodyId)?.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-action]');
         if (!button) return;
-        saveLead(button.getAttribute('data-section'), button.getAttribute('data-id'), button);
+        const action = button.getAttribute('data-action');
+        const id = button.getAttribute('data-id');
+        if (action === 'save-maintenance') saveMaintenance(id, button);
+        if (action === 'open-maint-file') openMaintenanceFile(id, false);
+        if (action === 'download-maint-file') openMaintenanceFile(id, true);
+      });
+    });
+
+    Object.keys(LEAD_SECTIONS).forEach((sectionKey) => {
+      ['active', 'completed'].forEach((group) => {
+        document.getElementById(`lead-${sectionKey}-${group}-tbody`)?.addEventListener('click', function (event) {
+          const button = event.target.closest('[data-action="save-lead"]');
+          if (button) saveLead(sectionKey, button.getAttribute('data-id'), button);
+        });
       });
     });
 
     await Promise.all([
       loadUsersData(),
       loadPropertiesData(),
-      loadTransactionsData(),
+      loadAccountsData(),
+      loadAccountAssignmentsData(),
       loadPropertyAssignmentsData(),
       loadDocumentsData(),
+      loadMaintenanceData(),
       loadAllLeadData()
     ]);
 
     renderUsers();
     renderProperties();
-    renderTransactions();
+    renderAccounts();
     renderDocuments();
+    renderMaintenanceTables();
     renderAllLeadSections();
   }
 
-  document.addEventListener('DOMContentLoaded', async function () {
-    await renderAdminPage();
-  });
+  document.addEventListener('DOMContentLoaded', renderAdminPage);
 })();
