@@ -157,11 +157,10 @@
     return revealObserver;
   }
 
-  function shouldRevealEarly(element) {
+  function shouldRevealEarly(element, revealLimit) {
     if (!isMobileViewport()) return false;
     const rect = element.getBoundingClientRect();
-    const preloadDistance = Math.max(window.innerHeight * MOBILE_REVEAL_PRELOAD_RATIO, MOBILE_REVEAL_MIN_PRELOAD_PX);
-    return rect.top <= window.innerHeight + preloadDistance;
+    return rect.top <= revealLimit;
   }
 
   function getStaggerDelay(element) {
@@ -177,6 +176,7 @@
     const scope = root && root.querySelectorAll ? root : document;
     const observer = getRevealObserver();
     const elements = scope.querySelectorAll(REVEAL_SELECTOR);
+    const mobileRevealLimit = window.innerHeight + Math.max(window.innerHeight * MOBILE_REVEAL_PRELOAD_RATIO, MOBILE_REVEAL_MIN_PRELOAD_PX);
 
     elements.forEach((element) => {
       if (element.dataset.revealRegistered === 'true') return;
@@ -189,7 +189,7 @@
         return;
       }
 
-      if (shouldRevealEarly(element)) {
+      if (shouldRevealEarly(element, mobileRevealLimit)) {
         element.classList.add('reveal-visible');
         return;
       }
