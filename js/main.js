@@ -34,7 +34,6 @@
     '.portal-tabs'
   ].join(', ');
   let revealObserver = null;
-  let revealObserverMode = '';
 
   function formatPrice(value) {
     return new Intl.NumberFormat('en-US', {
@@ -138,10 +137,8 @@
       return null;
     }
 
-    const mode = isMobileViewport() ? 'mobile' : 'default';
-    if (!revealObserver || revealObserverMode !== mode) {
-      if (revealObserver) revealObserver.disconnect();
-      revealObserverMode = mode;
+    if (!revealObserver) {
+      const mode = isMobileViewport() ? 'mobile' : 'default';
       revealObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
@@ -176,7 +173,7 @@
     const scope = root && root.querySelectorAll ? root : document;
     const observer = getRevealObserver();
     const elements = scope.querySelectorAll(REVEAL_SELECTOR);
-    const mobileRevealLimit = window.innerHeight + Math.max(window.innerHeight * MOBILE_REVEAL_PRELOAD_RATIO, MOBILE_REVEAL_MIN_PRELOAD_PX);
+    const mobileRevealLimitPx = window.innerHeight + Math.max(window.innerHeight * MOBILE_REVEAL_PRELOAD_RATIO, MOBILE_REVEAL_MIN_PRELOAD_PX);
 
     elements.forEach((element) => {
       if (element.dataset.revealRegistered === 'true') return;
@@ -189,7 +186,7 @@
         return;
       }
 
-      if (shouldRevealEarly(element, mobileRevealLimit)) {
+      if (shouldRevealEarly(element, mobileRevealLimitPx)) {
         element.classList.add('reveal-visible');
         return;
       }
