@@ -480,7 +480,7 @@
     const uploads = Array.from(filesInput?.files || []);
     for (const file of uploads) {
       if (file.size > MAX_FILE_SIZE_BYTES || !isAllowedMime(file.type) || !hasAllowedExtension(file.name)) continue;
-      const bucketName = file.type.startsWith('image/') ? 'maintenance-files' : 'maintenance-files';
+      const bucketName = 'maintenance-files';
       const filePath = `${userId}/${request.id}/${Date.now()}-${sanitizeFilename(file.name)}`;
       const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
       if (!storageError) {

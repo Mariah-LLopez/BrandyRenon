@@ -613,11 +613,6 @@ create policy "maintenance_requests_client_select" on public.maintenance_request
 drop policy if exists "maintenance_requests_client_insert" on public.maintenance_requests;
 create policy "maintenance_requests_client_insert" on public.maintenance_requests
   for insert with check (client_id = auth.uid());
-drop policy if exists "maintenance_requests_client_update" on public.maintenance_requests;
-create policy "maintenance_requests_client_update" on public.maintenance_requests
-  for update using (client_id = auth.uid())
-  with check (client_id = auth.uid());
-
 create table if not exists public.maintenance_files (
   id uuid primary key default gen_random_uuid(),
   maintenance_request_id uuid not null references public.maintenance_requests (id) on delete cascade,
@@ -642,8 +637,7 @@ create policy "maintenance_files_client_select" on public.maintenance_files
 drop policy if exists "maintenance_files_client_insert" on public.maintenance_files;
 create policy "maintenance_files_client_insert" on public.maintenance_files
   for insert with check (
-    client_id = auth.uid()
-    and exists (
+    exists (
       select 1 from public.maintenance_requests mr
       where mr.id = maintenance_files.maintenance_request_id
         and mr.client_id = auth.uid()

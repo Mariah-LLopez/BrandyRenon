@@ -374,9 +374,9 @@
     const form = event.currentTarget;
     const type = form.getAttribute('data-form-type');
     if (type === 'contact') submitContactForm(form);
-    if (type === 'showing') submitShowingForm(form);
-    if (type === 'house-flip') submitHouseFlipForm(form);
-    if (type === 'contractor') submitContractorForm(form);
+    else if (type === 'showing') submitShowingForm(form);
+    else if (type === 'house-flip') submitHouseFlipForm(form);
+    else if (type === 'contractor') submitContractorForm(form);
   }
 
   document.addEventListener('DOMContentLoaded', function () {

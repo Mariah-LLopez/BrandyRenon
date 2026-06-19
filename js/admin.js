@@ -364,7 +364,7 @@
     if (!bucket || !filePath) return null;
     const { data: signedData, error: signedError } = await supabaseClient.storage.from(bucket).createSignedUrl(filePath, 300);
     if (!signedError && signedData?.signedUrl) return signedData.signedUrl;
-    const { data: publicData } = await supabaseClient.storage.from(bucket).getPublicUrl(filePath);
+    const { data: publicData } = supabaseClient.storage.from(bucket).getPublicUrl(filePath);
     return publicData?.publicUrl || null;
   }
 
