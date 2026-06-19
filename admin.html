@@ -35,7 +35,6 @@
           <button class="portal-tab active" data-tab="users" type="button">Users</button>
           <button class="portal-tab" data-tab="properties" type="button">Properties</button>
           <button class="portal-tab" data-tab="accounts" type="button">Accounts</button>
-          <button class="portal-tab" data-tab="files" type="button">Files</button>
           <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
           <button class="portal-tab" data-tab="leads" type="button">Leads</button>
         </nav>
@@ -91,7 +90,6 @@
                     <th scope="col">Property</th>
                     <th scope="col">Workflow Status</th>
                     <th scope="col">Visibility</th>
-                    <th scope="col">Public Website</th>
                     <th scope="col">Last Updated</th>
                     <th scope="col">Actions</th>
                   </tr>
@@ -158,57 +156,6 @@
           </div>
         </div>
 
-        <div id="tab-files" class="tab-panel" hidden>
-          <div class="admin-panel admin-toolbar">
-            <div>
-              <h2>Documents &amp; Files</h2>
-              <p class="table-hint">Upload contracts, leases, receipts, photos, IDs, and signature links across accounts, properties, clients, and maintenance records.</p>
-            </div>
-            <div class="filter-grid admin-doc-filters" aria-label="File filters">
-              <div class="form-group">
-                <label for="admin-filter-visibility">Visibility</label>
-                <select id="admin-filter-visibility">
-                  <option value="">All</option>
-                  <option value="admin_only">Admin Only</option>
-                  <option value="client_visible">Client Visible</option>
-                  <option value="client_downloadable">Client Downloadable</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="admin-filter-signed">Signature</label>
-                <select id="admin-filter-signed">
-                  <option value="">All</option>
-                  <option value="required">Needs Signature</option>
-                  <option value="signed">Signed</option>
-                  <option value="pending">Pending Signature</option>
-                </select>
-              </div>
-            </div>
-            <button id="open-upload-modal" class="btn-primary" type="button">Upload File</button>
-          </div>
-          <div class="table-card">
-            <div class="dashboard-table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">File Name</th>
-                    <th scope="col">Category</th>
-                    <th scope="col">Account</th>
-                    <th scope="col">Property</th>
-                    <th scope="col">Client</th>
-                    <th scope="col">Client Access</th>
-                    <th scope="col">Signature</th>
-                    <th scope="col">Uploaded</th>
-                    <th scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="documents-tbody"></tbody>
-              </table>
-            </div>
-            <div id="documents-empty" class="admin-empty-state" hidden>No files match the current filters.</div>
-          </div>
-        </div>
-
         <div id="tab-maintenance" class="tab-panel" hidden>
           <div class="admin-panel">
             <h2>Maintenance Requests</h2>
@@ -234,7 +181,6 @@
                     <th scope="col">Status</th>
                     <th scope="col">Admin Comments</th>
                     <th scope="col">Files</th>
-                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="maintenance-active-tbody"></tbody>
@@ -257,7 +203,6 @@
                     <th scope="col">Status</th>
                     <th scope="col">Admin Comments</th>
                     <th scope="col">Files</th>
-                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="maintenance-completed-tbody"></tbody>
@@ -270,63 +215,57 @@
         <div id="tab-leads" class="tab-panel" hidden>
           <div class="admin-panel" style="margin-bottom:1.5rem">
             <h2>Leads</h2>
-            <p class="table-hint">Track contact requests, showing requests, renovation inquiries, and other lead submissions without deleting completed history.</p>
+            <p class="table-hint">Track contact requests, showing requests, property inquiries, renovation inquiries, and other lead submissions. Completed leads are consolidated in the Completed Leads tab.</p>
           </div>
 
           <nav class="portal-tab-bar leads-sub-tabs" aria-label="Lead type">
             <button class="portal-tab active" data-lead-tab="contact" type="button">Contact Requests</button>
             <button class="portal-tab" data-lead-tab="showing" type="button">Showing Requests</button>
-            <button class="portal-tab" data-lead-tab="renovation" type="button">Renovation Inquiries</button>
+            <button class="portal-tab" data-lead-tab="property" type="button">Property Inquiries</button>
+            <button class="portal-tab" data-lead-tab="renovation" type="button">Renovation Clients</button>
+            <button class="portal-tab" data-lead-tab="completed" type="button">Completed Leads</button>
           </nav>
 
           <div id="lead-tab-contact" class="lead-tab-panel">
-            <nav class="portal-tab-bar workflow-tab-bar compact-tab-bar" aria-label="Contact request workflow">
-              <button class="portal-tab active" data-workflow-group="lead-contact" data-workflow-target="active" type="button">Active Leads</button>
-              <button class="portal-tab" data-workflow-group="lead-contact" data-workflow-target="completed" type="button">Completed Leads</button>
-            </nav>
-            <div class="table-card workflow-panel" data-workflow-panel="lead-contact-active">
-              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-contact-active-tbody"></tbody></table></div>
-              <div id="lead-contact-active-empty" class="admin-empty-state" hidden>No active contact requests.</div>
-            </div>
-            <div class="table-card workflow-panel" data-workflow-panel="lead-contact-completed" hidden>
-              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-contact-completed-tbody"></tbody></table></div>
-              <div id="lead-contact-completed-empty" class="admin-empty-state" hidden>No completed contact requests.</div>
+            <div class="table-card">
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property Interest</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-contact-tbody"></tbody></table></div>
+              <div id="lead-contact-empty" class="admin-empty-state" hidden>No active contact requests.</div>
             </div>
           </div>
 
           <div id="lead-tab-showing" class="lead-tab-panel" hidden>
-            <nav class="portal-tab-bar workflow-tab-bar compact-tab-bar" aria-label="Showing request workflow">
-              <button class="portal-tab active" data-workflow-group="lead-showing" data-workflow-target="active" type="button">Active Leads</button>
-              <button class="portal-tab" data-workflow-group="lead-showing" data-workflow-target="completed" type="button">Completed Leads</button>
-            </nav>
-            <div class="table-card workflow-panel" data-workflow-panel="lead-showing-active">
-              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property</th><th scope="col">Preferred Date</th><th scope="col">Preferred Time</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-showing-active-tbody"></tbody></table></div>
-              <div id="lead-showing-active-empty" class="admin-empty-state" hidden>No active showing requests.</div>
+            <div class="table-card">
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property</th><th scope="col">Preferred Date</th><th scope="col">Preferred Time</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-showing-tbody"></tbody></table></div>
+              <div id="lead-showing-empty" class="admin-empty-state" hidden>No active showing requests.</div>
             </div>
-            <div class="table-card workflow-panel" data-workflow-panel="lead-showing-completed" hidden>
-              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property</th><th scope="col">Preferred Date</th><th scope="col">Preferred Time</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-showing-completed-tbody"></tbody></table></div>
-              <div id="lead-showing-completed-empty" class="admin-empty-state" hidden>No completed showing requests.</div>
+          </div>
+
+          <div id="lead-tab-property" class="lead-tab-panel" hidden>
+            <div class="table-card">
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property Interest</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-property-tbody"></tbody></table></div>
+              <div id="lead-property-empty" class="admin-empty-state" hidden>No active property inquiries.</div>
             </div>
           </div>
 
           <div id="lead-tab-renovation" class="lead-tab-panel" hidden>
-            <nav class="portal-tab-bar workflow-tab-bar compact-tab-bar" aria-label="Renovation inquiry workflow">
-              <button class="portal-tab active" data-workflow-group="lead-renovation" data-workflow-target="active" type="button">Active Leads</button>
-              <button class="portal-tab" data-workflow-group="lead-renovation" data-workflow-target="completed" type="button">Completed Leads</button>
-            </nav>
-            <div class="table-card workflow-panel" data-workflow-panel="lead-renovation-active">
-              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Full Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property Address</th><th scope="col">Service Needed</th><th scope="col">Project Type</th><th scope="col">Project Description</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-renovation-active-tbody"></tbody></table></div>
-              <div id="lead-renovation-active-empty" class="admin-empty-state" hidden>No active renovation inquiries.</div>
+            <div class="table-card">
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Full Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property Address</th><th scope="col">Service Needed</th><th scope="col">Project Type</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-renovation-tbody"></tbody></table></div>
+              <div id="lead-renovation-empty" class="admin-empty-state" hidden>No active renovation inquiries.</div>
             </div>
-            <div class="table-card workflow-panel" data-workflow-panel="lead-renovation-completed" hidden>
-              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Full Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property Address</th><th scope="col">Service Needed</th><th scope="col">Project Type</th><th scope="col">Project Description</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th><th scope="col">Actions</th></tr></thead><tbody id="lead-renovation-completed-tbody"></tbody></table></div>
-              <div id="lead-renovation-completed-empty" class="admin-empty-state" hidden>No completed renovation inquiries.</div>
+          </div>
+
+          <div id="lead-tab-completed" class="lead-tab-panel" hidden>
+            <div class="table-card">
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Lead Type</th><th scope="col">Name / Contact</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Submitted</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-completed-tbody"></tbody></table></div>
+              <div id="lead-completed-empty" class="admin-empty-state" hidden>No completed leads found.</div>
             </div>
           </div>
         </div>
       </div>
     </section>
   </main>
+
+  <div id="account-files-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="account-files-title"><div class="modal-dialog modal-dialog-wide"><button class="modal-close" type="button" data-close-modal="account-files" aria-label="Close">×</button><h2 id="account-files-title">Account Files</h2><p id="account-files-subtitle" class="table-hint"></p><div class="account-files-toolbar"><button id="account-files-upload-btn" class="btn-primary" type="button">Upload File</button></div><div id="account-files-list"><p class="admin-empty-state">No files found for this account.</p></div></div></div>
 
   <div id="invite-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="invite-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="invite" aria-label="Close">×</button><h2 id="invite-modal-title">Invite Client</h2><p class="table-hint">Send a sign-up invitation to a new client. They will receive an email to set their password.</p><form id="invite-form" class="invite-form-layout" novalidate><div class="form-grid"><div class="form-group"><label for="invite-email">Email <span class="required" aria-hidden="true">*</span></label><input id="invite-email" name="email" type="email" required></div><div class="form-group"><label for="invite-name">Full Name</label><input id="invite-name" name="full_name" type="text"></div></div><div class="invite-form-actions"><button class="btn-primary" type="submit">Send Invitation</button></div><div id="invite-status" class="form-status" aria-live="polite"></div></form></div></div>
 
