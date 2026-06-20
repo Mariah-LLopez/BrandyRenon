@@ -47,20 +47,6 @@
   margin-top: 1rem;
 }
 
-.forgot-password-link {
-  display: block;
-  margin-top: 0.4rem;
-  font-size: 0.875rem;
-  color: var(--color-primary);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.forgot-password-link:hover {
-  color: var(--color-primary-dark, var(--color-primary));
-  text-decoration: none;
-}
-
 @media (max-width: 768px) {
   .admin-toolbar,
   .admin-toolbar .filter-grid {
@@ -119,6 +105,29 @@
 .tab-panel[hidden],
 .lead-tab-panel[hidden] {
   display: none;
+}
+
+/* Keep portal tabs aligned by forcing visible tab panels into a consistent full-width stack. */
+.tab-panel:not([hidden]),
+.lead-tab-panel:not([hidden]),
+.workflow-panel:not([hidden]) {
+  display: grid;
+  gap: 1.5rem;
+  width: 100%;
+  min-width: 0;
+  align-content: start;
+}
+
+.tab-panel > *,
+.lead-tab-panel > *,
+.workflow-panel > *,
+.dashboard-table-scroll,
+.admin-panel,
+.table-card,
+.form-card {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* ==========================================================================
@@ -244,6 +253,46 @@
 
 .dashboard-inline-notes {
   min-height: 7rem;
+}
+
+.property-summary-stack,
+.account-property-stack {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.property-summary-stack {
+  min-width: 260px;
+}
+
+.property-photo-preview,
+.account-property-preview {
+  width: 112px;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: rgba(27, 58, 92, 0.06);
+  border: 1px solid rgba(27, 58, 92, 0.08);
+  flex: 0 0 112px;
+}
+
+.property-photo-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.property-photo-meta {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.property-photo-count {
+  color: var(--color-muted);
+  font-size: 0.88rem;
 }
 
 /* ==========================================================================

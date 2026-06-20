@@ -2,6 +2,7 @@
   const MAX_FILE_SIZE_MB = 10;
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
   const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.png', '.jpg', '.jpeg', '.gif', '.webp'];
+  const ALLOWED_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
   const ALLOWED_MIME_TYPES = [
     'application/pdf',
     'application/msword',
@@ -11,6 +12,7 @@
     'text/plain',
     'image/png', 'image/jpeg', 'image/gif', 'image/webp'
   ];
+  const ALLOWED_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
   const USER_ROLES = ['admin', 'client'];
   const USER_STATUSES = ['active', 'inactive'];
   const USER_TYPES = ['Buyer', 'Seller', 'Renter', 'Property Owner', 'Renovation Client', 'Property Management Client', 'Other'];
@@ -58,6 +60,88 @@
     }
   };
 
+  function updatePropertyPhotoHelper(property) {
+    const helper = document.getElementById('prop-photos-help');
+    if (!helper) return;
+    const photoCount = getPropertyPhotoUrls(property).length;
+    helper.textContent = photoCount
+      ? `${photoCount} photo${photoCount === 1 ? '' : 's'} currently saved. Uploading more will add to this property.`
+      : 'Upload one or more photos for this property. Images only, up to 10 MB each.';
+  }
+
+  function resetPropertyForm(options) {
+    const config = options || {};
+    const form = document.getElementById('property-form');
+    const titleEl = document.getElementById('property-modal-title');
+    const submitBtn = document.getElementById('property-submit-btn');
+    const statusEl = document.getElementById('property-status');
+    if (!form) return;
+    form.reset();
+    delete form.dataset.editId;
+    form.querySelector('[name="property_id"]').value = '';
+    if (titleEl) titleEl.textContent = 'Add Property';
+    if (submitBtn) submitBtn.textContent = 'Save Property';
+    if (!config.preserveStatus && statusEl) {
+      statusEl.textContent = '';
+      statusEl.className = 'form-status';
+    }
+    updatePropertyPhotoHelper(null);
+  }
+
+  function openPropertyEditor(propertyId) {
+    const property = getPropertyById(propertyId);
+    const form = document.getElementById('property-form');
+    const titleEl = document.getElementById('property-modal-title');
+    const submitBtn = document.getElementById('property-submit-btn');
+    if (!property || !form) return;
+    resetPropertyForm();
+    form.dataset.editId = property.id;
+    form.querySelector('[name="property_id"]').value = property.id;
+    form.querySelector('[name="property_address"]').value = property.property_address || '';
+    form.querySelector('[name="property_status"]').value = property.property_status || 'Active';
+    form.querySelector('[name="visibility"]').value = property.visibility === 'public' ? 'public' : 'internal';
+    form.querySelector('[name="notes"]').value = property.notes || '';
+    if (titleEl) titleEl.textContent = 'Edit Property';
+    if (submitBtn) submitBtn.textContent = 'Save Changes';
+    updatePropertyPhotoHelper(property);
+    openModal('property');
+  }
+
+  async function uploadPropertyPhotos(propertyId, files, property) {
+    const existingProperty = property || {};
+    const mergedPaths = getPropertyPhotoPaths(existingProperty).slice();
+    const mergedUrls = getPropertyPhotoUrls(existingProperty).slice();
+    const uploadedPaths = [];
+    try {
+      for (const file of files) {
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          throw new Error(`Each photo must be under ${MAX_FILE_SIZE_MB} MB.`);
+        }
+        if (!isAllowedImageMime(file.type) || !hasAllowedImageExtension(file.name)) {
+          throw new Error('Property photos must be PNG, JPG, JPEG, GIF, or WEBP files.');
+        }
+        const uniquePrefix = createUniqueFilePrefix();
+        const filePath = `properties/${propertyId}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
+        const { error: storageError } = await supabaseClient.storage.from('property-images').upload(filePath, file);
+        if (storageError) throw new Error(storageError.message);
+        const { data: publicData } = supabaseClient.storage.from('property-images').getPublicUrl(filePath);
+        mergedPaths.push(filePath);
+        if (publicData?.publicUrl) mergedUrls.push(publicData.publicUrl);
+        uploadedPaths.push(filePath);
+      }
+      return {
+        photo_bucket: 'property-images',
+        photo_paths: mergedPaths,
+        photo_urls: mergedUrls
+      };
+    } catch (error) {
+      if (uploadedPaths.length) {
+        await supabaseClient.storage.from('property-images').remove(uploadedPaths);
+      }
+      throw error;
+    }
+  }
+
   let adminUserId = null;
   let allUsers = [];
   let allProperties = [];
@@ -83,6 +167,27 @@
 
   function isAllowedMime(mime) {
     return ALLOWED_MIME_TYPES.includes((mime || '').toLowerCase());
+  }
+
+  function hasAllowedImageExtension(name) {
+    const lower = (name || '').toLowerCase();
+    return ALLOWED_IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+  }
+
+  function isAllowedImageMime(mime) {
+    return ALLOWED_IMAGE_MIME_TYPES.includes((mime || '').toLowerCase());
+  }
+
+  function createUniqueFilePrefix() {
+    if (typeof crypto !== 'undefined') {
+      if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+      if (typeof crypto.getRandomValues === 'function') {
+        const values = new Uint32Array(4);
+        crypto.getRandomValues(values);
+        return Array.from(values, (value) => value.toString(16).padStart(8, '0')).join('');
+      }
+    }
+    return `${Date.now()}-${Math.round((typeof performance !== 'undefined' ? performance.now() : 0) * 1000)}`;
   }
 
   function normalizeLeadStatus(value) {
@@ -341,6 +446,18 @@
 
   function getPropertyById(propertyId) {
     return allProperties.find((property) => property.id === propertyId) || null;
+  }
+
+  function getPropertyPhotoUrls(property) {
+    return Array.isArray(property?.photo_urls) ? property.photo_urls.filter(Boolean) : [];
+  }
+
+  function getPropertyPhotoPaths(property) {
+    return Array.isArray(property?.photo_paths) ? property.photo_paths.filter(Boolean) : [];
+  }
+
+  function getPrimaryPropertyPhoto(property) {
+    return getPropertyPhotoUrls(property)[0] || null;
   }
 
   function getAccountById(accountId) {
@@ -653,12 +770,14 @@
         `<option value="internal"${property.visibility !== 'public' ? ' selected' : ''}>Internal Property</option>`,
         `<option value="public"${property.visibility === 'public' ? ' selected' : ''}>Public Listing</option>`
       ].join('');
+      const photoUrl = getPrimaryPropertyPhoto(property);
+      const photoCount = getPropertyPhotoUrls(property).length;
       return `<tr data-property-id="${escapeHtml(property.id)}">
-        <td class="dashboard-cell-wrap"><strong>${escapeHtml(property.property_address)}</strong><textarea class="dashboard-inline-notes dashboard-notes-sm" data-prop-notes rows="2" aria-label="Property notes">${escapeHtml(property.notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></td>
+        <td class="dashboard-cell-wrap"><div class="property-summary-stack">${photoUrl ? `<img class="property-photo-preview" src="${escapeHtml(photoUrl)}" alt="Photo of ${escapeHtml(property.property_address)}">` : '<div class="property-photo-preview property-photo-placeholder">No Photo</div>'}<div class="property-photo-meta"><strong>${escapeHtml(property.property_address)}</strong><span class="property-photo-count">${photoCount} photo${photoCount === 1 ? '' : 's'}</span><textarea class="dashboard-inline-notes dashboard-notes-sm" data-prop-notes rows="2" aria-label="Property notes">${escapeHtml(property.notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></div></div></td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-prop-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-prop-visibility>${visibilityOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
         <td>${formatDateTime(property.updated_at || property.created_at)}</td>
-        <td><div class="table-actions"><button class="action-link" data-action="delete-property" data-id="${escapeHtml(property.id)}" type="button">Delete</button></div></td>
+        <td><div class="table-actions table-actions-stack"><button class="action-link" data-action="edit-property" data-id="${escapeHtml(property.id)}" type="button">Edit / Photos</button><button class="action-link" data-action="delete-property" data-id="${escapeHtml(property.id)}" type="button">Delete</button></div></td>
       </tr>`;
     }).join('');
   }
@@ -996,6 +1115,8 @@
     const statusEl = document.getElementById('property-status');
     const propertyAddress = form.querySelector('[name="property_address"]').value.trim();
     const visibility = form.querySelector('[name="visibility"]').value;
+    const propertyId = form.dataset.editId || form.querySelector('[name="property_id"]').value || null;
+    const photoFiles = Array.from(form.querySelector('[name="property_photos"]')?.files || []);
     if (!propertyAddress) {
       statusEl.className = 'form-status error-message';
       statusEl.textContent = 'Address is required.';
@@ -1009,19 +1130,62 @@
       notes: form.querySelector('[name="notes"]').value.trim() || null,
       updated_at: nowIso()
     };
-    const { error } = await supabaseClient.from('properties').insert([payload]);
-    if (error) {
+    statusEl.textContent = '';
+    statusEl.className = 'form-status';
+    let savedProperty = getPropertyById(propertyId);
+    let dbError = null;
+    if (propertyId) {
+      const { data, error } = await supabaseClient.from('properties').update(payload).eq('id', propertyId).select().single();
+      savedProperty = data || savedProperty;
+      dbError = error;
+    } else {
+      const { data, error } = await supabaseClient.from('properties').insert([payload]).select().single();
+      savedProperty = data || savedProperty;
+      dbError = error;
+    }
+    if (dbError) {
       statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message);
+      statusEl.textContent = 'Failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message);
       return;
     }
+    if (!savedProperty?.id) {
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Property saved successfully, but could not load the record for photo upload. Please refresh and try uploading photos again.';
+      await loadPropertiesData();
+      renderProperties();
+      renderUsers();
+      return;
+    }
+    if (photoFiles.length) {
+      try {
+        const photoPayload = await uploadPropertyPhotos(savedProperty.id, photoFiles, savedProperty);
+        const { data, error } = await supabaseClient
+          .from('properties')
+          .update({ ...photoPayload, updated_at: nowIso() })
+          .eq('id', savedProperty.id)
+          .select()
+          .single();
+        if (error) throw error;
+        savedProperty = data || { ...savedProperty, ...photoPayload };
+      } catch (error) {
+        statusEl.className = 'form-status error-message';
+        statusEl.textContent = `Property saved, but photo upload failed: ${error.message}. You can retry uploading photos by editing this property.`;
+        await loadPropertiesData();
+        renderProperties();
+        renderUsers();
+        return;
+      }
+    }
     statusEl.className = 'form-status success-message';
-    statusEl.textContent = 'Property saved.';
-    form.reset();
+    statusEl.textContent = propertyId ? 'Property updated.' : 'Property saved.';
+    resetPropertyForm({ preserveStatus: true });
     await loadPropertiesData();
     renderProperties();
     renderUsers();
-    setTimeout(() => closeModal('property'), 1200);
+    setTimeout(() => {
+      closeModal('property');
+      resetPropertyForm();
+    }, 1200);
   }
 
   async function handleAddAccount(event) {
@@ -1099,7 +1263,7 @@
     const canClientEdit = document.getElementById('upload-client-edit').checked || requiresSignature;
     const canClientView = visibility !== 'admin_only';
     const bucketName = file.type.startsWith('image/') ? 'property-images' : 'property-documents';
-    const uniquePrefix = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const uniquePrefix = createUniqueFilePrefix();
     const filePath = `${accountId || clientId || 'admin'}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
     const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
     if (storageError) {
@@ -1619,10 +1783,22 @@
   }
 
   async function handlePropertyAction(action, propertyId) {
+    if (action === 'edit-property') {
+      openPropertyEditor(propertyId);
+      return;
+    }
     if (action !== 'delete-property') return;
     if (!window.confirm('Delete this property? This cannot be undone.')) return;
+    const property = getPropertyById(propertyId);
     const { error } = await supabaseClient.from('properties').delete().eq('id', propertyId);
     if (error) return window.alert(error.message);
+    const photoPaths = getPropertyPhotoPaths(property);
+    if (photoPaths.length) {
+      const { error: storageError } = await supabaseClient.storage.from(property?.photo_bucket || 'property-images').remove(photoPaths);
+      if (storageError) {
+        window.alert(`Property deleted, but some photo files could not be removed: ${storageError.message}`);
+      }
+    }
     await loadPropertiesData();
     renderProperties();
     renderUsers();
@@ -1669,7 +1845,10 @@
     initTabs();
     setupModalClose();
     document.getElementById('open-invite-modal')?.addEventListener('click', () => openModal('invite'));
-    document.getElementById('open-property-modal')?.addEventListener('click', () => openModal('property'));
+    document.getElementById('open-property-modal')?.addEventListener('click', () => {
+      resetPropertyForm();
+      openModal('property');
+    });
     document.getElementById('open-account-modal')?.addEventListener('click', () => openModal('account'));
     document.getElementById('open-upload-modal')?.addEventListener('click', () => openModal('upload'));
     document.getElementById('open-task-modal')?.addEventListener('click', () => {
