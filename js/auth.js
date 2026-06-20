@@ -3,6 +3,8 @@
 // It does NOT run on admin.html or client-portal.html.
 
 (function () {
+  const PASSWORD_UPDATE_REDIRECT_DELAY_MS = 1500;
+
   function showLoginMessage(message) {
     const errorBox = document.getElementById('login-error');
     if (!errorBox || !message) return;
@@ -291,7 +293,7 @@
         if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password updated successfully. You can now sign in.'; }
         setTimeout(function () {
           window.location.replace('login.html');
-        }, 1500);
+        }, PASSWORD_UPDATE_REDIRECT_DELAY_MS);
       } catch (error) {
         console.error('Reset password update failed:', error);
         if (statusEl) {
