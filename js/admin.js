@@ -69,7 +69,9 @@
   function updatePropertyPhotoHelper(property) {
     const helper = document.getElementById('prop-photos-help');
     if (!helper) return;
-    const photoCount = getPropertyPhotoUrls(property).length;
+    const photoCount = property?.id
+      ? allDocuments.filter((doc) => doc.property_id === property.id && doc.category === 'Property Photo' && doc.file_path).length
+      : 0;
     helper.textContent = photoCount
       ? `${photoCount} photo${photoCount === 1 ? '' : 's'} currently saved. Uploading more will add to this property.`
       : 'Upload one or more photos for this property. JPG, JPEG, PNG, or WEBP only, up to 10 MB each.';
@@ -519,15 +521,20 @@
     return allProperties.find((property) => property.id === propertyId) || null;
   }
 
-  function getPropertyPhotoUrls(property) {
+  async function getPropertyPhotoUrls(property) {
     if (!property?.id) return [];
-    return allDocuments
-      .filter((doc) => doc.property_id === property.id && doc.category === 'Property Photo' && doc.file_path)
-      .map((doc) => {
-        const { data } = supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).getPublicUrl(doc.file_path);
-        return data?.publicUrl || null;
+    const docs = allDocuments.filter((doc) => doc.property_id === property.id && doc.category === 'Property Photo' && doc.file_path);
+    const urls = await Promise.all(
+      docs.map((doc) => {
+        const bucket = doc.bucket_name || STORAGE_BUCKETS.PROPERTY_IMAGES;
+        if (!doc.bucket_name) console.warn('Property photo document missing bucket_name, defaulting to property-images:', doc.id);
+        return getSupabaseStorageUrl(bucket, doc.file_path, { expiresIn: 3600 }).catch((err) => {
+          console.error('Failed to get signed URL for property photo:', doc.id, err);
+          return null;
+        });
       })
-      .filter(Boolean);
+    );
+    return urls.filter(Boolean);
   }
 
   function getPropertyPhotoPaths(property) {
@@ -537,8 +544,8 @@
       .map((doc) => doc.file_path);
   }
 
-  function getPrimaryPropertyPhoto(property) {
-    return getPropertyPhotoUrls(property)[0] || null;
+  async function getPrimaryPropertyPhoto(property) {
+    return (await getPropertyPhotoUrls(property))[0] || null;
   }
 
   function getAccountById(accountId) {
@@ -617,12 +624,14 @@
   }
 
   async function getStorageUrl(bucket, filePath) {
-    return getSupabaseStorageUrl(bucket, filePath, { expiresIn: 300 });
+    return getSupabaseStorageUrl(bucket, filePath, { expiresIn: 3600 });
   }
 
   async function getDocumentUrl(doc) {
-    const bucket = doc.bucket_name || STORAGE_BUCKETS.CLIENT_DOCUMENTS;
-    const url = await getStorageUrl(bucket, doc.file_path);
+    if (!doc.bucket_name || !doc.file_path) {
+      throw new Error('File location information is missing (bucket or path). Unable to open this document.');
+    }
+    const url = await getStorageUrl(doc.bucket_name, doc.file_path);
     if (!url) throw new Error('Document URL unavailable');
     return url;
   }
@@ -832,7 +841,7 @@
     }).join('');
   }
 
-  function renderProperties() {
+  async function renderProperties() {
     const tbody = document.getElementById('properties-tbody');
     const empty = document.getElementById('properties-empty');
     if (!allProperties.length) {
@@ -841,14 +850,15 @@
       return;
     }
     empty.hidden = true;
-    tbody.innerHTML = allProperties.map((property) => {
+    const photoUrls = await Promise.all(allProperties.map((property) => getPrimaryPropertyPhoto(property)));
+    tbody.innerHTML = allProperties.map((property, i) => {
       const statusOptions = ['Active', 'Pending', 'Sold', 'Coming Soon'].map((s) => `<option value="${s}"${(property.property_status || 'Active') === s ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
       const visibilityOptions = [
         `<option value="internal"${property.visibility !== 'public' ? ' selected' : ''}>Internal Property</option>`,
         `<option value="public"${property.visibility === 'public' ? ' selected' : ''}>Public Listing</option>`
       ].join('');
-      const photoUrl = getPrimaryPropertyPhoto(property);
-      const photoCount = getPropertyPhotoUrls(property).length;
+      const photoUrl = photoUrls[i];
+      const photoCount = allDocuments.filter((doc) => doc.property_id === property.id && doc.category === 'Property Photo' && doc.file_path).length;
       return `<tr data-property-id="${escapeHtml(property.id)}">
         <td class="dashboard-cell-wrap"><div class="property-summary-stack">${photoUrl ? `<img class="property-photo-preview" src="${escapeHtml(photoUrl)}" alt="Photo of ${escapeHtml(property.property_address)}">` : '<div class="property-photo-preview property-photo-placeholder">No Photo</div>'}<div class="property-photo-meta"><strong>${escapeHtml(property.property_address)}</strong><span class="property-photo-count">${photoCount} photo${photoCount === 1 ? '' : 's'}</span><textarea class="dashboard-inline-notes dashboard-notes-sm" data-prop-notes rows="2" aria-label="Property notes">${escapeHtml(property.notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></div></div></td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-prop-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>

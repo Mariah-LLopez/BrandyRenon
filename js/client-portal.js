@@ -175,11 +175,9 @@
 
   function renderDocumentActions(doc) {
     const buttons = [
-      `<button class="action-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">Open</button>`
+      `<button class="action-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">Open</button>`,
+      `<button class="action-link" data-action="download-file" data-id="${escapeHtml(doc.id)}" type="button">Download</button>`
     ];
-    if (doc.visibility === 'client_downloadable' || previewMode) {
-      buttons.push(`<button class="action-link" data-action="download-file" data-id="${escapeHtml(doc.id)}" type="button">Download</button>`);
-    }
     if (doc.signature_url) {
       buttons.push(`<button class="action-link badge-doc-required-btn" data-action="sign-file" data-id="${escapeHtml(doc.id)}" type="button">Sign Document</button>`);
     }
@@ -194,19 +192,24 @@
     return allProperties.find((property) => property.id === propertyId) || null;
   }
 
-  function getPropertyPhotoUrls(property) {
+  async function getPropertyPhotoUrls(property) {
     if (!property?.id) return [];
-    return allPropertyPhotoDocs
-      .filter((doc) => doc.property_id === property.id && doc.file_path)
-      .map((doc) => {
-        const { data } = supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).getPublicUrl(doc.file_path);
-        return data?.publicUrl || null;
+    const docs = allPropertyPhotoDocs.filter((doc) => doc.property_id === property.id && doc.file_path);
+    const urls = await Promise.all(
+      docs.map((doc) => {
+        const bucket = doc.bucket_name || STORAGE_BUCKETS.PROPERTY_IMAGES;
+        if (!doc.bucket_name) console.warn('Property photo document missing bucket_name, defaulting to property-images:', doc.id);
+        return getSupabaseStorageUrl(bucket, doc.file_path, { expiresIn: 3600 }).catch((err) => {
+          console.error('Failed to get signed URL for property photo:', doc.id, err);
+          return null;
+        });
       })
-      .filter(Boolean);
+    );
+    return urls.filter(Boolean);
   }
 
-  function getPrimaryPropertyPhoto(property) {
-    return getPropertyPhotoUrls(property)[0] || null;
+  async function getPrimaryPropertyPhoto(property) {
+    return (await getPropertyPhotoUrls(property))[0] || null;
   }
 
   function getAccountById(accountId) {
@@ -218,11 +221,14 @@
   }
 
   async function getStorageUrl(bucket, filePath) {
-    return getSupabaseStorageUrl(bucket, filePath, { expiresIn: 300 });
+    return getSupabaseStorageUrl(bucket, filePath, { expiresIn: 3600 });
   }
 
   async function getDocumentUrl(doc) {
-    return getStorageUrl(doc.bucket_name || STORAGE_BUCKETS.CLIENT_DOCUMENTS, doc.file_path);
+    if (!doc.bucket_name || !doc.file_path) {
+      throw new Error('File location information is missing (bucket or path). Unable to open this document.');
+    }
+    return getStorageUrl(doc.bucket_name, doc.file_path);
   }
 
   async function loadProperties(userId) {
@@ -356,21 +362,22 @@
     mount.innerHTML = rows.map((request) => `<div class="dashboard-summary-item"><span>${escapeHtml(request.title || 'Maintenance Request')}</span><span>${statusPill(request.status)}</span></div>`).join('');
   }
 
-  function renderAccounts() {
+  async function renderAccounts() {
     const groups = {
       active: { mount: document.getElementById('accounts-active-grid'), empty: document.getElementById('accounts-active-empty'), rows: allAccounts.filter((account) => account.status !== 'Completed') },
       completed: { mount: document.getElementById('accounts-completed-grid'), empty: document.getElementById('accounts-completed-empty'), rows: allAccounts.filter((account) => account.status === 'Completed') }
     };
-    Object.values(groups).forEach((config) => {
+    for (const config of Object.values(groups)) {
       if (!config.rows.length) {
         config.mount.innerHTML = '';
         config.empty.hidden = false;
-        return;
+        continue;
       }
       config.empty.hidden = true;
-      config.mount.innerHTML = config.rows.map((account) => {
+      const photos = await Promise.all(config.rows.map((account) => getPrimaryPropertyPhoto(getPropertyById(account.property_id))));
+      config.mount.innerHTML = config.rows.map((account, i) => {
         const property = getPropertyById(account.property_id);
-        const propertyPhoto = getPrimaryPropertyPhoto(property);
+        const propertyPhoto = photos[i];
         return `
         <div class="dashboard-card">
           <p class="eyebrow">${escapeHtml(account.account_type || 'Account')}</p>
@@ -387,7 +394,7 @@
         </div>
       `;
       }).join('');
-    });
+    }
   }
 
   function renderDocuments() {
