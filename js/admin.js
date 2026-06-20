@@ -119,7 +119,7 @@
         if (!isAllowedImageMime(file.type) || !hasAllowedImageExtension(file.name)) {
           throw new Error('Property photos must be PNG, JPG, JPEG, GIF, or WEBP files.');
         }
-        const uniquePrefix = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const uniquePrefix = createUploadToken();
         const filePath = `properties/${propertyId}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
         const { error: storageError } = await supabaseClient.storage.from('property-images').upload(filePath, file);
         if (storageError) throw new Error(storageError.message);
@@ -175,6 +175,18 @@
 
   function isAllowedImageMime(mime) {
     return ALLOWED_IMAGE_MIME_TYPES.includes((mime || '').toLowerCase());
+  }
+
+  function createUploadToken() {
+    if (typeof crypto !== 'undefined') {
+      if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+      if (typeof crypto.getRandomValues === 'function') {
+        const values = new Uint32Array(4);
+        crypto.getRandomValues(values);
+        return Array.from(values, (value) => value.toString(16).padStart(8, '0')).join('');
+      }
+    }
+    return `${Date.now()}-${Math.round((typeof performance !== 'undefined' ? performance.now() : 0) * 1000)}`;
   }
 
   function normalizeLeadStatus(value) {
@@ -1242,7 +1254,7 @@
     const canClientEdit = document.getElementById('upload-client-edit').checked || requiresSignature;
     const canClientView = visibility !== 'admin_only';
     const bucketName = file.type.startsWith('image/') ? 'property-images' : 'property-documents';
-    const uniquePrefix = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const uniquePrefix = createUploadToken();
     const filePath = `${accountId || clientId || 'admin'}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
     const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
     if (storageError) {
@@ -1769,12 +1781,15 @@
     if (action !== 'delete-property') return;
     if (!window.confirm('Delete this property? This cannot be undone.')) return;
     const property = getPropertyById(propertyId);
-    const photoPaths = getPropertyPhotoPaths(property);
-    if (photoPaths.length) {
-      await supabaseClient.storage.from(property?.photo_bucket || 'property-images').remove(photoPaths);
-    }
     const { error } = await supabaseClient.from('properties').delete().eq('id', propertyId);
     if (error) return window.alert(error.message);
+    const photoPaths = getPropertyPhotoPaths(property);
+    if (photoPaths.length) {
+      const { error: storageError } = await supabaseClient.storage.from(property?.photo_bucket || 'property-images').remove(photoPaths);
+      if (storageError) {
+        window.alert(`Property deleted, but some photo files could not be removed: ${storageError.message}`);
+      }
+    }
     await loadPropertiesData();
     renderProperties();
     renderUsers();
