@@ -140,16 +140,16 @@
                   </select>
                 </div>
                 <div class="form-group full-width">
-                  <label for="client-upload-file">File</label>
-                  <input id="client-upload-file" name="file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" required>
-                  <span class="helper-text">Allowed types: PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG, WEBP. Max 10 MB.</span>
+                  <label for="client-upload-file">Files</label>
+                  <input id="client-upload-file" name="file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" multiple required>
+                  <span class="helper-text">Allowed types: PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG, WEBP. Max 10 MB each.</span>
                 </div>
                 <div class="form-group full-width">
-                  <label for="client-upload-notes">Notes (optional)</label>
+                  <label for="client-upload-notes">Notes (optional, applies to all selected files)</label>
                   <textarea id="client-upload-notes" name="notes"></textarea>
                 </div>
               </div>
-              <div class="form-actions"><button id="client-upload-btn" class="btn-primary" type="submit">Upload File</button></div>
+              <div class="form-actions"><button id="client-upload-btn" class="btn-primary" type="submit">Upload Files</button></div>
               <div id="upload-status" class="form-status" aria-live="polite"></div>
             </form>
           </div>

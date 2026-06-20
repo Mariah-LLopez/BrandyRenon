@@ -521,70 +521,95 @@
     const uploadBtn = document.getElementById('client-upload-btn');
     const statusEl = document.getElementById('upload-status');
     const account = getAccountById(accountSelect?.value);
-    const file = fileInput?.files?.[0] || null;
+    const files = Array.from(fileInput?.files || []);
     if (!account || !account.client_upload_enabled) {
       setFormStatus(statusEl, 'error-message', 'Select an account that allows client uploads.');
       return;
     }
-    if (!file || !categorySelect?.value) {
-      setFormStatus(statusEl, 'error-message', 'Select an account, category, and file.');
+    if (!files.length || !categorySelect?.value) {
+      setFormStatus(statusEl, 'error-message', 'Select an account, category, and at least one file.');
       return;
     }
-    const validationError = getSupabaseFileValidationError(file, {
-      maxSizeBytes: MAX_FILE_SIZE_BYTES,
-      maxSizeMb: MAX_FILE_SIZE_MB
-    });
-    if (validationError) return setFormStatus(statusEl, 'error-message', validationError);
+    for (const file of files) {
+      const validationError = getSupabaseFileValidationError(file, {
+        maxSizeBytes: MAX_FILE_SIZE_BYTES,
+        maxSizeMb: MAX_FILE_SIZE_MB
+      });
+      if (validationError) {
+        setFormStatus(statusEl, 'error-message', `"${file.name}": ${validationError}`);
+        return;
+      }
+    }
     uploadBtn.disabled = true;
-    setFormStatus(statusEl, '', `Uploading ${file.name}…`);
     const bucketName = accountSelect?.value && account ? STORAGE_BUCKETS.ACCOUNT_FILES : STORAGE_BUCKETS.CLIENT_DOCUMENTS;
-    const filePath = buildStoragePath(bucketName, {
-      clientId: userId,
-      accountId: account?.id || null,
-      propertyId: account?.property_id || null,
-      fileName: file.name
-    });
-    const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
-    if (storageError) {
+    const sharedNotes = notesInput?.value.trim() || null;
+    const uploadedPaths = [];
+    const insertedDocumentIds = [];
+    try {
+      for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+        const file = files[fileIndex];
+        setFormStatus(statusEl, '', `Uploading file ${fileIndex + 1} of ${files.length}: ${file.name}`);
+        const filePath = buildStoragePath(bucketName, {
+          clientId: userId,
+          accountId: account?.id || null,
+          propertyId: account?.property_id || null,
+          fileName: file.name
+        });
+        const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
+        if (storageError) throw new Error(`"${file.name}": ${storageError.message}`);
+        uploadedPaths.push(filePath);
+        const { data: insertedDocument, error: dbError } = await supabaseClient
+          .from('documents')
+          .insert([{
+            account_id: account.id,
+            property_id: account.property_id || null,
+            client_id: userId,
+            uploaded_by: userId,
+            file_name: file.name,
+            file_path: filePath,
+            bucket_name: bucketName,
+            file_type: file.type,
+            file_size: file.size,
+            category: categorySelect.value,
+            visibility: 'client_visible',
+            can_client_view: true,
+            can_client_edit: true,
+            status: 'Not Reviewed Yet',
+            priority: 'Medium',
+            notes: sharedNotes,
+            hidden: false,
+            updated_at: new Date().toISOString()
+          }])
+          .select('id')
+          .single();
+        if (dbError) {
+          throw new Error(`"${file.name}": ${typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message}`);
+        }
+        if (insertedDocument?.id) insertedDocumentIds.push(insertedDocument.id);
+      }
+    } catch (error) {
+      if (insertedDocumentIds.length) {
+        const { error: rollbackDbError } = await supabaseClient.from('documents').delete().in('id', insertedDocumentIds);
+        if (rollbackDbError) console.error('Document rollback failed:', rollbackDbError);
+      }
+      if (uploadedPaths.length) {
+        const { error: rollbackStorageError } = await supabaseClient.storage.from(bucketName).remove(uploadedPaths);
+        if (rollbackStorageError) console.error('Storage rollback failed:', rollbackStorageError);
+      }
       uploadBtn.disabled = false;
-      setFormStatus(statusEl, 'error-message', 'Upload failed: ' + storageError.message);
+      setFormStatus(statusEl, 'error-message', 'Upload failed: ' + error.message);
       return;
     }
-    const { error: dbError } = await supabaseClient.from('documents').insert([{
-      account_id: account.id,
-      property_id: account.property_id || null,
-      client_id: userId,
-      uploaded_by: userId,
-      file_name: file.name,
-      file_path: filePath,
-      bucket_name: bucketName,
-      file_type: file.type,
-      file_size: file.size,
-      category: categorySelect.value,
-      visibility: 'client_visible',
-      can_client_view: true,
-      can_client_edit: true,
-      status: 'Not Reviewed Yet',
-      priority: 'Medium',
-      notes: notesInput?.value.trim() || null,
-      hidden: false,
-      updated_at: new Date().toISOString()
-    }]);
     uploadBtn.disabled = false;
-    if (dbError) {
-      await supabaseClient.storage.from(bucketName).remove([filePath]);
-      setFormStatus(statusEl, 'error-message', 'Upload failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message));
-      return;
-    }
     event.target.reset();
-    setFormStatus(statusEl, 'success-message', 'File uploaded successfully.');
+    setFormStatus(statusEl, 'success-message', `${files.length} file${files.length === 1 ? '' : 's'} uploaded successfully.`);
     notifySubmission({
       submission_type: 'Client Document Upload',
       name: document.getElementById('client-name')?.textContent || 'Portal Client',
       email: document.getElementById('client-email')?.textContent || '',
       phone: '',
       property_of_interest: getPropertyById(account.property_id)?.property_address || null,
-      details: `Uploaded ${file.name}`,
+      details: `Uploaded ${files.length} file${files.length === 1 ? '' : 's'}`,
       submitted_at: new Date().toISOString()
     });
     await loadDocuments(userId);
