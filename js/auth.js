@@ -3,6 +3,9 @@
 // It does NOT run on admin.html or client-portal.html.
 
 (function () {
+  const PASSWORD_UPDATE_REDIRECT_DELAY = 1500;
+  const FORGOT_PASSWORD_REDIRECT_URL = 'https://propertiesbybrandy.com/reset-password.html';
+
   function showLoginMessage(message) {
     const errorBox = document.getElementById('login-error');
     if (!errorBox || !message) return;
@@ -212,18 +215,24 @@
 
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
 
-      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: new URL('reset-password.html', window.location.href).href
-      });
+      try {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+          redirectTo: FORGOT_PASSWORD_REDIRECT_URL
+        });
 
-      if (error) {
-        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = error.message; }
-      } else {
-        if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password reset email sent. Check your inbox and follow the link.'; }
+        if (error) throw error;
+
+        if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password reset link sent. Please check your email.'; }
         form.reset();
+      } catch (error) {
+        console.error('Forgot password request failed:', error);
+        if (statusEl) {
+          statusEl.className = 'form-status error-message';
+          statusEl.textContent = error?.message || 'Unable to send reset link. Please try again.';
+        }
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send Reset Link'; }
       }
-
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send Reset Link'; }
     });
   }
 
@@ -258,16 +267,16 @@
       const confirmEl = document.getElementById('confirm-password');
       const statusEl = document.getElementById('reset-status');
       const submitBtn = document.getElementById('reset-submit-btn');
-      const password = passwordEl ? passwordEl.value : '';
+      const newPassword = passwordEl ? passwordEl.value : '';
       const confirm = confirmEl ? confirmEl.value : '';
 
       if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
 
-      if (password.length < 8) {
+      if (newPassword.length < 8) {
         if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Password must be at least 8 characters.'; }
         return;
       }
-      if (password !== confirm) {
+      if (newPassword !== confirm) {
         if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Passwords do not match.'; }
         return;
       }
@@ -278,18 +287,24 @@
 
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Updating…'; }
 
-      const { error } = await supabaseClient.auth.updateUser({ password });
-      if (error) {
-        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = error.message; }
-      } else {
-        if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password updated successfully. Redirecting to your portal…'; }
-        setTimeout(async function () {
-          const profile = await getCurrentUserProfile();
-          window.location.replace(profile ? getPortalDestination(profile) : 'login.html');
-        }, 1000);
-      }
+      try {
+        const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+        if (error) throw error;
 
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Update Password'; }
+        if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password updated successfully. You can now sign in.'; }
+        // After reset, always route to sign-in so users re-authenticate with the new password.
+        setTimeout(function () {
+          window.location.replace('login.html');
+        }, PASSWORD_UPDATE_REDIRECT_DELAY);
+      } catch (error) {
+        console.error('Reset password update failed:', error);
+        if (statusEl) {
+          statusEl.className = 'form-status error-message';
+          statusEl.textContent = error?.message || 'Unable to update password. Please try again.';
+        }
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Update Password'; }
+      }
     });
   }
 
