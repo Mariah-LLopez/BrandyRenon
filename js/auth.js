@@ -7,6 +7,9 @@
   const RESET_PASSWORD_PAGE = 'reset-password.html';
 
   function getPasswordResetRedirectUrl() {
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+      return new URL(RESET_PASSWORD_PAGE, `${window.location.origin}/`).toString();
+    }
     return new URL(`/${RESET_PASSWORD_PAGE}`, window.location.href).toString();
   }
 
@@ -49,7 +52,7 @@
   async function redirectIfLoggedIn() {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) return false;
     const pathname = window.location.pathname || '';
-    if (pathname === `/${RESET_PASSWORD_PAGE}` || pathname.endsWith(`/${RESET_PASSWORD_PAGE}`)) return false;
+    if (pathname === RESET_PASSWORD_PAGE || pathname === `/${RESET_PASSWORD_PAGE}` || pathname.endsWith(`/${RESET_PASSWORD_PAGE}`)) return false;
     const session = await getSession();
     if (!session) return false;
     const profile = await getCurrentUserProfile();
