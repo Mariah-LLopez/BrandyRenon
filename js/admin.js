@@ -1370,12 +1370,15 @@
     const statusEl = document.getElementById('upload-status');
     const fileInput = document.getElementById('upload-file');
     const submitBtn = form?.querySelector('button[type="submit"]');
-    const file = fileInput?.files?.[0] || null;
-    const validationError = getSupabaseFileValidationError(file, {
-      maxSizeBytes: MAX_FILE_SIZE_BYTES,
-      maxSizeMb: MAX_FILE_SIZE_MB
-    });
-    if (validationError) return setFormStatus(statusEl, 'error-message', validationError);
+    const files = Array.from(fileInput?.files || []);
+    if (!files.length) return setFormStatus(statusEl, 'error-message', 'Select at least one file.');
+    for (const file of files) {
+      const validationError = getSupabaseFileValidationError(file, {
+        maxSizeBytes: MAX_FILE_SIZE_BYTES,
+        maxSizeMb: MAX_FILE_SIZE_MB
+      });
+      if (validationError) return setFormStatus(statusEl, 'error-message', `"${file.name}": ${validationError}`);
+    }
     const accountId = form.querySelector('[name="account_id"]').value || null;
     const account = getAccountById(accountId);
     const selectedClientId = form.querySelector('[name="client_id"]').value || null;
@@ -1397,67 +1400,93 @@
     const bucketName = isPublicPropertyImage
       ? STORAGE_BUCKETS.PROPERTY_IMAGES
       : (accountId ? STORAGE_BUCKETS.ACCOUNT_FILES : STORAGE_BUCKETS.CLIENT_DOCUMENTS);
-    const filePath = buildStoragePath(bucketName, {
-      accountId,
-      clientId,
-      propertyId,
-      fileName: file.name
-    });
     if (submitBtn) submitBtn.disabled = true;
-    setFormStatus(statusEl, '', `Uploading ${file.name}…`);
-    const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
-    if (storageError) {
-      if (submitBtn) submitBtn.disabled = false;
-      setFormStatus(statusEl, 'error-message', 'Upload failed: ' + storageError.message);
-      return;
-    }
     const signatureUrl = form.querySelector('[name="signature_url"]').value.trim();
-    const payload = {
-      account_id: accountId,
-      client_id: clientId,
-      property_id: propertyId,
-      uploaded_by: adminUserId,
-      file_name: file.name,
-      file_path: filePath,
-      bucket_name: bucketName,
-      file_type: file.type,
-      file_size: file.size,
-      category: isPublicPropertyImage ? 'Photo' : (form.querySelector('[name="category"]').value || 'Other'),
-      visibility: isPublicPropertyImage ? 'admin_only' : visibility,
-      can_client_view: canClientView,
-      can_client_edit: canClientEdit,
-      requires_signature: requiresSignature,
-      signature_provider: form.querySelector('[name="signature_provider"]').value || null,
-      signature_status: form.querySelector('[name="signature_status"]').value || (requiresSignature ? 'pending_signature' : 'available'),
-      signature_url: signatureUrl || null,
-      status: 'Not Reviewed Yet',
-      priority: 'Medium',
-      notes: form.querySelector('[name="notes"]').value.trim() || null,
-      hidden: false,
-      updated_at: nowIso()
-    };
-    const { error: dbError } = await supabaseClient.from('documents').insert([payload]);
-    if (dbError) {
-      await supabaseClient.storage.from(bucketName).remove([filePath]);
-      if (submitBtn) submitBtn.disabled = false;
-      setFormStatus(statusEl, 'error-message', 'Upload failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message));
-      return;
-    }
-    if (isPublicPropertyImage) {
-      try {
-        await appendPropertyPhoto(propertyId, filePath);
-      } catch (error) {
-        if (submitBtn) submitBtn.disabled = false;
-        setFormStatus(statusEl, 'error-message', 'File uploaded, but property image sync failed: ' + error.message);
-        await Promise.all([loadDocumentsData(), loadPropertiesData()]);
-        renderDocuments();
-        renderProperties();
-        updateSummaryCards();
-        return;
+    const uploadedPaths = [];
+    const insertedDocumentIds = [];
+    try {
+      for (let index = 0; index < files.length; index++) {
+        const file = files[index];
+        setFormStatus(statusEl, '', `Uploading file ${index + 1} of ${files.length}: ${file.name}`);
+        const filePath = buildStoragePath(bucketName, {
+          accountId,
+          clientId,
+          propertyId,
+          fileName: file.name
+        });
+        const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
+        if (storageError) throw new Error(`"${file.name}": ${storageError.message}`);
+        uploadedPaths.push(filePath);
+        const payload = {
+          account_id: accountId,
+          client_id: clientId,
+          property_id: propertyId,
+          uploaded_by: adminUserId,
+          file_name: file.name,
+          file_path: filePath,
+          bucket_name: bucketName,
+          file_type: file.type,
+          file_size: file.size,
+          category: isPublicPropertyImage ? 'Photo' : (form.querySelector('[name="category"]').value || 'Other'),
+          visibility: isPublicPropertyImage ? 'admin_only' : visibility,
+          can_client_view: canClientView,
+          can_client_edit: canClientEdit,
+          requires_signature: requiresSignature,
+          signature_provider: form.querySelector('[name="signature_provider"]').value || null,
+          signature_status: form.querySelector('[name="signature_status"]').value || (requiresSignature ? 'pending_signature' : 'available'),
+          signature_url: signatureUrl || null,
+          status: 'Not Reviewed Yet',
+          priority: 'Medium',
+          notes: form.querySelector('[name="notes"]').value.trim() || null,
+          hidden: false,
+          updated_at: nowIso()
+        };
+        const { data: insertedDocument, error: dbError } = await supabaseClient.from('documents').insert([payload]).select('id').single();
+        if (dbError) {
+          await supabaseClient.storage.from(bucketName).remove([filePath]);
+          uploadedPaths.pop();
+          throw new Error(`"${file.name}": ${typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message}`);
+        }
+        if (insertedDocument?.id) insertedDocumentIds.push(insertedDocument.id);
       }
+      if (isPublicPropertyImage && uploadedPaths.length) {
+        const propertyRecord = getPropertyById(propertyId);
+        const photoPaths = getPropertyPhotoPaths(propertyRecord);
+        const photoUrls = getPropertyPhotoUrls(propertyRecord);
+        uploadedPaths.forEach((filePath) => {
+          if (!photoPaths.includes(filePath)) photoPaths.push(filePath);
+          const { data: publicData } = supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).getPublicUrl(filePath);
+          const publicUrl = publicData?.publicUrl || null;
+          if (publicUrl && !photoUrls.includes(publicUrl)) photoUrls.push(publicUrl);
+        });
+        const { error: propertyError } = await supabaseClient
+          .from('properties')
+          .update({
+            photo_bucket: STORAGE_BUCKETS.PROPERTY_IMAGES,
+            photo_paths: photoPaths,
+            photo_urls: photoUrls,
+            updated_at: nowIso()
+          })
+          .eq('id', propertyId);
+        if (propertyError) throw new Error('Property image sync failed: ' + propertyError.message);
+      }
+    } catch (error) {
+      if (insertedDocumentIds.length) {
+        await supabaseClient.from('documents').delete().in('id', insertedDocumentIds);
+      }
+      if (uploadedPaths.length) {
+        await supabaseClient.storage.from(bucketName).remove(uploadedPaths);
+      }
+      if (submitBtn) submitBtn.disabled = false;
+      setFormStatus(statusEl, 'error-message', 'Upload failed: ' + error.message);
+      await Promise.all([loadDocumentsData(), loadPropertiesData()]);
+      renderDocuments();
+      renderProperties();
+      updateSummaryCards();
+      return;
     }
     if (submitBtn) submitBtn.disabled = false;
-    setFormStatus(statusEl, 'success-message', 'File uploaded successfully.');
+    setFormStatus(statusEl, 'success-message', `${files.length} file${files.length === 1 ? '' : 's'} uploaded successfully.`);
     form.reset();
     await Promise.all([loadDocumentsData(), loadPropertiesData()]);
     renderDocuments();
