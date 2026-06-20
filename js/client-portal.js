@@ -23,6 +23,7 @@
   let allProperties = [];
   let allAccounts = [];
   let allDocuments = [];
+  let allPropertyPhotoDocs = [];
   let allMaintenanceRequests = [];
   let allMaintenanceFiles = [];
   let allClientMessages = [];
@@ -194,7 +195,14 @@
   }
 
   function getPropertyPhotoUrls(property) {
-    return Array.isArray(property?.photo_urls) ? property.photo_urls.filter(Boolean) : [];
+    if (!property?.id) return [];
+    return allPropertyPhotoDocs
+      .filter((doc) => doc.property_id === property.id && doc.file_path)
+      .map((doc) => {
+        const { data } = supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).getPublicUrl(doc.file_path);
+        return data?.publicUrl || null;
+      })
+      .filter(Boolean);
   }
 
   function getPrimaryPropertyPhoto(property) {
@@ -224,6 +232,17 @@
     const { data, error } = await supabaseClient.from('properties').select('*').order('updated_at', { ascending: false });
     if (error) return;
     allProperties = data || [];
+    if (allProperties.length) {
+      const propertyIds = allProperties.map((p) => p.id);
+      const { data: photoDocs } = await supabaseClient
+        .from('documents')
+        .select('id, property_id, file_path, bucket_name')
+        .in('property_id', propertyIds)
+        .eq('category', 'Property Photo');
+      allPropertyPhotoDocs = photoDocs || [];
+    } else {
+      allPropertyPhotoDocs = [];
+    }
     if (propertySelect) {
       propertySelect.innerHTML = '<option value="">Select property…</option>' + allProperties.map((property) => `<option value="${escapeHtml(property.id)}">${escapeHtml(property.property_address)}</option>`).join('');
     }

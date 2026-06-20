@@ -113,10 +113,7 @@
     openModal('property');
   }
 
-  async function uploadPropertyPhotos(propertyId, files, property, onProgress) {
-    const existingProperty = property || {};
-    const mergedPaths = getPropertyPhotoPaths(existingProperty).slice();
-    const mergedUrls = getPropertyPhotoUrls(existingProperty).slice();
+  async function uploadPropertyPhotos(propertyId, files, onProgress) {
     const uploadedPaths = [];
     const uploadedFiles = [];
     try {
@@ -138,10 +135,6 @@
           console.error(`Photo upload error for "${file.name}":`, storageError);
           throw new Error(`"${file.name}": ${storageError.message}`);
         }
-        const { data: publicData } = supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).getPublicUrl(filePath);
-        const publicUrl = publicData?.publicUrl || null;
-        mergedPaths.push(filePath);
-        if (publicUrl) mergedUrls.push(publicUrl);
         uploadedPaths.push(filePath);
         uploadedFiles.push({
           file_name: file.name,
@@ -150,13 +143,7 @@
           file_size: file.size
         });
       }
-      return {
-        photo_bucket: STORAGE_BUCKETS.PROPERTY_IMAGES,
-        photo_paths: mergedPaths,
-        photo_urls: mergedUrls,
-        uploaded_paths: uploadedPaths,
-        uploaded_files: uploadedFiles
-      };
+      return { uploaded_paths: uploadedPaths, uploaded_files: uploadedFiles };
     } catch (error) {
       if (uploadedPaths.length) {
         await supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).remove(uploadedPaths);
@@ -234,30 +221,6 @@
     return `clients/${config.clientId || 'admin'}/documents/${config.propertyId || config.accountId || 'general'}/${uniquePrefix}-${safeName}`;
   }
 
-  async function appendPropertyPhoto(propertyId, filePath) {
-    if (!propertyId || !filePath) return null;
-    const property = getPropertyById(propertyId);
-    const photoPaths = getPropertyPhotoPaths(property);
-    const photoUrls = getPropertyPhotoUrls(property);
-    if (!photoPaths.includes(filePath)) photoPaths.push(filePath);
-    const { data: publicData } = supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).getPublicUrl(filePath);
-    const publicUrl = publicData?.publicUrl || null;
-    if (publicUrl && !photoUrls.includes(publicUrl)) photoUrls.push(publicUrl);
-    const { data, error } = await supabaseClient
-      .from('properties')
-      .update({
-        photo_bucket: STORAGE_BUCKETS.PROPERTY_IMAGES,
-        photo_paths: photoPaths,
-        photo_urls: photoUrls,
-        updated_at: nowIso()
-      })
-      .eq('id', propertyId)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  }
-
   async function insertPropertyPhotoDocuments(propertyId, uploadedFiles) {
     if (!propertyId || !uploadedFiles?.length) return;
     const payload = uploadedFiles.map((file) => ({
@@ -268,7 +231,7 @@
       bucket_name: STORAGE_BUCKETS.PROPERTY_IMAGES,
       file_type: file.file_type,
       file_size: file.file_size,
-      category: 'Photo',
+      category: 'Property Photo',
       visibility: 'admin_only',
       can_client_view: false,
       can_client_edit: false,
@@ -557,11 +520,21 @@
   }
 
   function getPropertyPhotoUrls(property) {
-    return Array.isArray(property?.photo_urls) ? property.photo_urls.filter(Boolean) : [];
+    if (!property?.id) return [];
+    return allDocuments
+      .filter((doc) => doc.property_id === property.id && doc.category === 'Property Photo' && doc.file_path)
+      .map((doc) => {
+        const { data } = supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).getPublicUrl(doc.file_path);
+        return data?.publicUrl || null;
+      })
+      .filter(Boolean);
   }
 
   function getPropertyPhotoPaths(property) {
-    return Array.isArray(property?.photo_paths) ? property.photo_paths.filter(Boolean) : [];
+    if (!property?.id) return [];
+    return allDocuments
+      .filter((doc) => doc.property_id === property.id && doc.category === 'Property Photo' && doc.file_path)
+      .map((doc) => doc.file_path);
   }
 
   function getPrimaryPropertyPhoto(property) {
@@ -1267,15 +1240,9 @@
       }
       if (photoFiles.length) {
         try {
-          const photoPayload = await uploadPropertyPhotos(savedProperty.id, photoFiles, savedProperty, function (fileName, index, total) {
+          const photoPayload = await uploadPropertyPhotos(savedProperty.id, photoFiles, function (fileName, index, total) {
             setFormStatus(statusEl, '', `Uploading photo ${index} of ${total}: ${fileName}`);
           });
-          const propertyPhotoUpdate = {
-            photo_bucket: photoPayload.photo_bucket,
-            photo_paths: photoPayload.photo_paths,
-            photo_urls: photoPayload.photo_urls,
-            updated_at: nowIso()
-          };
           if (photoPayload.uploaded_files?.length) {
             try {
               await insertPropertyPhotoDocuments(savedProperty.id, photoPayload.uploaded_files);
@@ -1286,14 +1253,6 @@
               throw error;
             }
           }
-          const { data, error } = await supabaseClient
-            .from('properties')
-            .update(propertyPhotoUpdate)
-            .eq('id', savedProperty.id)
-            .select()
-            .single();
-          if (error) throw error;
-          savedProperty = data || { ...savedProperty, ...propertyPhotoUpdate };
         } catch (error) {
           console.error('Photo upload error:', error);
           setFormStatus(statusEl, 'error-message', `Property saved, but photo upload failed: ${error.message}. You can retry uploading photos by editing this property.`);
@@ -1428,7 +1387,7 @@
           bucket_name: bucketName,
           file_type: file.type,
           file_size: file.size,
-          category: isPublicPropertyImage ? 'Photo' : (form.querySelector('[name="category"]').value || 'Other'),
+          category: isPublicPropertyImage ? 'Property Photo' : (form.querySelector('[name="category"]').value || 'Other'),
           visibility: isPublicPropertyImage ? 'admin_only' : visibility,
           can_client_view: canClientView,
           can_client_edit: canClientEdit,
@@ -1447,27 +1406,6 @@
           throw new Error(`"${file.name}": ${typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message}`);
         }
         if (insertedDocument?.id) insertedDocumentIds.push(insertedDocument.id);
-      }
-      if (isPublicPropertyImage && uploadedPaths.length) {
-        const propertyRecord = getPropertyById(propertyId);
-        const photoPaths = getPropertyPhotoPaths(propertyRecord);
-        const photoUrls = getPropertyPhotoUrls(propertyRecord);
-        uploadedPaths.forEach((filePath) => {
-          if (!photoPaths.includes(filePath)) photoPaths.push(filePath);
-          const { data: publicData } = supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).getPublicUrl(filePath);
-          const publicUrl = publicData?.publicUrl || null;
-          if (publicUrl && !photoUrls.includes(publicUrl)) photoUrls.push(publicUrl);
-        });
-        const { error: propertyError } = await supabaseClient
-          .from('properties')
-          .update({
-            photo_bucket: STORAGE_BUCKETS.PROPERTY_IMAGES,
-            photo_paths: photoPaths,
-            photo_urls: photoUrls,
-            updated_at: nowIso()
-          })
-          .eq('id', propertyId);
-        if (propertyError) throw new Error('Property image sync failed: ' + propertyError.message);
       }
     } catch (error) {
       if (insertedDocumentIds.length) {
@@ -1977,12 +1915,16 @@
     }
     if (action !== 'delete-property') return;
     if (!window.confirm('Delete this property? This cannot be undone.')) return;
-    const property = getPropertyById(propertyId);
+    const photoDocs = allDocuments.filter((doc) => doc.property_id === propertyId && doc.category === 'Property Photo');
+    const photoDocIds = photoDocs.map((doc) => doc.id).filter(Boolean);
+    const photoPaths = photoDocs.map((doc) => doc.file_path).filter(Boolean);
     const { error } = await supabaseClient.from('properties').delete().eq('id', propertyId);
     if (error) return window.alert(error.message);
-    const photoPaths = getPropertyPhotoPaths(property);
+    if (photoDocIds.length) {
+      await supabaseClient.from('documents').delete().in('id', photoDocIds);
+    }
     if (photoPaths.length) {
-      const { error: storageError } = await supabaseClient.storage.from(property?.photo_bucket || 'property-images').remove(photoPaths);
+      const { error: storageError } = await supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).remove(photoPaths);
       if (storageError) {
         window.alert(`Property deleted, but some photo files could not be removed: ${storageError.message}`);
       }
