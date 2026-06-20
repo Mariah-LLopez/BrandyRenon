@@ -6,11 +6,6 @@
   const PASSWORD_UPDATE_REDIRECT_DELAY = 1500;
   const RESET_PASSWORD_PAGE = 'reset-password.html';
 
-  function getCurrentPageName() {
-    const pathname = window.location.pathname || '';
-    return pathname.split('/').filter(Boolean).pop() || '';
-  }
-
   function getPasswordResetRedirectUrl() {
     try {
       return new URL(`/${RESET_PASSWORD_PAGE}`, window.location.origin).toString();
@@ -56,15 +51,16 @@
   }
 
   async function redirectIfLoggedIn() {
-    if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
-    if (getCurrentPageName() === RESET_PASSWORD_PAGE) return false;
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) return false;
+    const pathname = window.location.pathname || '';
+    if (pathname === `/${RESET_PASSWORD_PAGE}` || pathname.endsWith(`/${RESET_PASSWORD_PAGE}`)) return false;
     const session = await getSession();
-    if (!session) return;
+    if (!session) return false;
     const profile = await getCurrentUserProfile();
-    if (!profile) return;
+    if (!profile) return false;
     if (profile.role !== 'admin' && profile.status === 'inactive') {
       await supabaseClient.auth.signOut();
-      return;
+      return false;
     }
     window.location.replace(getPortalDestination(profile));
     return true;
