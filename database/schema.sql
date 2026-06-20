@@ -391,7 +391,9 @@ values
   ('client-documents', 'client-documents', false),
   ('maintenance-files', 'maintenance-files', false),
   ('account-files', 'account-files', false)
-on conflict (id) do update set public = excluded.public;
+on conflict (id) do update set
+  name = excluded.name,
+  public = excluded.public;
 
 drop policy if exists "storage_admin_all" on storage.objects;
 create policy "storage_admin_all" on storage.objects

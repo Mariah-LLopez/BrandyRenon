@@ -1,4 +1,11 @@
 (function () {
+  const STORAGE_BUCKETS = window.STORAGE_BUCKETS || {
+    PROPERTY_IMAGES: 'property-images',
+    CLIENT_DOCUMENTS: 'client-documents',
+    MAINTENANCE_FILES: 'maintenance-files',
+    ACCOUNT_FILES: 'account-files',
+    LEGACY_PROPERTY_DOCUMENTS: 'property-documents'
+  };
   const MAX_FILE_SIZE_MB = 10;
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
   const ALLOWED_EXTENSIONS = window.SUPABASE_FILE_RULES?.allowedExtensions || ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.webp'];
@@ -214,7 +221,7 @@
       return `clients/${config.clientId || 'admin'}/accounts/${config.accountId || 'unassigned'}/${uniquePrefix}-${safeName}`;
     }
     if (bucketName === STORAGE_BUCKETS.MAINTENANCE_FILES) {
-      return `clients/${config.clientId || 'unknown'}/maintenance/${config.requestId || 'pending'}/${uniquePrefix}-${safeName}`;
+      return `clients/${config.clientId || 'admin'}/maintenance/${config.requestId || 'pending'}/${uniquePrefix}-${safeName}`;
     }
     return `clients/${config.clientId || 'admin'}/documents/${config.propertyId || config.accountId || 'general'}/${uniquePrefix}-${safeName}`;
   }
@@ -1369,10 +1376,11 @@
     const isPublicPropertyImage = document.getElementById('upload-public-image')?.checked;
     const requiresSignature = !isPublicPropertyImage && document.getElementById('upload-requires-sig').checked;
     const property = propertyId ? getPropertyById(propertyId) : null;
+    const isPublicProperty = property ? (property.visibility === 'public' || property.is_public === true) : false;
     if (isPublicPropertyImage && !propertyId) {
       return setFormStatus(statusEl, 'error-message', 'Select a property before marking a file as a public property image.');
     }
-    if (isPublicPropertyImage && property && !property.is_public && property.visibility !== 'public') {
+    if (isPublicPropertyImage && property && !isPublicProperty) {
       return setFormStatus(statusEl, 'error-message', 'Only public properties can receive public listing images.');
     }
     const canClientEdit = !isPublicPropertyImage && (document.getElementById('upload-client-edit').checked || requiresSignature);

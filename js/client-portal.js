@@ -1,4 +1,11 @@
 (function () {
+  const STORAGE_BUCKETS = window.STORAGE_BUCKETS || {
+    PROPERTY_IMAGES: 'property-images',
+    CLIENT_DOCUMENTS: 'client-documents',
+    MAINTENANCE_FILES: 'maintenance-files',
+    ACCOUNT_FILES: 'account-files',
+    LEGACY_PROPERTY_DOCUMENTS: 'property-documents'
+  };
   const MAX_FILE_SIZE_MB = 10;
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
   const ALLOWED_EXTENSIONS = window.SUPABASE_FILE_RULES?.allowedExtensions || ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.webp'];
@@ -376,7 +383,7 @@
         <td>${escapeHtml(getPropertyById(doc.property_id)?.property_address || 'Unassigned')}</td>
         <td>${signatureBadge(doc)}</td>
         <td>${formatDateOnly(doc.created_at)}</td>
-        <td><div class="table-actions"><button class="action-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">Open</button><button class="action-link" data-action="download-file" data-id="${escapeHtml(doc.id)}" type="button">Download</button>${doc.signature_url ? `<button class="action-link badge-doc-required-btn" data-action="sign-file" data-id="${escapeHtml(doc.id)}" type="button">Sign Document</button>` : ''}</div></td>
+        <td><div class="table-actions"><button class="action-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">Open</button> <button class="action-link" data-action="download-file" data-id="${escapeHtml(doc.id)}" type="button">Download</button>${doc.signature_url ? ` <button class="action-link badge-doc-required-btn" data-action="sign-file" data-id="${escapeHtml(doc.id)}" type="button">Sign Document</button>` : ''}</div></td>
       </tr>
     `).join('');
     });
@@ -397,7 +404,7 @@
       config.tbody.innerHTML = config.rows.map((request) => {
         const files = getMaintenanceFiles(request.id);
         const fileLinks = files.length
-          ? `<div class="file-link-grid">${files.map((file) => `<button class="action-link" data-action="open-maint-file" data-id="${escapeHtml(file.id)}" type="button">${escapeHtml(file.file_name)}</button><button class="action-link" data-action="download-maint-file" data-id="${escapeHtml(file.id)}" type="button">Download</button>`).join('')}</div>`
+          ? `<div class="file-link-grid">${files.map((file) => `<button class="action-link" data-action="open-maint-file" data-id="${escapeHtml(file.id)}" type="button">${escapeHtml(file.file_name)}</button> <button class="action-link" data-action="download-maint-file" data-id="${escapeHtml(file.id)}" type="button">Download</button>`).join('')}</div>`
           : 'None';
         return `
           <tr>
