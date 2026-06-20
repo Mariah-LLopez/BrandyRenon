@@ -1,5 +1,5 @@
-// auth.js - Login, register, forgot-password, and reset-password page logic.
-// This file is used by login.html, forgot-password.html, and reset-password.html.
+// auth.js - Login, register, and reset-password page logic.
+// This file is used by login.html and reset-password.html.
 // It does NOT run on admin.html or client-portal.html.
 
 (function () {
@@ -201,62 +201,6 @@
     });
   }
 
-  function initForgotPasswordForm() {
-    const form = document.getElementById('forgot-password-form');
-    if (!form) return;
-
-    form.addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const email = form.querySelector('[name="email"]').value.trim();
-      const statusEl = document.getElementById('forgot-status');
-      const submitBtn = form.querySelector('button[type="submit"]');
-
-      if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
-
-      if (!email) {
-        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Please enter your email address.'; }
-        return;
-      }
-
-      if (typeof supabaseClient === 'undefined' || !supabaseClient) {
-        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Service unavailable. Please try again later.'; }
-        return;
-      }
-
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
-
-      try {
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-          redirectTo: getPasswordResetRedirectUrl()
-        });
-
-        if (error) {
-          console.error('Password reset error:', error);
-          const message = error.message || error.error_description || 'Password reset failed. Please try again.';
-          if (statusEl) {
-            statusEl.textContent = message;
-            statusEl.className = 'form-status error-message';
-          }
-          return;
-        }
-
-        if (statusEl) {
-          statusEl.textContent = 'Password reset link sent. Please check your email.';
-          statusEl.className = 'form-status success-message';
-        }
-        form.reset();
-      } catch (err) {
-        console.error('Forgot password request failed:', err);
-        if (statusEl) {
-          statusEl.className = 'form-status error-message';
-          statusEl.textContent = err.message || err.error_description || 'Unable to send reset link. Please try again.';
-        }
-      } finally {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send Reset Link'; }
-      }
-    });
-  }
-
   function initResetPasswordForm() {
     const form = document.getElementById('reset-password-form');
     const formContainer = document.getElementById('reset-form-container');
@@ -336,7 +280,6 @@
     initLoginTabs();
     initLoginForm();
     initRegisterForm();
-    initForgotPasswordForm();
     initResetPasswordForm();
   });
 })();

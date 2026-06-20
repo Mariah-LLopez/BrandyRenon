@@ -447,6 +447,9 @@ create index if not exists idx_client_property_assignments_property_id on public
 alter table public.properties add column if not exists visibility text;
 alter table public.properties add column if not exists is_public boolean;
 alter table public.properties add column if not exists updated_at timestamptz;
+alter table public.properties add column if not exists photo_urls text[];
+alter table public.properties add column if not exists photo_paths text[];
+alter table public.properties add column if not exists photo_bucket text;
 update public.properties
 set
   visibility = case
@@ -469,12 +472,27 @@ where
 update public.properties
 set updated_at = coalesce(updated_at, created_at, now())
 where updated_at is null;
+update public.properties
+set
+  photo_urls = coalesce(photo_urls, '{}'::text[]),
+  photo_paths = coalesce(photo_paths, '{}'::text[]),
+  photo_bucket = coalesce(nullif(photo_bucket, ''), 'property-images')
+where photo_urls is null
+   or photo_paths is null
+   or photo_bucket is null
+   or photo_bucket = '';
 alter table public.properties alter column visibility set default 'internal';
 alter table public.properties alter column visibility set not null;
 alter table public.properties alter column is_public set default false;
 alter table public.properties alter column is_public set not null;
 alter table public.properties alter column updated_at set default now();
 alter table public.properties alter column updated_at set not null;
+alter table public.properties alter column photo_urls set default '{}';
+alter table public.properties alter column photo_urls set not null;
+alter table public.properties alter column photo_paths set default '{}';
+alter table public.properties alter column photo_paths set not null;
+alter table public.properties alter column photo_bucket set default 'property-images';
+alter table public.properties alter column photo_bucket set not null;
 alter table public.properties drop constraint if exists properties_visibility_check;
 alter table public.properties
   add constraint properties_visibility_check

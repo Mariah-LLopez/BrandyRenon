@@ -149,6 +149,14 @@
     return allProperties.find((property) => property.id === propertyId) || null;
   }
 
+  function getPropertyPhotoUrls(property) {
+    return Array.isArray(property?.photo_urls) ? property.photo_urls.filter(Boolean) : [];
+  }
+
+  function getPrimaryPropertyPhoto(property) {
+    return getPropertyPhotoUrls(property)[0] || null;
+  }
+
   function getAccountById(accountId) {
     return allAccounts.find((account) => account.id === accountId) || null;
   }
@@ -301,18 +309,25 @@
         return;
       }
       config.empty.hidden = true;
-      config.mount.innerHTML = config.rows.map((account) => `
+      config.mount.innerHTML = config.rows.map((account) => {
+        const property = getPropertyById(account.property_id);
+        const propertyPhoto = getPrimaryPropertyPhoto(property);
+        return `
         <div class="dashboard-card">
           <p class="eyebrow">${escapeHtml(account.account_type || 'Account')}</p>
           <h3>${escapeHtml(account.account_name)}</h3>
-          <div class="account-card-meta">
+          <div class="account-property-stack">
+            ${propertyPhoto ? `<img class="account-property-preview" src="${escapeHtml(propertyPhoto)}" alt="Photo of ${escapeHtml(property?.property_address || account.account_name)}">` : ''}
+            <div class="account-card-meta">
             <p>${statusPill(account.status)}</p>
-            <p><strong>Property:</strong> ${escapeHtml(getPropertyById(account.property_id)?.property_address || 'Unassigned')}</p>
+            <p><strong>Property:</strong> ${escapeHtml(property?.property_address || 'Unassigned')}</p>
             ${account.client_notes ? `<p class="account-card-notes">${escapeHtml(account.client_notes)}</p>` : ''}
             ${account.required_tasks ? `<p><strong>Required:</strong> ${escapeHtml(account.required_tasks)}</p>` : ''}
           </div>
+          </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     });
   }
 
