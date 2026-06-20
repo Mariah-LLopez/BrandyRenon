@@ -41,6 +41,7 @@ const STORAGE_BUCKETS = Object.freeze({
 const PUBLIC_STORAGE_BUCKETS = new Set([STORAGE_BUCKETS.PROPERTY_IMAGES]);
 const PORTAL_ALLOWED_EXTENSIONS = Object.freeze(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.webp']);
 const PORTAL_ALLOWED_IMAGE_EXTENSIONS = Object.freeze(['.jpg', '.jpeg', '.png', '.webp']);
+const DEFAULT_SIGNED_URL_EXPIRATION = 300;
 const PORTAL_ALLOWED_MIME_TYPES = Object.freeze([
   'application/pdf',
   'application/msword',
@@ -97,7 +98,7 @@ function getSupabaseFileValidationError(file, options) {
 
 async function getSupabaseStorageUrl(bucketName, filePath, options) {
   if (!bucketName || !filePath) return null;
-  const expiresIn = Number(options?.expiresIn) > 0 ? Number(options.expiresIn) : 300;
+  const expiresIn = Number(options?.expiresIn) > 0 ? Number(options.expiresIn) : DEFAULT_SIGNED_URL_EXPIRATION;
   if (isPublicStorageBucket(bucketName)) {
     const { data } = supabaseClient.storage.from(bucketName).getPublicUrl(filePath);
     return data?.publicUrl || null;

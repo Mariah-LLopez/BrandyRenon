@@ -404,7 +404,7 @@
       config.tbody.innerHTML = config.rows.map((request) => {
         const files = getMaintenanceFiles(request.id);
         const fileLinks = files.length
-          ? `<div class="file-link-grid">${files.map((file) => `<button class="action-link" data-action="open-maint-file" data-id="${escapeHtml(file.id)}" type="button">${escapeHtml(file.file_name)}</button> <button class="action-link" data-action="download-maint-file" data-id="${escapeHtml(file.id)}" type="button">Download</button>`).join('')}</div>`
+          ? `<div class="file-link-grid">${files.map((file) => `<span class="table-actions"><button class="action-link" data-action="open-maint-file" data-id="${escapeHtml(file.id)}" type="button">${escapeHtml(file.file_name)}</button><button class="action-link" data-action="download-maint-file" data-id="${escapeHtml(file.id)}" type="button">Download</button></span>`).join('')}</div>`
           : 'None';
         return `
           <tr>
@@ -520,7 +520,7 @@
     if (validationError) return setFormStatus(statusEl, 'error-message', validationError);
     uploadBtn.disabled = true;
     setFormStatus(statusEl, '', `Uploading ${file.name}…`);
-    const bucketName = account?.id ? STORAGE_BUCKETS.ACCOUNT_FILES : STORAGE_BUCKETS.CLIENT_DOCUMENTS;
+    const bucketName = accountSelect?.value && account ? STORAGE_BUCKETS.ACCOUNT_FILES : STORAGE_BUCKETS.CLIENT_DOCUMENTS;
     const filePath = buildStoragePath(bucketName, {
       clientId: userId,
       accountId: account?.id || null,

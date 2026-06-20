@@ -138,7 +138,8 @@
           console.error(`Photo upload error for "${file.name}":`, storageError);
           throw new Error(`"${file.name}": ${storageError.message}`);
         }
-        const publicUrl = await getSupabaseStorageUrl(STORAGE_BUCKETS.PROPERTY_IMAGES, filePath, { expiresIn: 300 });
+        const { data: publicData } = supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).getPublicUrl(filePath);
+        const publicUrl = publicData?.publicUrl || null;
         mergedPaths.push(filePath);
         if (publicUrl) mergedUrls.push(publicUrl);
         uploadedPaths.push(filePath);
@@ -232,7 +233,8 @@
     const photoPaths = getPropertyPhotoPaths(property);
     const photoUrls = getPropertyPhotoUrls(property);
     if (!photoPaths.includes(filePath)) photoPaths.push(filePath);
-    const publicUrl = await getSupabaseStorageUrl(STORAGE_BUCKETS.PROPERTY_IMAGES, filePath, { expiresIn: 300 });
+    const { data: publicData } = supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).getPublicUrl(filePath);
+    const publicUrl = publicData?.publicUrl || null;
     if (publicUrl && !photoUrls.includes(publicUrl)) photoUrls.push(publicUrl);
     const { data, error } = await supabaseClient
       .from('properties')
@@ -1370,7 +1372,10 @@
     const accountId = form.querySelector('[name="account_id"]').value || null;
     const account = getAccountById(accountId);
     const selectedClientId = form.querySelector('[name="client_id"]').value || null;
-    const clientId = accountId ? (getPrimaryAccountClientId(accountId) || selectedClientId) : selectedClientId;
+    const assignedClientIds = accountId ? getAccountClientIds(accountId) : [];
+    const clientId = accountId
+      ? ((selectedClientId && assignedClientIds.includes(selectedClientId)) ? selectedClientId : (getPrimaryAccountClientId(accountId) || selectedClientId))
+      : selectedClientId;
     const propertyId = account?.property_id || form.querySelector('[name="property_id"]').value || null;
     const visibility = form.querySelector('[name="visibility"]').value;
     const isPublicPropertyImage = document.getElementById('upload-public-image')?.checked;
