@@ -4,7 +4,29 @@
 
 (function () {
   const PASSWORD_UPDATE_REDIRECT_DELAY = 1500;
-  const FORGOT_PASSWORD_REDIRECT_URL = 'https://propertiesbybrandy.com/reset-password.html';
+  const RESET_PASSWORD_PAGE = 'reset-password.html';
+
+  function getPasswordResetRedirectUrl() {
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+      return new URL(RESET_PASSWORD_PAGE, `${window.location.origin}/`).toString();
+    }
+    return new URL(`/${RESET_PASSWORD_PAGE}`, window.location.href).toString();
+  }
+
+  function getErrorMessage(error, fallbackMessage) {
+    if (!error) return fallbackMessage;
+    if (typeof error === 'string' && error.trim()) return error;
+    if (typeof error?.message === 'string' && error.message.trim()) return error.message;
+    if (typeof error?.error_description === 'string' && error.error_description.trim()) return error.error_description;
+    if (typeof error?.description === 'string' && error.description.trim()) return error.description;
+    try {
+      const serialized = JSON.stringify(error);
+      if (serialized && serialized !== '{}') return serialized;
+    } catch (serializationError) {
+      // Ignore serialization errors and fall back to the generic message.
+    }
+    return fallbackMessage;
+  }
 
   function showLoginMessage(message) {
     const errorBox = document.getElementById('login-error');
@@ -28,14 +50,16 @@
   }
 
   async function redirectIfLoggedIn() {
-    if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) return false;
+    const pathname = window.location.pathname || '';
+    if (pathname === RESET_PASSWORD_PAGE || pathname === `/${RESET_PASSWORD_PAGE}` || pathname.endsWith(`/${RESET_PASSWORD_PAGE}`)) return false;
     const session = await getSession();
-    if (!session) return;
+    if (!session) return false;
     const profile = await getCurrentUserProfile();
-    if (!profile) return;
+    if (!profile) return false;
     if (profile.role !== 'admin' && profile.status === 'inactive') {
       await supabaseClient.auth.signOut();
-      return;
+      return false;
     }
     window.location.replace(getPortalDestination(profile));
     return true;
@@ -217,7 +241,7 @@
 
       try {
         const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-          redirectTo: FORGOT_PASSWORD_REDIRECT_URL
+          redirectTo: getPasswordResetRedirectUrl()
         });
 
         if (error) throw error;
@@ -228,7 +252,7 @@
         console.error('Forgot password request failed:', error);
         if (statusEl) {
           statusEl.className = 'form-status error-message';
-          statusEl.textContent = error?.message || 'Unable to send reset link. Please try again.';
+          statusEl.textContent = getErrorMessage(error, 'Unable to send reset link. Please try again.');
         }
       } finally {
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send Reset Link'; }
@@ -300,7 +324,7 @@
         console.error('Reset password update failed:', error);
         if (statusEl) {
           statusEl.className = 'form-status error-message';
-          statusEl.textContent = error?.message || 'Unable to update password. Please try again.';
+          statusEl.textContent = getErrorMessage(error, 'Unable to update password. Please try again.');
         }
       } finally {
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Update Password'; }
