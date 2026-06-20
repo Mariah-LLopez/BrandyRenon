@@ -1405,9 +1405,9 @@
     const uploadedPaths = [];
     const insertedDocumentIds = [];
     try {
-      for (let index = 0; index < files.length; index++) {
-        const file = files[index];
-        setFormStatus(statusEl, '', `Uploading file ${index + 1} of ${files.length}: ${file.name}`);
+      for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+        const file = files[fileIndex];
+        setFormStatus(statusEl, '', `Uploading file ${fileIndex + 1} of ${files.length}: ${file.name}`);
         const filePath = buildStoragePath(bucketName, {
           accountId,
           clientId,
@@ -1470,10 +1470,12 @@
       }
     } catch (error) {
       if (insertedDocumentIds.length) {
-        await supabaseClient.from('documents').delete().in('id', insertedDocumentIds);
+        const { error: rollbackDbError } = await supabaseClient.from('documents').delete().in('id', insertedDocumentIds);
+        if (rollbackDbError) console.error('Document rollback failed:', rollbackDbError);
       }
       if (uploadedPaths.length) {
-        await supabaseClient.storage.from(bucketName).remove(uploadedPaths);
+        const { error: rollbackStorageError } = await supabaseClient.storage.from(bucketName).remove(uploadedPaths);
+        if (rollbackStorageError) console.error('Storage rollback failed:', rollbackStorageError);
       }
       if (submitBtn) submitBtn.disabled = false;
       setFormStatus(statusEl, 'error-message', 'Upload failed: ' + error.message);
