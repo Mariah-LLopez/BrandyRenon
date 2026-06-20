@@ -217,11 +217,7 @@
           redirectTo: 'https://propertiesbybrandy.com/reset-password.html'
         });
 
-        if (error) {
-          console.error('Forgot password request failed:', error);
-          if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = error.message || 'Unable to send reset link. Please try again.'; }
-          return;
-        }
+        if (error) throw error;
 
         if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password reset link sent. Please check your email.'; }
         form.reset();
@@ -290,11 +286,7 @@
 
       try {
         const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
-        if (error) {
-          console.error('Reset password update failed:', error);
-          if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = error.message || 'Unable to update password. Please try again.'; }
-          return;
-        }
+        if (error) throw error;
 
         if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password updated successfully. You can now sign in.'; }
         setTimeout(function () {
