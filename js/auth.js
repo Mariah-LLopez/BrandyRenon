@@ -13,20 +13,6 @@
     return new URL(`/${RESET_PASSWORD_PAGE}`, window.location.href).toString();
   }
 
-  function getErrorMessage(error, fallbackMessage) {
-    if (!error) return fallbackMessage;
-    if (typeof error === 'string' && error.trim()) return error;
-    if (typeof error?.message === 'string' && error.message.trim()) return error.message;
-    if (typeof error?.error_description === 'string' && error.error_description.trim()) return error.error_description;
-    if (typeof error?.description === 'string' && error.description.trim()) return error.description;
-    try {
-      const serialized = JSON.stringify(error);
-      if (serialized && serialized !== '{}') return serialized;
-    } catch (serializationError) {
-      // Ignore serialization errors and fall back to the generic message.
-    }
-    return fallbackMessage;
-  }
 
   function showLoginMessage(message) {
     const errorBox = document.getElementById('login-error');
@@ -244,15 +230,26 @@
           redirectTo: getPasswordResetRedirectUrl()
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Password reset error:', error);
+          const message = error.message || error.error_description || 'Password reset failed. Please try again.';
+          if (statusEl) {
+            statusEl.textContent = message;
+            statusEl.className = 'form-status error-message';
+          }
+          return;
+        }
 
-        if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password reset link sent. Please check your email.'; }
+        if (statusEl) {
+          statusEl.textContent = 'Password reset link sent. Please check your email.';
+          statusEl.className = 'form-status success-message';
+        }
         form.reset();
-      } catch (error) {
-        console.error('Forgot password request failed:', error);
+      } catch (err) {
+        console.error('Forgot password request failed:', err);
         if (statusEl) {
           statusEl.className = 'form-status error-message';
-          statusEl.textContent = getErrorMessage(error, 'Unable to send reset link. Please try again.');
+          statusEl.textContent = err.message || err.error_description || 'Unable to send reset link. Please try again.';
         }
       } finally {
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send Reset Link'; }
@@ -320,11 +317,11 @@
         setTimeout(function () {
           window.location.replace('login.html');
         }, PASSWORD_UPDATE_REDIRECT_DELAY);
-      } catch (error) {
-        console.error('Reset password update failed:', error);
+      } catch (err) {
+        console.error('Reset password update failed:', err);
         if (statusEl) {
           statusEl.className = 'form-status error-message';
-          statusEl.textContent = getErrorMessage(error, 'Unable to update password. Please try again.');
+          statusEl.textContent = err.message || err.error_description || 'Unable to update password. Please try again.';
         }
       } finally {
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Update Password'; }
