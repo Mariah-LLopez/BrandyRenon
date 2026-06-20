@@ -3,7 +3,7 @@
 // It does NOT run on admin.html or client-portal.html.
 
 (function () {
-  const PASSWORD_UPDATE_REDIRECT_DELAY_MS = 1500;
+  const PASSWORD_UPDATE_REDIRECT_DELAY = 1500;
   const FORGOT_PASSWORD_REDIRECT_URL = 'https://propertiesbybrandy.com/reset-password.html';
 
   function showLoginMessage(message) {
@@ -292,10 +292,10 @@
         if (error) throw error;
 
         if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password updated successfully. You can now sign in.'; }
-        // Intentionally return users to sign-in after password change.
+        // After reset, always route to sign-in so users re-authenticate with the new password.
         setTimeout(function () {
           window.location.replace('login.html');
-        }, PASSWORD_UPDATE_REDIRECT_DELAY_MS);
+        }, PASSWORD_UPDATE_REDIRECT_DELAY);
       } catch (error) {
         console.error('Reset password update failed:', error);
         if (statusEl) {
