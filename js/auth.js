@@ -4,6 +4,7 @@
 
 (function () {
   const PASSWORD_UPDATE_REDIRECT_DELAY_MS = 1500;
+  const FORGOT_PASSWORD_REDIRECT_URL = 'https://propertiesbybrandy.com/reset-password.html';
 
   function showLoginMessage(message) {
     const errorBox = document.getElementById('login-error');
@@ -216,7 +217,7 @@
 
       try {
         const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-          redirectTo: 'https://propertiesbybrandy.com/reset-password.html'
+          redirectTo: FORGOT_PASSWORD_REDIRECT_URL
         });
 
         if (error) throw error;
@@ -291,6 +292,7 @@
         if (error) throw error;
 
         if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Password updated successfully. You can now sign in.'; }
+        // Intentionally return users to sign-in after password change.
         setTimeout(function () {
           window.location.replace('login.html');
         }, PASSWORD_UPDATE_REDIRECT_DELAY_MS);
