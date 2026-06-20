@@ -119,7 +119,7 @@
         if (!isAllowedImageMime(file.type) || !hasAllowedImageExtension(file.name)) {
           throw new Error('Property photos must be PNG, JPG, JPEG, GIF, or WEBP files.');
         }
-        const uniquePrefix = createUploadToken();
+        const uniquePrefix = createUniqueFilePrefix();
         const filePath = `properties/${propertyId}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
         const { error: storageError } = await supabaseClient.storage.from('property-images').upload(filePath, file);
         if (storageError) throw new Error(storageError.message);
@@ -177,7 +177,7 @@
     return ALLOWED_IMAGE_MIME_TYPES.includes((mime || '').toLowerCase());
   }
 
-  function createUploadToken() {
+  function createUniqueFilePrefix() {
     if (typeof crypto !== 'undefined') {
       if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
       if (typeof crypto.getRandomValues === 'function') {
@@ -1254,7 +1254,7 @@
     const canClientEdit = document.getElementById('upload-client-edit').checked || requiresSignature;
     const canClientView = visibility !== 'admin_only';
     const bucketName = file.type.startsWith('image/') ? 'property-images' : 'property-documents';
-    const uniquePrefix = createUploadToken();
+    const uniquePrefix = createUniqueFilePrefix();
     const filePath = `${accountId || clientId || 'admin'}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
     const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
     if (storageError) {

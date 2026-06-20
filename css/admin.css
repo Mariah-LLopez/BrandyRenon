@@ -107,6 +107,7 @@
   display: none;
 }
 
+/* Keep portal tabs aligned by forcing visible tab panels into a consistent full-width stack. */
 .tab-panel:not([hidden]),
 .lead-tab-panel:not([hidden]),
 .workflow-panel:not([hidden]) {
