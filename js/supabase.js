@@ -41,7 +41,7 @@ const STORAGE_BUCKETS = Object.freeze({
 const PUBLIC_STORAGE_BUCKETS = new Set([STORAGE_BUCKETS.PROPERTY_IMAGES]);
 const PORTAL_ALLOWED_EXTENSIONS = Object.freeze(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.webp']);
 const PORTAL_ALLOWED_IMAGE_EXTENSIONS = Object.freeze(['.jpg', '.jpeg', '.png', '.webp']);
-const DEFAULT_SIGNED_URL_EXPIRATION = 300;
+const DEFAULT_SIGNED_URL_EXPIRATION = 3600;
 const PORTAL_ALLOWED_MIME_TYPES = Object.freeze([
   'application/pdf',
   'application/msword',
