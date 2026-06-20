@@ -111,7 +111,7 @@
     const existingProperty = property || {};
     const mergedPaths = getPropertyPhotoPaths(existingProperty).slice();
     const mergedUrls = getPropertyPhotoUrls(existingProperty).slice();
-    const newPaths = [];
+    const uploadedPaths = [];
     try {
       for (const file of files) {
         if (file.size > MAX_FILE_SIZE_BYTES) {
@@ -127,7 +127,7 @@
         const { data: publicData } = supabaseClient.storage.from('property-images').getPublicUrl(filePath);
         mergedPaths.push(filePath);
         if (publicData?.publicUrl) mergedUrls.push(publicData.publicUrl);
-        newPaths.push(filePath);
+        uploadedPaths.push(filePath);
       }
       return {
         photo_bucket: 'property-images',
@@ -135,8 +135,8 @@
         photo_urls: mergedUrls
       };
     } catch (error) {
-      if (newPaths.length) {
-        await supabaseClient.storage.from('property-images').remove(newPaths);
+      if (uploadedPaths.length) {
+        await supabaseClient.storage.from('property-images').remove(uploadedPaths);
       }
       throw error;
     }
@@ -1150,7 +1150,7 @@
     }
     if (!savedProperty?.id) {
       statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Property saved, but the new record could not be loaded for photo upload.';
+      statusEl.textContent = 'Property saved successfully, but could not load the record for photo upload. Please refresh and try uploading photos again.';
       await loadPropertiesData();
       renderProperties();
       renderUsers();
@@ -1169,7 +1169,7 @@
         savedProperty = data || { ...savedProperty, ...photoPayload };
       } catch (error) {
         statusEl.className = 'form-status error-message';
-        statusEl.textContent = `Property saved, but photos could not be uploaded: ${error.message}`;
+        statusEl.textContent = `Property saved, but photo upload failed: ${error.message}. You can retry uploading photos by editing this property.`;
         await loadPropertiesData();
         renderProperties();
         renderUsers();
