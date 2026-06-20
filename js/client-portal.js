@@ -50,6 +50,16 @@
     return map[String(value || '').toLowerCase()] || value || 'Not Reviewed Yet';
   }
 
+  function normalizeTaskStatus(value) {
+    const map = { 'not reviewed': 'Not Reviewed Yet', 'waiting on user': 'In Progress', 'waiting on admin': 'In Progress', archived: 'Completed' };
+    return map[String(value || '').toLowerCase()] || value || 'Not Reviewed Yet';
+  }
+
+  function normalizeMessageStatus(value) {
+    const map = { open: 'Not Reviewed Yet', 'not reviewed': 'Not Reviewed Yet', replied: 'Completed', closed: 'Completed' };
+    return map[String(value || '').toLowerCase()] || value || 'Not Reviewed Yet';
+  }
+
   function setWorkflowTab(group, target) {
     document.querySelectorAll(`[data-workflow-group="${group}"]`).forEach((button) => {
       const active = button.getAttribute('data-workflow-target') === target;
@@ -83,8 +93,19 @@
       });
     });
 
+    document.querySelectorAll('.tab-panel').forEach((panel) => { panel.hidden = true; });
+    const defaultTab = document.getElementById('tab-accounts');
+    if (defaultTab) defaultTab.hidden = false;
+    buttons.forEach((button) => {
+      const active = button.getAttribute('data-tab') === 'accounts';
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
     setWorkflowTab('client-accounts', 'active');
     setWorkflowTab('client-maintenance', 'active');
+    setWorkflowTab('client-files', 'active');
+    setWorkflowTab('client-messages', 'active');
+    setWorkflowTab('client-tasks', 'active');
   }
 
   function statusPill(status) {
@@ -296,15 +317,27 @@
   }
 
   function renderDocuments() {
-    const tbody = document.getElementById('documents-tbody');
-    const empty = document.getElementById('documents-empty');
-    if (!allDocuments.length) {
-      tbody.innerHTML = '';
-      empty.hidden = false;
-      return;
-    }
-    empty.hidden = true;
-    tbody.innerHTML = allDocuments.map((doc) => `
+    const groups = {
+      active: {
+        tbody: document.getElementById('documents-active-tbody'),
+        empty: document.getElementById('documents-active-empty'),
+        rows: allDocuments.filter((doc) => !['Completed', 'signed'].includes(doc.status || '') && getSignatureState(doc) !== 'signed')
+      },
+      completed: {
+        tbody: document.getElementById('documents-completed-tbody'),
+        empty: document.getElementById('documents-completed-empty'),
+        rows: allDocuments.filter((doc) => (doc.status || '') === 'Completed' || getSignatureState(doc) === 'signed')
+      }
+    };
+    Object.values(groups).forEach((group) => {
+      if (!group.tbody) return;
+      if (!group.rows.length) {
+        group.tbody.innerHTML = '';
+        if (group.empty) group.empty.hidden = false;
+        return;
+      }
+      if (group.empty) group.empty.hidden = true;
+      group.tbody.innerHTML = group.rows.map((doc) => `
       <tr>
         <td><button class="action-link document-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">${escapeHtml(doc.file_name)}</button></td>
         <td>${escapeHtml(doc.category || 'Other')}</td>
@@ -315,6 +348,7 @@
         <td><div class="table-actions"><button class="action-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">Open</button>${doc.visibility === 'client_downloadable' || previewMode ? `<button class="action-link" data-action="download-file" data-id="${escapeHtml(doc.id)}" type="button">Download</button>` : ''}${doc.signature_url ? `<button class="action-link badge-doc-required-btn" data-action="sign-file" data-id="${escapeHtml(doc.id)}" type="button">Sign Document</button>` : ''}</div></td>
       </tr>
     `).join('');
+    });
   }
 
   function renderMaintenanceTables() {
@@ -450,12 +484,21 @@
     uploadBtn.disabled = false;
     if (dbError) {
       statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'File saved but record failed: ' + dbError.message;
+      statusEl.textContent = 'File saved but record failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message);
       return;
     }
     event.target.reset();
     statusEl.className = 'form-status success-message';
     statusEl.textContent = 'File uploaded successfully.';
+    notifySubmission({
+      submission_type: 'Client Document Upload',
+      name: document.getElementById('client-name')?.textContent || 'Portal Client',
+      email: document.getElementById('client-email')?.textContent || '',
+      phone: '',
+      property_of_interest: getPropertyById(account.property_id)?.property_address || null,
+      details: `Uploaded ${file.name}`,
+      submitted_at: new Date().toISOString()
+    });
     await loadDocuments(userId);
   }
 
@@ -490,7 +533,7 @@
     const { data: request, error } = await supabaseClient.from('maintenance_requests').insert([requestPayload]).select().single();
     if (error) {
       statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Unable to create request: ' + error.message;
+      statusEl.textContent = 'Unable to create request: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message);
       submitBtn.disabled = false;
       return;
     }
@@ -522,6 +565,15 @@
     submitBtn.disabled = false;
     statusEl.className = 'form-status success-message';
     statusEl.textContent = 'Maintenance request submitted.';
+    notifySubmission({
+      submission_type: 'Maintenance Request',
+      name: document.getElementById('client-name')?.textContent || 'Portal Client',
+      email: document.getElementById('client-email')?.textContent || '',
+      phone: '',
+      property_of_interest: getPropertyById(propertyId)?.property_address || null,
+      details: description,
+      submitted_at: new Date().toISOString()
+    });
     // Auto-create an admin task for this maintenance request
     await supabaseClient.from('tasks').insert([{
       user_id: userId,
@@ -530,7 +582,7 @@
       task_type: 'Maintenance Request',
       title: title,
       description: description,
-      status: 'Not Reviewed',
+      status: 'Not Reviewed Yet',
       priority: priority,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -545,7 +597,7 @@
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
     if (error) return;
-    allClientMessages = data || [];
+    allClientMessages = (data || []).map((row) => ({ ...row, status: normalizeMessageStatus(row.status) }));
     renderClientMessages();
     renderDashboardMessages();
   }
@@ -557,42 +609,66 @@
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
     if (error) return;
-    allClientTasks = data || [];
+    allClientTasks = (data || []).map((row) => ({ ...row, status: normalizeTaskStatus(row.status) }));
     renderClientTasks();
     renderDashboardTasks();
   }
 
   function renderClientMessages() {
-    const tbody = document.getElementById('client-messages-tbody');
-    const empty = document.getElementById('client-messages-empty');
-    if (!tbody) return;
-    if (!allClientMessages.length) {
-      tbody.innerHTML = '';
-      if (empty) empty.hidden = false;
-      return;
-    }
-    if (empty) empty.hidden = true;
-    tbody.innerHTML = allClientMessages.map((msg) => `
+    const groups = {
+      active: {
+        tbody: document.getElementById('client-messages-active-tbody'),
+        empty: document.getElementById('client-messages-active-empty'),
+        rows: allClientMessages.filter((msg) => !['Completed', 'Closed'].includes(msg.status || ''))
+      },
+      completed: {
+        tbody: document.getElementById('client-messages-completed-tbody'),
+        empty: document.getElementById('client-messages-completed-empty'),
+        rows: allClientMessages.filter((msg) => ['Completed', 'Closed'].includes(msg.status || ''))
+      }
+    };
+    Object.values(groups).forEach((group) => {
+      if (!group.tbody) return;
+      if (!group.rows.length) {
+        group.tbody.innerHTML = '';
+        if (group.empty) group.empty.hidden = false;
+        return;
+      }
+      if (group.empty) group.empty.hidden = true;
+      group.tbody.innerHTML = group.rows.map((msg) => `
       <tr>
         <td>${formatDateTime(msg.created_at)}</td>
         <td>${escapeHtml(msg.message_type || 'Message')}</td>
         <td class="dashboard-cell-wrap">${escapeHtml(msg.subject || '')}</td>
+        <td>${escapeHtml(msg.priority || 'Medium')}</td>
         <td>${statusPill(msg.status || 'Open')}</td>
       </tr>
     `).join('');
+    });
   }
 
   function renderClientTasks() {
-    const tbody = document.getElementById('client-tasks-tbody');
-    const empty = document.getElementById('client-tasks-empty');
-    if (!tbody) return;
-    if (!allClientTasks.length) {
-      tbody.innerHTML = '';
-      if (empty) empty.hidden = false;
-      return;
-    }
-    if (empty) empty.hidden = true;
-    tbody.innerHTML = allClientTasks.map((task) => `
+    const groups = {
+      active: {
+        tbody: document.getElementById('client-tasks-active-tbody'),
+        empty: document.getElementById('client-tasks-active-empty'),
+        rows: allClientTasks.filter((task) => !['Completed', 'Archived'].includes(task.status || ''))
+      },
+      completed: {
+        tbody: document.getElementById('client-tasks-completed-tbody'),
+        empty: document.getElementById('client-tasks-completed-empty'),
+        rows: allClientTasks.filter((task) => ['Completed', 'Archived'].includes(task.status || ''))
+      }
+    };
+    Object.values(groups).forEach((group) => {
+      if (!group.tbody) return;
+      if (!group.rows.length) {
+        group.tbody.innerHTML = '';
+        if (group.empty) group.empty.hidden = false;
+        return;
+      }
+      if (group.empty) group.empty.hidden = true;
+      group.tbody.innerHTML = group.rows.map((task) => `
       <tr>
         <td class="dashboard-cell-wrap"><strong>${escapeHtml(task.title || 'Task')}</strong></td>
         <td>${escapeHtml(task.task_type || '')}</td>
@@ -603,6 +679,7 @@
         <td>${escapeHtml(task.user_visible_notes || '')}</td>
       </tr>
     `).join('');
+    });
   }
 
   function renderDashboardMessages() {
@@ -656,13 +733,14 @@
       message_type: typeEl.value,
       subject: subjectEl.value.trim(),
       message_body: bodyEl.value.trim(),
-      status: 'Open',
+      status: 'Not Reviewed Yet',
+      priority: 'Medium',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }]).select().single();
     if (error) {
       statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Unable to send message: ' + error.message;
+      statusEl.textContent = 'Unable to send message: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message);
       submitBtn.disabled = false;
       return;
     }
@@ -674,11 +752,20 @@
       task_type: 'Property Inquiry',
       title: subjectEl.value.trim(),
       description: bodyEl.value.trim(),
-      status: 'Not Reviewed',
+      status: 'Not Reviewed Yet',
       priority: 'Medium',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }]);
+    notifySubmission({
+      submission_type: 'Portal Message / Request',
+      name: document.getElementById('client-name')?.textContent || 'Portal Client',
+      email: document.getElementById('client-email')?.textContent || '',
+      phone: '',
+      property_of_interest: getPropertyById(propertyEl?.value || null)?.property_address || null,
+      details: bodyEl.value.trim(),
+      submitted_at: new Date().toISOString()
+    });
     event.target.reset();
     submitBtn.disabled = false;
     statusEl.className = 'form-status success-message';
@@ -696,19 +783,14 @@
   }
 
   function applyRoleUI() {
-    const { isBuyer, isSeller } = detectClientRoles();
     const messagesTabBtn = document.getElementById('tab-btn-messages');
     const tasksTabBtn = document.getElementById('tab-btn-tasks');
     const messagesCard = document.getElementById('dashboard-messages-card');
     const tasksCard = document.getElementById('dashboard-tasks-card');
-    if (isBuyer || isSeller) {
-      if (messagesTabBtn) messagesTabBtn.hidden = false;
-      if (messagesCard) messagesCard.hidden = false;
-    }
-    if (isSeller) {
-      if (tasksTabBtn) tasksTabBtn.hidden = false;
-      if (tasksCard) tasksCard.hidden = false;
-    }
+    if (messagesTabBtn) messagesTabBtn.hidden = false;
+    if (tasksTabBtn) tasksTabBtn.hidden = false;
+    if (messagesCard) messagesCard.hidden = false;
+    if (tasksCard) tasksCard.hidden = false;
   }
 
   function applyPreviewMode(clientProfile) {
@@ -760,14 +842,16 @@
       loadTasks(activeUserId)
     ]);
     applyRoleUI();
-    document.getElementById('documents-tbody')?.addEventListener('click', function (event) {
-      const button = event.target.closest('[data-action]');
-      if (!button) return;
-      const id = button.getAttribute('data-id');
-      const action = button.getAttribute('data-action');
-      if (action === 'open-file') openDocument(id);
-      if (action === 'download-file') downloadDocument(id);
-      if (action === 'sign-file') openSignatureLink(id);
+    ['documents-active-tbody', 'documents-completed-tbody'].forEach((tbodyId) => {
+      document.getElementById(tbodyId)?.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-action]');
+        if (!button) return;
+        const id = button.getAttribute('data-id');
+        const action = button.getAttribute('data-action');
+        if (action === 'open-file') openDocument(id);
+        if (action === 'download-file') downloadDocument(id);
+        if (action === 'sign-file') openSignatureLink(id);
+      });
     });
     ['maintenance-active-tbody', 'maintenance-completed-tbody'].forEach((tbodyId) => {
       document.getElementById(tbodyId)?.addEventListener('click', function (event) {

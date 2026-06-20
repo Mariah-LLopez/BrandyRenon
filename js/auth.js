@@ -136,12 +136,18 @@
       e.preventDefault();
       const fullName = registerForm.querySelector('[name="full_name"]').value.trim();
       const email = registerForm.querySelector('[name="email"]').value.trim();
+      const phone = registerForm.querySelector('[name="phone"]')?.value.trim() || null;
+      const userType = registerForm.querySelector('[name="user_type"]')?.value || '';
       const password = registerForm.querySelector('[name="password"]').value;
       const statusEl = document.getElementById('register-status');
       if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
 
       if (!email || !password) {
         if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Email and password are required.'; }
+        return;
+      }
+      if (!userType) {
+        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Please select your user type.'; }
         return;
       }
       if (password.length < 8) {
@@ -160,7 +166,7 @@
         const { error } = await supabaseClient.auth.signUp({
           email,
           password,
-          options: { data: { full_name: fullName, role: 'client' } }
+          options: { data: { full_name: fullName, phone, role: 'client', user_type: userType } }
         });
 
         if (error) {
