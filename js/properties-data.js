@@ -5,7 +5,7 @@ const PROPERTIES = [
   {
     id: "prop-001",
     title: "Mountain View Estate",
-    address: "1234 Rocky Mountain Road, Denver, CO 80201",
+    address: "397 Mule Deer Crossing",
     lat: 39.7392,
     lng: -104.9903,
     status: "Active",
@@ -25,11 +25,8 @@ const PROPERTIES = [
       "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800"
     ],
     listingAgent: "Brandy Renon",
-    agentLicense: "FA.100012345",
-    agentNMLS: "",
-    brokerageName: "Colorado Premier Realty",
-    licensingDisclosure: "Licensed in Colorado. FA.100012345.",
-    fairHousing: "Equal Housing Opportunity. We are pledged to the letter and spirit of the U.S. policy for the achievement of equal housing opportunity throughout the Nation."
+    licensingDisclosure: "Independent Level Real Estate Broker - Individual Proprietor",
+    fairHousing: "Equal Housing Opportunity."
   },
   {
     id: "prop-002",
@@ -54,10 +51,7 @@ const PROPERTIES = [
       "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800"
     ],
     listingAgent: "Brandy Renon",
-    agentLicense: "FA.100012345",
-    agentNMLS: "",
-    brokerageName: "Colorado Premier Realty",
-    licensingDisclosure: "Licensed in Colorado. FA.100012345.",
+    licensingDisclosure: "Independent Level Real Estate Broker - Individual Proprietor",
     fairHousing: "Equal Housing Opportunity."
   },
   {
@@ -83,82 +77,16 @@ const PROPERTIES = [
       "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800"
     ],
     listingAgent: "Brandy Renon",
-    agentLicense: "FA.100012345",
-    agentNMLS: "",
-    brokerageName: "Colorado Premier Realty",
-    licensingDisclosure: "Licensed in Colorado. FA.100012345.",
+    licensingDisclosure: "Independent Level Real Estate Broker - Individual Proprietor",
     fairHousing: "Equal Housing Opportunity."
   },
-  {
-    id: "prop-004",
-    title: "Modern Downtown Condo",
-    address: "222 Pearl Street #4B, Fort Collins, CO 80524",
-    lat: 40.5853,
-    lng: -105.0844,
-    status: "Coming Soon",
-    price: 375000,
-    sqft: 1100,
-    bedrooms: 2,
-    bathrooms: 2,
-    lotSize: "N/A (Condo)",
-    description: "Sleek modern condo in the heart of Fort Collins with walkable amenities, stylish finishes, and secure building access.",
-    renovationDetails: "Fully updated in 2022. New flooring, lighting, and kitchen appliances throughout.",
-    permitInfo: "All updates completed with HOA approval and required permits.",
-    hoaInfo: "HOA fee: $320/month. Covers water, trash, building maintenance, and parking.",
-    zoningInfo: "Zoned D – Downtown District.",
-    photos: [
-      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
-      "https://images.unsplash.com/photo-1560185127-6a4df3bda7e6?w=800",
-      "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800"
-    ],
-    listingAgent: "Brandy Renon",
-    agentLicense: "FA.100012345",
-    agentNMLS: "",
-    brokerageName: "Colorado Premier Realty",
-    licensingDisclosure: "Licensed in Colorado. FA.100012345.",
-    fairHousing: "Equal Housing Opportunity."
-  },
-  {
-    id: "prop-005",
-    title: "Luxury Lakefront Retreat",
-    address: "789 Evergreen Circle, Lakewood, CO 80226",
-    lat: 39.7047,
-    lng: -105.0814,
-    status: "Sold",
-    price: 875000,
-    sqft: 4100,
-    bedrooms: 5,
-    bathrooms: 4,
-    lotSize: "0.75 acres",
-    description: "Stunning lakefront property with breathtaking views, multiple entertaining areas, and premium finishes throughout the residence.",
-    renovationDetails: "Complete luxury renovation in 2020. Chef's kitchen, home theater, wine cellar.",
-    permitInfo: "Full renovation completed under permit. Final inspection approved.",
-    hoaInfo: "HOA fee: $200/month. Includes lake access, dock maintenance, and community events.",
-    zoningInfo: "Zoned A-2 Agricultural/Residential with lake access rights.",
-    photos: [
-      "https://images.unsplash.com/photo-1600047509358-9dc75507daeb?w=800",
-      "https://images.unsplash.com/photo-1575517111839-3a3843ee7f5d?w=800",
-      "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800"
-    ],
-    listingAgent: "Brandy Renon",
-    agentLicense: "FA.100012345",
-    agentNMLS: "",
-    brokerageName: "Colorado Premier Realty",
-    licensingDisclosure: "Licensed in Colorado. FA.100012345.",
-    fairHousing: "Equal Housing Opportunity."
-  }
 ];
 
-// DEVELOPER NOTE: Update AGENT_INFO with actual agent details before launch.
 const AGENT_INFO = {
   name: "Brandy Renon",
-  license: "FA.100012345",
-  nmls: "",
-  brokerage: "Colorado Premier Realty",
-  brokerageLicense: "EC.100012345",
-  phone: "(720) 555-0100",
-  email: "brandy@coloradopremierrealty.com",
-  website: "www.coloradopremierrealty.com"
+  license: "II100070680",
+  phone: "(719)291-8378",
+  email: "propertiesinco@gmail.com",
 };
 
 window.PROPERTIES = PROPERTIES;
