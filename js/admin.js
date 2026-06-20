@@ -1401,7 +1401,8 @@
       ? STORAGE_BUCKETS.PROPERTY_IMAGES
       : (accountId ? STORAGE_BUCKETS.ACCOUNT_FILES : STORAGE_BUCKETS.CLIENT_DOCUMENTS);
     if (submitBtn) submitBtn.disabled = true;
-    const signatureUrl = form.querySelector('[name="signature_url"]').value.trim();
+    const sharedSignatureUrl = form.querySelector('[name="signature_url"]').value.trim();
+    const sharedNotes = form.querySelector('[name="notes"]').value.trim() || null;
     const uploadedPaths = [];
     const insertedDocumentIds = [];
     try {
@@ -1434,10 +1435,10 @@
           requires_signature: requiresSignature,
           signature_provider: form.querySelector('[name="signature_provider"]').value || null,
           signature_status: form.querySelector('[name="signature_status"]').value || (requiresSignature ? 'pending_signature' : 'available'),
-          signature_url: signatureUrl || null,
+          signature_url: sharedSignatureUrl || null,
           status: 'Not Reviewed Yet',
           priority: 'Medium',
-          notes: form.querySelector('[name="notes"]').value.trim() || null,
+          notes: sharedNotes,
           hidden: false,
           updated_at: nowIso()
         };

@@ -542,6 +542,7 @@
     }
     uploadBtn.disabled = true;
     const bucketName = accountSelect?.value && account ? STORAGE_BUCKETS.ACCOUNT_FILES : STORAGE_BUCKETS.CLIENT_DOCUMENTS;
+    const sharedNotes = notesInput?.value.trim() || null;
     const uploadedPaths = [];
     const insertedDocumentIds = [];
     try {
@@ -575,7 +576,7 @@
             can_client_edit: true,
             status: 'Not Reviewed Yet',
             priority: 'Medium',
-            notes: notesInput?.value.trim() || null,
+            notes: sharedNotes,
             hidden: false,
             updated_at: new Date().toISOString()
           }])
