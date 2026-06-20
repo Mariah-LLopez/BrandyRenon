@@ -98,11 +98,12 @@
           return;
         }
 
-        const profile = await getCurrentUserProfile();
+        const { profile, error: profileError } = await getCurrentUserProfile({ includeError: true });
         if (!profile) {
+          if (profileError) console.error('Failed to load profile after login:', profileError);
           if (errorBox) {
             errorBox.className = 'form-status error-message';
-            errorBox.textContent = 'Unable to load your account profile. This may be caused by a security policy. Check the browser console for details, or contact support.';
+            errorBox.textContent = profileError?.message || 'Unable to load your account profile. Check the browser console for details, or contact support.';
           }
           await supabaseClient.auth.signOut();
           loginBtn.disabled = false;

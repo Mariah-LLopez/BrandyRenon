@@ -40,14 +40,16 @@ function isRLSError(error) {
   return error.code === '42501' || /policy|permission|rls/i.test(error.message || '');
 }
 
-async function getCurrentUserProfile() {
+async function getCurrentUserProfile(options) {
+  const includeError = Boolean(options?.includeError);
   const session = await getSession();
-  if (!session) return null;
+  if (!session) return includeError ? { profile: null, error: null } : null;
+  const user = session.user;
 
-  const { data, error } = await supabaseClient
+  const { data: profile, error } = await supabaseClient
     .from('profiles')
-    .select('id, email, full_name, role, status, user_type')
-    .eq('id', session.user.id)
+    .select('id, email, full_name, phone, role, status, user_type, created_at')
+    .eq('id', user.id)
     .single();
 
   if (error && error.code === 'PGRST116') {
@@ -71,9 +73,9 @@ async function getCurrentUserProfile() {
       } else {
         console.error('Failed to create missing profile row:', insertError);
       }
-      return null;
+      return includeError ? { profile: null, error: insertError } : null;
     }
-    return created;
+    return includeError ? { profile: created, error: null } : created;
   }
 
   if (error) {
@@ -88,10 +90,10 @@ async function getCurrentUserProfile() {
     } else {
       console.error('Profile query error:', error);
     }
-    return null;
+    return includeError ? { profile: null, error } : null;
   }
 
-  return data;
+  return includeError ? { profile, error: null } : profile;
 }
 
 async function getCurrentUserRole() {
