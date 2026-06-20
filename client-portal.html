@@ -32,13 +32,11 @@
     <section class="section">
       <div class="container admin-shell">
         <nav class="portal-tab-bar" aria-label="Dashboard sections">
-          <button class="portal-tab active" data-tab="dashboard" type="button">Dashboard</button>
-          <button class="portal-tab" data-tab="properties" type="button">Properties</button>
-          <button class="portal-tab" data-tab="accounts" type="button">Accounts</button>
-          <button class="portal-tab" data-tab="files" type="button">Files</button>
+          <button class="portal-tab active" data-tab="accounts" type="button">My Accounts</button>
+          <button class="portal-tab" data-tab="files" type="button">My Documents</button>
           <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
-          <button class="portal-tab" id="tab-btn-messages" data-tab="messages" type="button" hidden>Messages</button>
-          <button class="portal-tab" id="tab-btn-tasks" data-tab="tasks" type="button" hidden>Tasks</button>
+          <button class="portal-tab" id="tab-btn-messages" data-tab="messages" type="button">Messages / Requests</button>
+          <button class="portal-tab" id="tab-btn-tasks" data-tab="tasks" type="button">Assigned Tasks</button>
         </nav>
 
         <div id="tab-dashboard" class="tab-panel">
@@ -150,7 +148,7 @@
                   <textarea id="client-upload-notes" name="notes"></textarea>
                 </div>
               </div>
-              <button id="client-upload-btn" class="btn-primary" type="submit">Upload File</button>
+              <div class="form-actions"><button id="client-upload-btn" class="btn-primary" type="submit">Upload File</button></div>
               <div id="upload-status" class="form-status" aria-live="polite"></div>
             </form>
           </div>
@@ -163,7 +161,11 @@
               <p class="table-hint">Open, download, or sign files assigned to your accounts, properties, maintenance activity, or client profile.</p>
             </div>
           </div>
-          <div class="table-card">
+          <nav class="portal-tab-bar workflow-tab-bar" aria-label="Client files workflow">
+            <button class="portal-tab active" data-workflow-group="client-files" data-workflow-target="active" type="button">Active / Pending</button>
+            <button class="portal-tab" data-workflow-group="client-files" data-workflow-target="completed" type="button">Completed</button>
+          </nav>
+          <div class="table-card workflow-panel" data-workflow-panel="client-files-active">
             <table>
               <thead>
                 <tr>
@@ -176,9 +178,26 @@
                   <th scope="col">Actions</th>
                 </tr>
               </thead>
-              <tbody id="documents-tbody"></tbody>
+              <tbody id="documents-active-tbody"></tbody>
             </table>
-            <div id="documents-empty" class="admin-empty-state" hidden>No files have been shared with you yet.</div>
+            <div id="documents-active-empty" class="admin-empty-state" hidden>No active documents found.</div>
+          </div>
+          <div class="table-card workflow-panel" data-workflow-panel="client-files-completed" hidden>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">File Name</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Account</th>
+                  <th scope="col">Property</th>
+                  <th scope="col">Signature</th>
+                  <th scope="col">Uploaded</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="documents-completed-tbody"></tbody>
+            </table>
+            <div id="documents-completed-empty" class="admin-empty-state" hidden>No completed documents found.</div>
           </div>
         </div>
 
@@ -200,7 +219,7 @@
                 </div>
                 <div class="form-group">
                   <label for="maintenance-priority">Priority</label>
-                  <select id="maintenance-priority" name="priority" required><option value="Medium">Medium</option><option value="Low">Low</option><option value="High">High</option><option value="Emergency">Emergency</option></select>
+                  <select id="maintenance-priority" name="priority" required><option value="Medium">Medium</option><option value="Low">Low</option><option value="High">High</option></select>
                 </div>
                 <div class="form-group full-width">
                   <label for="maintenance-title">Title</label>
@@ -215,7 +234,7 @@
                   <input id="maintenance-files" name="files" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp" multiple>
                 </div>
               </div>
-              <button id="maintenance-submit-btn" class="btn-primary" type="submit">Submit Request</button>
+              <div class="form-actions"><button id="maintenance-submit-btn" class="btn-primary" type="submit">Submit Request</button></div>
               <div id="maintenance-form-status" class="form-status" aria-live="polite"></div>
             </form>
           </div>
@@ -300,24 +319,44 @@
                   <textarea id="inquiry-body" name="message_body" required></textarea>
                 </div>
               </div>
-              <button id="inquiry-submit-btn" class="btn-primary" type="submit">Send Message</button>
+              <div class="form-actions"><button id="inquiry-submit-btn" class="btn-primary" type="submit">Send Message</button></div>
               <div id="inquiry-form-status" class="form-status" aria-live="polite"></div>
             </form>
           </div>
 
-          <div class="table-card">
+          <nav class="portal-tab-bar workflow-tab-bar" aria-label="Client messages workflow">
+            <button class="portal-tab active" data-workflow-group="client-messages" data-workflow-target="active" type="button">Active Messages</button>
+            <button class="portal-tab" data-workflow-group="client-messages" data-workflow-target="completed" type="button">Completed Messages</button>
+          </nav>
+          <div class="table-card workflow-panel" data-workflow-panel="client-messages-active">
             <table>
               <thead>
                 <tr>
                   <th scope="col">Date</th>
                   <th scope="col">Type</th>
                   <th scope="col">Subject</th>
+                  <th scope="col">Priority</th>
                   <th scope="col">Status</th>
                 </tr>
               </thead>
-              <tbody id="client-messages-tbody"></tbody>
+              <tbody id="client-messages-active-tbody"></tbody>
             </table>
-            <div id="client-messages-empty" class="admin-empty-state" hidden>No messages submitted yet.</div>
+            <div id="client-messages-active-empty" class="admin-empty-state" hidden>No active messages submitted yet.</div>
+          </div>
+          <div class="table-card workflow-panel" data-workflow-panel="client-messages-completed" hidden>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Subject</th>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody id="client-messages-completed-tbody"></tbody>
+            </table>
+            <div id="client-messages-completed-empty" class="admin-empty-state" hidden>No completed messages yet.</div>
           </div>
         </div>
 
@@ -327,7 +366,11 @@
             <h2>Your Tasks</h2>
             <p class="table-hint">View tasks assigned to you by your agent. Complete required uploads, forms, or approvals here.</p>
           </div>
-          <div class="table-card">
+          <nav class="portal-tab-bar workflow-tab-bar" aria-label="Client tasks workflow">
+            <button class="portal-tab active" data-workflow-group="client-tasks" data-workflow-target="active" type="button">Active Tasks</button>
+            <button class="portal-tab" data-workflow-group="client-tasks" data-workflow-target="completed" type="button">Completed Tasks</button>
+          </nav>
+          <div class="table-card workflow-panel" data-workflow-panel="client-tasks-active">
             <table>
               <thead>
                 <tr>
@@ -340,9 +383,26 @@
                   <th scope="col">Agent Notes</th>
                 </tr>
               </thead>
-              <tbody id="client-tasks-tbody"></tbody>
+              <tbody id="client-tasks-active-tbody"></tbody>
             </table>
-            <div id="client-tasks-empty" class="admin-empty-state" hidden>No tasks have been assigned to you yet.</div>
+            <div id="client-tasks-active-empty" class="admin-empty-state" hidden>No active tasks have been assigned to you yet.</div>
+          </div>
+          <div class="table-card workflow-panel" data-workflow-panel="client-tasks-completed" hidden>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Title</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Account</th>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Due Date</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Agent Notes</th>
+                </tr>
+              </thead>
+              <tbody id="client-tasks-completed-tbody"></tbody>
+            </table>
+            <div id="client-tasks-completed-empty" class="admin-empty-state" hidden>No completed tasks yet.</div>
           </div>
         </div>
 

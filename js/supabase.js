@@ -2,6 +2,7 @@
 
 const SUPABASE_URL = "https://oqerornvqowighjxmwpb.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Qf4FWZTroYmh0yROo3vGdA_PJd7_CBt";
+const DEFAULT_USER_TYPE = 'Other';
 
 let supabaseClient;
 
@@ -45,7 +46,7 @@ async function getCurrentUserProfile() {
 
   const { data, error } = await supabaseClient
     .from('profiles')
-    .select('id, email, full_name, role, status')
+    .select('id, email, full_name, role, status, user_type')
     .eq('id', session.user.id)
     .single();
 
@@ -54,8 +55,8 @@ async function getCurrentUserProfile() {
     const fullName = session.user.user_metadata?.full_name || null;
     const { data: created, error: insertError } = await supabaseClient
       .from('profiles')
-      .insert([{ id: session.user.id, email: userEmail, full_name: fullName, role: 'client', status: 'active' }])
-      .select('id, email, full_name, role, status')
+      .insert([{ id: session.user.id, email: userEmail, full_name: fullName, role: 'client', status: 'active', user_type: DEFAULT_USER_TYPE }])
+      .select('id, email, full_name, role, status, user_type')
       .single();
 
     if (insertError) {
@@ -96,4 +97,26 @@ async function getCurrentUserProfile() {
 async function getCurrentUserRole() {
   const profile = await getCurrentUserProfile();
   return profile ? profile.role : null;
+}
+
+function formatSupabaseSchemaError(error) {
+  const message = error?.message || 'Unknown error';
+  if (/column .* does not exist/i.test(message)) return `Missing column: ${message}`;
+  if (/relation .* does not exist/i.test(message)) return `Missing table: ${message}`;
+  return message;
+}
+
+async function notifySubmission(payload) {
+  if (!supabaseClient || !payload) return { ok: false, skipped: true };
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('notify-submission', { body: payload });
+    if (error) {
+      console.warn('notify-submission failed:', error.message || error);
+      return { ok: false, error };
+    }
+    return { ok: true, data };
+  } catch (error) {
+    console.warn('notify-submission exception:', error);
+    return { ok: false, error };
+  }
 }

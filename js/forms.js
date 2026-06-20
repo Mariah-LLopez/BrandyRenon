@@ -204,9 +204,19 @@
 
     if (result.error) {
       console.error('Contact form error:', result.error);
-      if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Submission failed: ' + result.error.message; }
+      if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Submission failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(result.error) : result.error.message); }
       return;
     }
+
+    notifySubmission({
+      submission_type: inquiryType === 'showing_request' ? 'Showing Request' : inquiryType === 'property_inquiry' ? 'Property Inquiry' : inquiryType === 'renovation_client_inquiry' ? 'Renovation Client Inquiry' : 'Contact Request',
+      name,
+      email,
+      phone,
+      property_of_interest: propertyInterest,
+      details: message,
+      submitted_at: new Date().toISOString()
+    });
 
     form.reset();
     populatePropertySelects();
@@ -256,9 +266,19 @@
 
     if (error) {
       console.error('Showing form error:', error);
-      if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Submission failed: ' + error.message; }
+      if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Submission failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message); }
       return;
     }
+
+    notifySubmission({
+      submission_type: 'Showing Request',
+      name,
+      email,
+      phone,
+      property_of_interest: propertyAddress || null,
+      details: message,
+      submitted_at: new Date().toISOString()
+    });
 
     form.reset();
     populatePropertySelects();
@@ -307,9 +327,19 @@
 
     if (error) {
       console.error('Renovation client form error:', error);
-      if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Submission failed: ' + error.message; }
+      if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Submission failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message); }
       return;
     }
+
+    notifySubmission({
+      submission_type: 'Renovation Client Inquiry',
+      name: fullName,
+      email,
+      phone,
+      property_of_interest: propertyAddress || null,
+      details: (descEl ? descEl.value.trim() : '') || null,
+      submitted_at: new Date().toISOString()
+    });
 
     form.reset();
     if (messageBox) { messageBox.className = 'form-status success-message'; messageBox.textContent = 'Thank you! Your renovation client inquiry has been received.'; }
@@ -361,9 +391,23 @@
 
     if (error) {
       console.error('Renovation client form error:', error);
-      if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Submission failed: ' + error.message; }
+      if (messageBox) { messageBox.className = 'form-status error-message'; messageBox.textContent = 'Submission failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message); }
       return;
     }
+
+    notifySubmission({
+      submission_type: 'Renovation Client Inquiry',
+      name: fullName,
+      email,
+      phone,
+      property_of_interest: null,
+      details: [
+        companyEl && companyEl.value.trim() ? `Company: ${companyEl.value.trim()}` : '',
+        areaEl && areaEl.value.trim() ? `Service Area: ${areaEl.value.trim()}` : '',
+        descEl ? descEl.value.trim() : ''
+      ].filter(Boolean).join('\n\n') || null,
+      submitted_at: new Date().toISOString()
+    });
 
     form.reset();
     if (messageBox) { messageBox.className = 'form-status success-message'; messageBox.textContent = 'Thank you! Your renovation client inquiry has been received.'; }

@@ -42,7 +42,7 @@
             <p class="eyebrow">Files Needing Action</p>
             <div class="summary-card-count" id="summary-files">—</div>
             <p class="table-hint">Pending review or signature</p>
-            <button class="action-link summary-card-link" data-tab-target="documents" type="button">View Documents →</button>
+            <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Account Center →</button>
           </div>
           <div class="dashboard-card summary-card">
             <p class="eyebrow">Maintenance</p>
@@ -54,19 +54,19 @@
             <p class="eyebrow">Messages / Inquiries</p>
             <div class="summary-card-count" id="summary-messages">—</div>
             <p class="table-hint">Unread messages &amp; leads</p>
-            <button class="action-link summary-card-link" data-tab-target="messages" type="button">View Messages →</button>
+            <button class="action-link summary-card-link" data-tab-target="leads" type="button">View Leads →</button>
           </div>
           <div class="dashboard-card summary-card">
             <p class="eyebrow">Signature Requests</p>
             <div class="summary-card-count" id="summary-signatures">—</div>
             <p class="table-hint">Awaiting signature</p>
-            <button class="action-link summary-card-link" data-tab-target="signatures" type="button">View Signatures →</button>
+            <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Account Center →</button>
           </div>
           <div class="dashboard-card summary-card">
             <p class="eyebrow">Seller Tasks</p>
             <div class="summary-card-count" id="summary-seller-tasks">—</div>
             <p class="table-hint">Open seller tasks</p>
-            <button class="action-link summary-card-link" data-tab-target="tasks" type="button">View Tasks →</button>
+            <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Account Center →</button>
           </div>
         </div>
 
@@ -74,11 +74,7 @@
           <button class="portal-tab active" data-tab="users" type="button">Users</button>
           <button class="portal-tab" data-tab="properties" type="button">Properties</button>
           <button class="portal-tab" data-tab="accounts" type="button">Accounts</button>
-          <button class="portal-tab" data-tab="tasks" type="button">Tasks</button>
           <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
-          <button class="portal-tab" data-tab="messages" type="button">Messages</button>
-          <button class="portal-tab" data-tab="documents" type="button">Documents</button>
-          <button class="portal-tab" data-tab="signatures" type="button">Signatures</button>
           <button class="portal-tab" data-tab="leads" type="button">Leads</button>
         </nav>
 
@@ -103,6 +99,7 @@
                   <tr>
                     <th scope="col">Email</th>
                     <th scope="col">Current Role</th>
+                    <th scope="col">User Type</th>
                     <th scope="col">Status</th>
                     <th scope="col">Account Created</th>
                     <th scope="col">Assigned Properties</th>
@@ -158,6 +155,19 @@
             <button class="portal-tab" data-workflow-group="accounts" data-workflow-target="completed" type="button">Completed Accounts</button>
           </nav>
 
+          <div class="admin-panel admin-toolbar">
+            <div>
+              <h3>Account Center</h3>
+              <p class="table-hint">Manage account-linked documents, signature requests, messages, and assigned tasks without leaving Accounts.</p>
+            </div>
+            <div class="table-actions table-actions-stack">
+              <button class="action-link summary-card-link" data-tab-target="documents" type="button">Documents</button>
+              <button class="action-link summary-card-link" data-tab-target="signatures" type="button">Signature Requests</button>
+              <button class="action-link summary-card-link" data-tab-target="messages" type="button">Messages / Requests</button>
+              <button class="action-link summary-card-link" data-tab-target="tasks" type="button">Assigned Tasks</button>
+            </div>
+          </div>
+
           <div class="table-card workflow-panel" data-workflow-panel="accounts-active">
             <div class="dashboard-table-scroll">
               <table>
@@ -168,6 +178,7 @@
                     <th scope="col">Assigned Property</th>
                     <th scope="col">Account Type</th>
                     <th scope="col">Status</th>
+                    <th scope="col">Priority</th>
                     <th scope="col">Last Updated</th>
                     <th scope="col">Actions</th>
                   </tr>
@@ -188,6 +199,7 @@
                     <th scope="col">Assigned Property</th>
                     <th scope="col">Account Type</th>
                     <th scope="col">Status</th>
+                    <th scope="col">Priority</th>
                     <th scope="col">Completed</th>
                     <th scope="col">Actions</th>
                   </tr>
@@ -225,12 +237,9 @@
                 <label for="task-filter-status">Status</label>
                 <select id="task-filter-status">
                   <option value="">All Statuses</option>
-                  <option value="Not Reviewed">Not Reviewed</option>
+                  <option value="Not Reviewed Yet">Not Reviewed Yet</option>
                   <option value="In Progress">In Progress</option>
-                  <option value="Waiting on User">Waiting on User</option>
-                  <option value="Waiting on Admin">Waiting on Admin</option>
                   <option value="Completed">Completed</option>
-                  <option value="Archived">Archived</option>
                 </select>
               </div>
             </div>
@@ -270,10 +279,9 @@
                 <label for="message-filter-status">Status</label>
                 <select id="message-filter-status">
                   <option value="">All Statuses</option>
-                  <option value="Not Reviewed">Not Reviewed</option>
+                  <option value="Not Reviewed Yet">Not Reviewed Yet</option>
                   <option value="In Progress">In Progress</option>
-                  <option value="Replied">Replied</option>
-                  <option value="Closed">Closed</option>
+                  <option value="Completed">Completed</option>
                 </select>
               </div>
             </div>
@@ -288,6 +296,7 @@
                     <th scope="col">From</th>
                     <th scope="col">Account</th>
                     <th scope="col">Message</th>
+                    <th scope="col">Priority</th>
                     <th scope="col">Status</th>
                     <th scope="col">Admin Notes</th>
                     <th scope="col">Submitted</th>
@@ -508,15 +517,15 @@
 
   <div id="invite-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="invite-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="invite" aria-label="Close">×</button><h2 id="invite-modal-title">Invite Client</h2><p class="table-hint">Send a sign-up invitation to a new client. They will receive an email to set their password.</p><form id="invite-form" class="invite-form-layout" novalidate><div class="form-grid"><div class="form-group"><label for="invite-email">Email <span class="required" aria-hidden="true">*</span></label><input id="invite-email" name="email" type="email" required></div><div class="form-group"><label for="invite-name">Full Name</label><input id="invite-name" name="full_name" type="text"></div></div><div class="invite-form-actions"><button class="btn-primary" type="submit">Send Invitation</button></div><div id="invite-status" class="form-status" aria-live="polite"></div></form></div></div>
 
-  <div id="property-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="property-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="property" aria-label="Close">×</button><h2 id="property-modal-title">Add Property</h2><form id="property-form" novalidate><div class="form-grid"><div class="form-group full-width"><label for="prop-address">Property Address <span class="required" aria-hidden="true">*</span></label><input id="prop-address" name="property_address" type="text" required></div><div class="form-group"><label for="prop-status">Workflow Status</label><select id="prop-status" name="property_status"><option value="Active">Active</option><option value="Pending">Pending</option><option value="Sold">Sold</option><option value="Coming Soon">Coming Soon</option></select></div><div class="form-group"><label for="prop-visibility">Visibility</label><select id="prop-visibility" name="visibility"><option value="internal">Internal Property</option><option value="public">Public Listing</option></select></div><div class="form-group full-width"><label for="prop-notes">Notes</label><textarea id="prop-notes" name="notes"></textarea></div></div><button class="btn-primary" type="submit">Save Property</button><div id="property-status" class="form-status" aria-live="polite"></div></form></div></div>
+  <div id="property-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="property-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="property" aria-label="Close">×</button><h2 id="property-modal-title">Add Property</h2><form id="property-form" novalidate><div class="form-grid"><div class="form-group full-width"><label for="prop-address">Property Address <span class="required" aria-hidden="true">*</span></label><input id="prop-address" name="property_address" type="text" required></div><div class="form-group"><label for="prop-status">Workflow Status</label><select id="prop-status" name="property_status"><option value="Active">Active</option><option value="Pending">Pending</option><option value="Sold">Sold</option><option value="Coming Soon">Coming Soon</option></select></div><div class="form-group"><label for="prop-visibility">Visibility</label><select id="prop-visibility" name="visibility"><option value="internal">Internal Property</option><option value="public">Public Listing</option></select></div><div class="form-group full-width"><label for="prop-notes">Notes</label><textarea id="prop-notes" name="notes"></textarea></div></div><div class="form-actions"><button class="btn-primary" type="submit">Save Property</button></div><div id="property-status" class="form-status" aria-live="polite"></div></form></div></div>
 
-  <div id="account-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="account-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="account" aria-label="Close">×</button><h2 id="account-modal-title">New Account</h2><form id="account-form" novalidate><div class="form-grid"><div class="form-group full-width"><label for="account-name">Account Name <span class="required" aria-hidden="true">*</span></label><input id="account-name" name="account_name" type="text" required></div><div class="form-group"><label for="account-client">Client</label><select id="account-client" name="primary_client_id"><option value="">No client selected</option></select></div><div class="form-group"><label for="account-property">Property</label><select id="account-property" name="property_id"><option value="">No property selected</option></select></div><div class="form-group"><label for="account-type">Account Type</label><select id="account-type" name="account_type"><option value="Buyer">Buyer</option><option value="Seller">Seller</option><option value="Renter">Renter</option><option value="Rental">Rental</option><option value="Lease">Lease</option><option value="Owner">Owner</option><option value="Property Management">Property Management</option><option value="Renovation">Renovation</option><option value="Contractor">Contractor</option><option value="Other">Other</option></select></div><div class="form-group"><label for="account-status">Status</label><select id="account-status" name="status"><option value="Not Reviewed Yet">Not Reviewed Yet</option><option value="In Progress">In Progress</option><option value="Active">Active</option><option value="Pending Signature">Pending Signature</option><option value="Completed">Completed</option><option value="Archived">Archived</option></select></div><div class="form-group full-width"><label class="signature-label"><input id="account-client-upload-enabled" name="client_upload_enabled" type="checkbox"> Allow the assigned client to upload files to this account</label></div><div class="form-group full-width"><label for="account-transaction-details">Transaction Details</label><textarea id="account-transaction-details" name="transaction_details"></textarea></div><div class="form-group full-width"><label for="account-internal-notes">Internal Notes</label><textarea id="account-internal-notes" name="internal_notes"></textarea></div><div class="form-group full-width"><label for="account-client-notes">Client Visible Notes</label><textarea id="account-client-notes" name="client_notes"></textarea></div><div class="form-group full-width"><label for="account-required-tasks">Required Documents / Missing Tasks</label><textarea id="account-required-tasks" name="required_tasks"></textarea></div></div><button class="btn-primary" type="submit">Create Account</button><div id="account-status-message" class="form-status" aria-live="polite"></div></form></div></div>
+  <div id="account-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="account-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="account" aria-label="Close">×</button><h2 id="account-modal-title">New Account</h2><form id="account-form" novalidate><div class="form-grid"><div class="form-group full-width"><label for="account-name">Account Name <span class="required" aria-hidden="true">*</span></label><input id="account-name" name="account_name" type="text" required></div><div class="form-group"><label for="account-client">Client</label><select id="account-client" name="primary_client_id"><option value="">No client selected</option></select></div><div class="form-group"><label for="account-property">Property</label><select id="account-property" name="property_id"><option value="">No property selected</option></select></div><div class="form-group"><label for="account-type">Account Type</label><select id="account-type" name="account_type"><option value="Buyer">Buyer</option><option value="Seller">Seller</option><option value="Renter">Renter</option><option value="Rental">Rental</option><option value="Lease">Lease</option><option value="Owner">Owner</option><option value="Property Management">Property Management</option><option value="Renovation">Renovation</option><option value="Contractor">Contractor</option><option value="Other">Other</option></select></div><div class="form-group"><label for="account-status">Status</label><select id="account-status" name="status"><option value="Not Reviewed Yet">Not Reviewed Yet</option><option value="In Progress">In Progress</option><option value="Active">Active</option><option value="Pending Signature">Pending Signature</option><option value="Completed">Completed</option><option value="Archived">Archived</option></select></div><div class="form-group"><label for="account-priority">Priority</label><select id="account-priority" name="priority"><option value="Low">Low</option><option value="Medium" selected>Medium</option><option value="High">High</option></select></div><div class="form-group full-width"><label class="signature-label"><input id="account-client-upload-enabled" name="client_upload_enabled" type="checkbox"> Allow the assigned client to upload files to this account</label></div><div class="form-group full-width"><label for="account-transaction-details">Transaction Details</label><textarea id="account-transaction-details" name="transaction_details"></textarea></div><div class="form-group full-width"><label for="account-internal-notes">Internal Notes</label><textarea id="account-internal-notes" name="internal_notes"></textarea></div><div class="form-group full-width"><label for="account-client-notes">Client Visible Notes</label><textarea id="account-client-notes" name="client_notes"></textarea></div><div class="form-group full-width"><label for="account-required-tasks">Required Documents / Missing Tasks</label><textarea id="account-required-tasks" name="required_tasks"></textarea></div></div><div class="form-actions"><button class="btn-primary" type="submit">Create Account</button></div><div id="account-status-message" class="form-status" aria-live="polite"></div></form></div></div>
 
-  <div id="upload-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="upload" aria-label="Close">×</button><h2 id="upload-modal-title">Upload File</h2><form id="upload-form" novalidate><div class="form-grid"><div class="form-group"><label for="upload-account">Assign to Account</label><select id="upload-account" name="account_id"><option value="">No specific account</option></select></div><div class="form-group"><label for="upload-client">Assign to Client</label><select id="upload-client" name="client_id"><option value="">No specific client</option></select></div><div class="form-group"><label for="upload-property">Assign to Property</label><select id="upload-property" name="property_id"><option value="">No specific property</option></select></div><div class="form-group"><label for="upload-category">Category</label><select id="upload-category" name="category"><option value="">Select…</option><option value="Contract">Contract</option><option value="Lease Agreement">Lease Agreement</option><option value="Lease Renewal">Lease Renewal</option><option value="Move-in Inspection">Move-in Inspection</option><option value="Move-out Inspection">Move-out Inspection</option><option value="Property Rules">Property Rules</option><option value="Maintenance Agreement">Maintenance Agreement</option><option value="Insurance Requirement">Insurance Requirement</option><option value="Notice">Notice</option><option value="Receipt">Receipt</option><option value="Photo">Photo</option><option value="Identification">Identification</option><option value="Paystub">Paystub</option><option value="Closing Document">Closing Document</option><option value="Title Document">Title Document</option><option value="Insurance Document">Insurance Document</option><option value="Other">Other</option></select></div><div class="form-group"><label for="upload-visibility">Client Visibility</label><select id="upload-visibility" name="visibility"><option value="admin_only">Admin Only</option><option value="client_visible">Client Can View</option><option value="client_downloadable">Client Can Download</option></select></div><div class="form-group full-width"><label for="upload-file">File <span class="required" aria-hidden="true">*</span></label><input id="upload-file" name="file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp" required></div><div class="form-group full-width"><label class="signature-label"><input type="checkbox" id="upload-requires-sig" name="requires_signature"> Requires external signature workflow</label><span class="helper-text">Legally binding signatures must be completed with DocuSign, Dropbox Sign, Adobe Acrobat Sign, or another approved e-signature provider.</span></div><div class="form-group"><label for="upload-signature-provider">Signature Provider</label><select id="upload-signature-provider" name="signature_provider"><option value="">Select…</option><option value="DocuSign">DocuSign</option><option value="Dropbox Sign">Dropbox Sign</option><option value="Adobe Acrobat Sign">Adobe Acrobat Sign</option><option value="Manual Upload">Manual Upload</option></select></div><div class="form-group"><label for="upload-signature-status">Signature Status</label><select id="upload-signature-status" name="signature_status"><option value="available">Available</option><option value="pending_signature">Pending Signature</option><option value="signed">Signed</option><option value="uploaded">Uploaded</option></select></div><div class="form-group full-width"><label for="upload-signature-url">External Signature URL</label><input id="upload-signature-url" name="signature_url" type="url" placeholder="https://"></div><div class="form-group full-width"><label class="signature-label"><input type="checkbox" id="upload-client-edit" name="can_client_edit"> Allow client edits / uploads against this file</label></div><div class="form-group full-width"><label for="upload-notes">Notes</label><textarea id="upload-notes" name="notes"></textarea></div></div><button class="btn-primary" type="submit">Upload File</button><div id="upload-status" class="form-status" aria-live="polite"></div></form></div></div>
+  <div id="upload-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="upload" aria-label="Close">×</button><h2 id="upload-modal-title">Upload File</h2><form id="upload-form" novalidate><div class="form-grid"><div class="form-group"><label for="upload-account">Assign to Account</label><select id="upload-account" name="account_id"><option value="">No specific account</option></select></div><div class="form-group"><label for="upload-client">Assign to Client</label><select id="upload-client" name="client_id"><option value="">No specific client</option></select></div><div class="form-group"><label for="upload-property">Assign to Property</label><select id="upload-property" name="property_id"><option value="">No specific property</option></select></div><div class="form-group"><label for="upload-category">Category</label><select id="upload-category" name="category"><option value="">Select…</option><option value="Contract">Contract</option><option value="Lease Agreement">Lease Agreement</option><option value="Lease Renewal">Lease Renewal</option><option value="Move-in Inspection">Move-in Inspection</option><option value="Move-out Inspection">Move-out Inspection</option><option value="Property Rules">Property Rules</option><option value="Maintenance Agreement">Maintenance Agreement</option><option value="Insurance Requirement">Insurance Requirement</option><option value="Notice">Notice</option><option value="Receipt">Receipt</option><option value="Photo">Photo</option><option value="Identification">Identification</option><option value="Paystub">Paystub</option><option value="Closing Document">Closing Document</option><option value="Title Document">Title Document</option><option value="Insurance Document">Insurance Document</option><option value="Other">Other</option></select></div><div class="form-group"><label for="upload-visibility">Client Visibility</label><select id="upload-visibility" name="visibility"><option value="admin_only">Admin Only</option><option value="client_visible">Client Can View</option><option value="client_downloadable">Client Can Download</option></select></div><div class="form-group full-width"><label for="upload-file">File <span class="required" aria-hidden="true">*</span></label><input id="upload-file" name="file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp" required></div><div class="form-group full-width"><label class="signature-label"><input type="checkbox" id="upload-requires-sig" name="requires_signature"> Requires external signature workflow</label><span class="helper-text">Legally binding signatures must be completed with DocuSign, Dropbox Sign, Adobe Acrobat Sign, or another approved e-signature provider.</span></div><div class="form-group"><label for="upload-signature-provider">Signature Provider</label><select id="upload-signature-provider" name="signature_provider"><option value="">Select…</option><option value="DocuSign">DocuSign</option><option value="Dropbox Sign">Dropbox Sign</option><option value="Adobe Acrobat Sign">Adobe Acrobat Sign</option><option value="Manual Upload">Manual Upload</option></select></div><div class="form-group"><label for="upload-signature-status">Signature Status</label><select id="upload-signature-status" name="signature_status"><option value="available">Available</option><option value="pending_signature">Pending Signature</option><option value="signed">Signed</option><option value="uploaded">Uploaded</option></select></div><div class="form-group full-width"><label for="upload-signature-url">External Signature URL</label><input id="upload-signature-url" name="signature_url" type="url" placeholder="https://"></div><div class="form-group full-width"><label class="signature-label"><input type="checkbox" id="upload-client-edit" name="can_client_edit"> Allow client edits / uploads against this file</label></div><div class="form-group full-width"><label for="upload-notes">Notes</label><textarea id="upload-notes" name="notes"></textarea></div></div><div class="form-actions"><button class="btn-primary" type="submit">Upload File</button></div><div id="upload-status" class="form-status" aria-live="polite"></div></form></div></div>
 
-  <div id="property-assignment-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="property-assignment-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="property-assignment" aria-label="Close">×</button><h2 id="property-assignment-title">Assign Properties</h2><p id="property-assignment-subtitle" class="table-hint"></p><form id="property-assignment-form"><div id="property-assignment-list" class="assignment-list"></div><button class="btn-primary" type="submit">Save Property Assignments</button><div id="property-assignment-status" class="form-status" aria-live="polite"></div></form></div></div>
+  <div id="property-assignment-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="property-assignment-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="property-assignment" aria-label="Close">×</button><h2 id="property-assignment-title">Assign Properties</h2><p id="property-assignment-subtitle" class="table-hint"></p><form id="property-assignment-form"><div id="property-assignment-list" class="assignment-list"></div><div class="form-actions"><button class="btn-primary" type="submit">Save Property Assignments</button></div><div id="property-assignment-status" class="form-status" aria-live="polite"></div></form></div></div>
 
-  <div id="account-assignment-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="account-assignment-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="account-assignment" aria-label="Close">×</button><h2 id="account-assignment-title">Assign Accounts</h2><p id="account-assignment-subtitle" class="table-hint"></p><form id="account-assignment-form"><div id="account-assignment-list" class="assignment-list"></div><button class="btn-primary" type="submit">Save Account Assignments</button><div id="account-assignment-status" class="form-status" aria-live="polite"></div></form></div></div>
+  <div id="account-assignment-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="account-assignment-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="account-assignment" aria-label="Close">×</button><h2 id="account-assignment-title">Assign Accounts</h2><p id="account-assignment-subtitle" class="table-hint"></p><form id="account-assignment-form"><div id="account-assignment-list" class="assignment-list"></div><div class="form-actions"><button class="btn-primary" type="submit">Save Account Assignments</button></div><div id="account-assignment-status" class="form-status" aria-live="polite"></div></form></div></div>
 
   <div id="task-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
     <div class="modal-dialog modal-dialog-wide">
@@ -545,12 +554,9 @@
           <div class="form-group">
             <label for="task-status">Status</label>
             <select id="task-status" name="status">
-              <option value="Not Reviewed">Not Reviewed</option>
+              <option value="Not Reviewed Yet">Not Reviewed Yet</option>
               <option value="In Progress">In Progress</option>
-              <option value="Waiting on User">Waiting on User</option>
-              <option value="Waiting on Admin">Waiting on Admin</option>
               <option value="Completed">Completed</option>
-              <option value="Archived">Archived</option>
             </select>
           </div>
           <div class="form-group">
@@ -559,7 +565,6 @@
               <option value="Low">Low</option>
               <option value="Medium" selected>Medium</option>
               <option value="High">High</option>
-              <option value="Urgent">Urgent</option>
             </select>
           </div>
           <div class="form-group">
@@ -591,7 +596,7 @@
             <textarea id="task-internal-notes" name="internal_notes" rows="2"></textarea>
           </div>
         </div>
-        <button class="btn-primary" type="submit">Save Task</button>
+        <div class="form-actions"><button class="btn-primary" type="submit">Save Task</button></div>
         <div id="task-status-message" class="form-status" aria-live="polite"></div>
       </form>
     </div>
@@ -644,7 +649,7 @@
             <textarea id="sig-req-notes" name="admin_notes" rows="2"></textarea>
           </div>
         </div>
-        <button class="btn-primary" type="submit">Create Signature Request</button>
+        <div class="form-actions"><button class="btn-primary" type="submit">Create Signature Request</button></div>
         <div id="sig-request-status" class="form-status" aria-live="polite"></div>
       </form>
     </div>

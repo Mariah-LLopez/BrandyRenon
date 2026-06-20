@@ -11,18 +11,20 @@
     'text/plain',
     'image/png', 'image/jpeg', 'image/gif', 'image/webp'
   ];
-  const USER_ROLES = ['admin', 'client', 'renter', 'buyer', 'seller'];
+  const USER_ROLES = ['admin', 'client'];
   const USER_STATUSES = ['active', 'inactive'];
+  const USER_TYPES = ['Buyer', 'Seller', 'Renter', 'Property Owner', 'Renovation Client', 'Property Management Client', 'Other'];
   const LEAD_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
+  const ITEM_PRIORITIES = ['Low', 'Medium', 'High'];
   const ACCOUNT_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Active', 'Pending Signature', 'Completed', 'Archived'];
   const ACCOUNT_TYPES = ['Buyer', 'Seller', 'Rental', 'Lease', 'Property Management', 'Renovation', 'Renter', 'Owner', 'Contractor', 'Other'];
-  const MAINTENANCE_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Waiting on Contractor', 'Completed'];
-  const MAINTENANCE_PRIORITIES = ['Low', 'Medium', 'High', 'Emergency'];
+  const MAINTENANCE_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
+  const MAINTENANCE_PRIORITIES = ['Low', 'Medium', 'High'];
   const TASK_TYPES = ['Maintenance Request', 'Property Inquiry', 'Showing Request', 'Document Upload', 'Signature Request', 'Seller Task', 'Buyer Task', 'Admin Follow-Up', 'General Message'];
-  const TASK_STATUSES = ['Not Reviewed', 'In Progress', 'Waiting on User', 'Waiting on Admin', 'Completed', 'Archived'];
-  const TASK_PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
+  const TASK_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
+  const TASK_PRIORITIES = ['Low', 'Medium', 'High'];
   const SIG_REQUEST_STATUSES = ['Signature Needed', 'Sent for Signature', 'Signed', 'Declined', 'Expired'];
-  const MESSAGE_STATUSES = ['Not Reviewed', 'In Progress', 'Replied', 'Closed'];
+  const MESSAGE_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
   const SIGNATURE_STATUS_LABELS = {
     available: 'Available',
     pending_signature: 'Pending Signature',
@@ -493,14 +495,12 @@
   }
 
   async function loadUsersData() {
-    const { data, error } = await supabaseClient.rpc('get_admin_user_profiles');
-    if (error) {
-      const fallback = await supabaseClient.from('profiles').select('*').order('created_at', { ascending: false });
-      if (fallback.error) return;
-      allUsers = fallback.data || [];
-    } else {
-      allUsers = data || [];
-    }
+    const { data, error } = await supabaseClient
+      .from('profiles')
+      .select('id, email, full_name, phone, role, status, user_type, created_at')
+      .order('created_at', { ascending: false });
+    if (error) return;
+    allUsers = data || [];
     populateUserSelect(document.getElementById('upload-client'));
     populateUserSelect(document.getElementById('account-client'), 'No client selected');
   }
@@ -574,7 +574,11 @@
       .select('*')
       .order('created_at', { ascending: false });
     if (error) return;
-    allTasks = data || [];
+    allTasks = (data || []).map((task) => {
+      const statusMap = { 'Not Reviewed': 'Not Reviewed Yet', 'Waiting on User': 'In Progress', 'Waiting on Admin': 'In Progress', Archived: 'Completed' };
+      const priorityMap = { Urgent: 'High', Emergency: 'High' };
+      return { ...task, status: statusMap[task.status] || task.status || 'Not Reviewed Yet', priority: priorityMap[task.priority] || task.priority || 'Medium' };
+    });
   }
 
   async function loadMessagesData() {
@@ -583,7 +587,10 @@
       .select('*, profiles!messages_user_id_fkey(full_name, email)')
       .order('created_at', { ascending: false });
     if (error) return;
-    allMessages = data || [];
+    allMessages = (data || []).map((message) => {
+      const statusMap = { Open: 'Not Reviewed Yet', 'Not Reviewed': 'Not Reviewed Yet', Replied: 'Completed', Closed: 'Completed' };
+      return { ...message, status: statusMap[message.status] || message.status || 'Not Reviewed Yet' };
+    });
   }
 
   async function loadSigRequestsData() {
@@ -601,7 +608,7 @@
     const term = (document.getElementById('user-search')?.value || '').trim().toLowerCase();
     const filtered = allUsers.filter((user) => {
       if (!term) return true;
-      return [user.full_name, user.email, user.role, user.status].some((value) => String(value || '').toLowerCase().includes(term));
+      return [user.full_name, user.email, user.role, user.status, user.user_type].some((value) => String(value || '').toLowerCase().includes(term));
     });
     if (!filtered.length) {
       tbody.innerHTML = '';
@@ -611,8 +618,9 @@
     empty.hidden = true;
     tbody.innerHTML = filtered.map((user) => {
       const roleOptions = USER_ROLES.map((role) => `<option value="${role}"${role === user.role ? ' selected' : ''}>${role.charAt(0).toUpperCase() + role.slice(1)}</option>`).join('');
+      const typeOptions = USER_TYPES.map((userType) => `<option value="${userType}"${(user.user_type || 'Other') === userType ? ' selected' : ''}>${escapeHtml(userType)}</option>`).join('');
       const statusOptions = USER_STATUSES.map((status) => `<option value="${status}"${status === (user.status || 'active') ? ' selected' : ''}>${status.charAt(0).toUpperCase() + status.slice(1)}</option>`).join('');
-      const clientActions = user.role === 'client'
+      const clientActions = user.role !== 'admin'
         ? `<button class="action-link" data-action="assign-properties" data-id="${escapeHtml(user.id)}" type="button">Assign Properties</button>
            <button class="action-link" data-action="assign-accounts" data-id="${escapeHtml(user.id)}" type="button">Assign Accounts</button>
            <button class="action-link" data-action="view-client" data-id="${escapeHtml(user.id)}" type="button">View as Client</button>`
@@ -620,6 +628,7 @@
       return `<tr data-user-id="${escapeHtml(user.id)}">
         <td>${escapeHtml(user.email)}</td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-user-role>${roleOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
+        <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-user-type>${typeOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-user-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
         <td>${formatDateOnly(user.created_at)}</td>
         <td class="dashboard-cell-wrap">${escapeHtml(getPropertySummary(user.id))}</td>
@@ -668,12 +677,14 @@
       config.empty.hidden = true;
       config.tbody.innerHTML = config.rows.map((account) => {
         const statusOptions = ACCOUNT_STATUSES.map((s) => `<option value="${s}"${account.status === s ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
+        const priorityOptions = ITEM_PRIORITIES.map((priority) => `<option value="${priority}"${priority === (account.priority || 'Medium') ? ' selected' : ''}>${priority}</option>`).join('');
         return `<tr data-account-id="${escapeHtml(account.id)}">
           <td class="dashboard-cell-wrap"><strong>${escapeHtml(account.account_name)}</strong>${account.client_notes ? `<div class="table-hint">${escapeHtml(account.client_notes)}</div>` : ''}</td>
           <td>${escapeHtml(getAccountClientLabels(account.id))}</td>
           <td>${escapeHtml(getPropertyById(account.property_id)?.property_address || 'Unassigned')}</td>
           <td>${escapeHtml(account.account_type || 'Other')}</td>
           <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-account-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
+          <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-account-priority>${priorityOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
           <td>${formatDateTime(groupKey === 'completed' ? (account.completed_at || account.updated_at) : account.updated_at)}</td>
           <td><div class="table-actions table-actions-stack"><button class="action-link" data-action="view-account-files" data-id="${escapeHtml(account.id)}" type="button">Files</button><button class="action-link" data-action="account-upload" data-id="${escapeHtml(account.id)}" type="button">Upload File</button><button class="action-link" data-action="delete-account" data-id="${escapeHtml(account.id)}" type="button">Delete</button></div></td>
         </tr>`;
@@ -883,12 +894,14 @@
       const account = getAccountById(msg.account_id);
       const userInfo = msg.profiles ? (msg.profiles.full_name || msg.profiles.email) : (getUserById(msg.user_id)?.full_name || getUserById(msg.user_id)?.email || 'N/A');
       const statusOptions = MESSAGE_STATUSES.map((s) => `<option value="${s}"${s === msg.status ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
+      const priorityOptions = ITEM_PRIORITIES.map((priority) => `<option value="${priority}"${priority === (msg.priority || 'Medium') ? ' selected' : ''}>${priority}</option>`).join('');
       return `<tr data-message-id="${escapeHtml(msg.id)}">
         <td>${escapeHtml(msg.subject || 'No subject')}</td>
         <td>${escapeHtml(msg.message_type || 'General Message')}</td>
         <td>${escapeHtml(userInfo)}</td>
         <td>${escapeHtml(account?.account_name || 'N/A')}</td>
         <td class="dashboard-cell-wrap">${escapeHtml(msg.message_body || '')}</td>
+        <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-message-priority>${priorityOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-message-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
         <td><textarea class="dashboard-inline-notes" data-message-notes rows="2">${escapeHtml(msg.admin_notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></td>
         <td>${formatDateTime(msg.created_at)}</td>
@@ -934,7 +947,7 @@
       return sigState === 'pending_signature' || sigState === 'uploaded';
     }).length;
     const openMaintenance = allMaintenanceRequests.filter((m) => m.status !== 'Completed').length;
-    const openMessages = allMessages.filter((m) => m.status === 'Not Reviewed').length
+    const openMessages = allMessages.filter((m) => m.status === 'Not Reviewed Yet').length
       + (allLeads.contact || []).filter((l) => l.admin_status === 'Not Reviewed Yet').length
       + (allLeads.showing || []).filter((l) => l.admin_status === 'Not Reviewed Yet').length;
     const openSigRequests = allSigRequests.filter((s) => !['Signed', 'Declined', 'Expired'].includes(s.status)).length;
@@ -966,7 +979,7 @@
     const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { data: { full_name: fullName, role: 'client' }, shouldCreateUser: true } });
     if (error) {
       statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Invitation failed: ' + error.message;
+      statusEl.textContent = 'Invitation failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message);
       return;
     }
     statusEl.className = 'form-status success-message';
@@ -999,7 +1012,7 @@
     const { error } = await supabaseClient.from('properties').insert([payload]);
     if (error) {
       statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Failed: ' + error.message;
+      statusEl.textContent = 'Failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message);
       return;
     }
     statusEl.className = 'form-status success-message';
@@ -1027,6 +1040,7 @@
       property_id: form.querySelector('[name="property_id"]').value || null,
       account_type: form.querySelector('[name="account_type"]').value || 'Other',
       status,
+      priority: form.querySelector('[name="priority"]').value || 'Medium',
       client_upload_enabled: !!form.querySelector('[name="client_upload_enabled"]').checked,
       transaction_details: form.querySelector('[name="transaction_details"]').value.trim() || null,
       internal_notes: form.querySelector('[name="internal_notes"]').value.trim() || null,
@@ -1038,7 +1052,7 @@
     const { data, error } = await supabaseClient.from('accounts').insert([payload]).select().single();
     if (error) {
       statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Failed: ' + error.message;
+      statusEl.textContent = 'Failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message);
       return;
     }
     const clientId = form.querySelector('[name="primary_client_id"]').value || null;
@@ -1119,7 +1133,7 @@
     const { error: dbError } = await supabaseClient.from('documents').insert([payload]);
     if (dbError) {
       statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'File saved but record failed: ' + dbError.message;
+      statusEl.textContent = 'File saved but record failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message);
       return;
     }
     statusEl.className = 'form-status success-message';
@@ -1145,7 +1159,7 @@
     const payload = {
       title,
       task_type: form.querySelector('[name="task_type"]').value || 'General Message',
-      status: form.querySelector('[name="status"]').value || 'Not Reviewed',
+      status: form.querySelector('[name="status"]').value || 'Not Reviewed Yet',
       priority: form.querySelector('[name="priority"]').value || 'Medium',
       account_id: form.querySelector('[name="account_id"]').value || null,
       user_id: form.querySelector('[name="user_id"]').value || null,
@@ -1164,7 +1178,7 @@
     }
     if (error) {
       statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Failed: ' + error.message;
+      statusEl.textContent = 'Failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message);
       return;
     }
     statusEl.className = 'form-status success-message';
@@ -1186,7 +1200,7 @@
     document.getElementById('task-modal-title').textContent = 'Edit Task';
     form.querySelector('[name="title"]').value = task.title || '';
     form.querySelector('[name="task_type"]').value = task.task_type || 'General Message';
-    form.querySelector('[name="status"]').value = task.status || 'Not Reviewed';
+    form.querySelector('[name="status"]').value = task.status || 'Not Reviewed Yet';
     form.querySelector('[name="priority"]').value = task.priority || 'Medium';
     form.querySelector('[name="account_id"]').value = task.account_id || '';
     form.querySelector('[name="user_id"]').value = task.user_id || '';
@@ -1231,7 +1245,7 @@
     const { error } = await supabaseClient.from('signature_requests').insert([payload]);
     if (error) {
       statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Failed: ' + error.message;
+      statusEl.textContent = 'Failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message);
       return;
     }
     statusEl.className = 'form-status success-message';
@@ -1695,6 +1709,7 @@
     document.getElementById('users-tbody')?.addEventListener('change', function (event) {
       const el = event.target;
       if (el.hasAttribute('data-user-role')) autoSaveUser(el, 'role', el.value);
+      if (el.hasAttribute('data-user-type')) autoSaveUser(el, 'user_type', el.value);
       if (el.hasAttribute('data-user-status')) autoSaveUser(el, 'status', el.value);
     });
 
@@ -1714,6 +1729,7 @@
       document.getElementById(tbodyId)?.addEventListener('change', function (event) {
         const el = event.target;
         if (el.hasAttribute('data-account-status')) autoSaveAccount(el, 'status', el.value);
+        if (el.hasAttribute('data-account-priority')) autoSaveAccount(el, 'priority', el.value);
       });
     });
 
@@ -1727,6 +1743,7 @@
     document.getElementById('messages-tbody')?.addEventListener('change', function (event) {
       const el = event.target;
       if (el.hasAttribute('data-message-status')) autoSaveMessage(el, 'status', el.value);
+      if (el.hasAttribute('data-message-priority')) autoSaveMessage(el, 'priority', el.value);
     });
     document.getElementById('messages-tbody')?.addEventListener('input', function (event) {
       const el = event.target;
