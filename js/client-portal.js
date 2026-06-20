@@ -199,7 +199,7 @@
     return allPropertyPhotoDocs
       .filter((doc) => doc.property_id === property.id && doc.file_path)
       .map((doc) => {
-        const { data } = supabaseClient.storage.from('property-images').getPublicUrl(doc.file_path);
+        const { data } = supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).getPublicUrl(doc.file_path);
         return data?.publicUrl || null;
       })
       .filter(Boolean);
