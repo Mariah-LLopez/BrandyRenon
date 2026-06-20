@@ -7,11 +7,10 @@
   const RESET_PASSWORD_PAGE = 'reset-password.html';
 
   function getPasswordResetRedirectUrl() {
-    try {
-      return new URL(`/${RESET_PASSWORD_PAGE}`, window.location.origin).toString();
-    } catch (error) {
-      return `/${RESET_PASSWORD_PAGE}`;
-    }
+    const baseOrigin = window.location.origin && window.location.origin !== 'null'
+      ? window.location.origin
+      : `${window.location.protocol}//${window.location.host}`;
+    return new URL(RESET_PASSWORD_PAGE, `${baseOrigin}/`).toString();
   }
 
   function getErrorMessage(error, fallbackMessage) {
