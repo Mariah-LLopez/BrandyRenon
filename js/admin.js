@@ -108,8 +108,9 @@
   }
 
   async function uploadPropertyPhotos(propertyId, files, property) {
-    const mergedPaths = getPropertyPhotoPaths(property).slice();
-    const mergedUrls = getPropertyPhotoUrls(property).slice();
+    const existingProperty = property || {};
+    const mergedPaths = getPropertyPhotoPaths(existingProperty).slice();
+    const mergedUrls = getPropertyPhotoUrls(existingProperty).slice();
     const newPaths = [];
     try {
       for (const file of files) {
@@ -1145,6 +1146,14 @@
     if (dbError) {
       statusEl.className = 'form-status error-message';
       statusEl.textContent = 'Failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message);
+      return;
+    }
+    if (!savedProperty?.id) {
+      statusEl.className = 'form-status error-message';
+      statusEl.textContent = 'Property saved, but the new record could not be loaded for photo upload.';
+      await loadPropertiesData();
+      renderProperties();
+      renderUsers();
       return;
     }
     if (photoFiles.length) {
