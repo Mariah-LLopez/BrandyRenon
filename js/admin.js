@@ -1443,9 +1443,6 @@
         };
         const { data: insertedDocument, error: dbError } = await supabaseClient.from('documents').insert([payload]).select('id').single();
         if (dbError) {
-          await supabaseClient.storage.from(bucketName).remove([filePath]);
-          const uploadedPathIndex = uploadedPaths.indexOf(filePath);
-          if (uploadedPathIndex >= 0) uploadedPaths.splice(uploadedPathIndex, 1);
           throw new Error(`"${file.name}": ${typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message}`);
         }
         if (insertedDocument?.id) insertedDocumentIds.push(insertedDocument.id);
