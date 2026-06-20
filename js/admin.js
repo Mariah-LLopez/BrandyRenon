@@ -1,18 +1,17 @@
 (function () {
   const MAX_FILE_SIZE_MB = 10;
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-  const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.png', '.jpg', '.jpeg', '.gif', '.webp'];
-  const ALLOWED_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
-  const ALLOWED_MIME_TYPES = [
+  const ALLOWED_EXTENSIONS = window.SUPABASE_FILE_RULES?.allowedExtensions || ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.webp'];
+  const ALLOWED_IMAGE_EXTENSIONS = window.SUPABASE_FILE_RULES?.allowedImageExtensions || ['.jpg', '.jpeg', '.png', '.webp'];
+  const ALLOWED_MIME_TYPES = window.SUPABASE_FILE_RULES?.allowedMimeTypes || [
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'text/plain',
-    'image/png', 'image/jpeg', 'image/gif', 'image/webp'
+    'image/jpeg', 'image/png', 'image/webp'
   ];
-  const ALLOWED_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+  const ALLOWED_IMAGE_MIME_TYPES = window.SUPABASE_FILE_RULES?.allowedImageMimeTypes || ['image/jpeg', 'image/png', 'image/webp'];
   const USER_ROLES = ['admin', 'client'];
   const USER_STATUSES = ['active', 'inactive'];
   const USER_TYPES = ['Buyer', 'Seller', 'Renter', 'Property Owner', 'Renovation Client', 'Property Management Client', 'Other'];
@@ -66,7 +65,7 @@
     const photoCount = getPropertyPhotoUrls(property).length;
     helper.textContent = photoCount
       ? `${photoCount} photo${photoCount === 1 ? '' : 's'} currently saved. Uploading more will add to this property.`
-      : 'Upload one or more photos for this property. Images only, up to 10 MB each.';
+      : 'Upload one or more photos for this property. JPG, JPEG, PNG, or WEBP only, up to 10 MB each.';
   }
 
   function resetPropertyForm(options) {
@@ -112,36 +111,47 @@
     const mergedPaths = getPropertyPhotoPaths(existingProperty).slice();
     const mergedUrls = getPropertyPhotoUrls(existingProperty).slice();
     const uploadedPaths = [];
+    const uploadedFiles = [];
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (typeof onProgress === 'function') onProgress(file.name, i + 1, files.length);
-        if (file.size > MAX_FILE_SIZE_BYTES) {
-          throw new Error(`"${file.name}" exceeds the ${MAX_FILE_SIZE_MB} MB limit.`);
-        }
-        if (!isAllowedImageMime(file.type) || !hasAllowedImageExtension(file.name)) {
-          throw new Error(`"${file.name}" is not an allowed image type (PNG, JPG, JPEG, GIF, or WEBP).`);
-        }
-        const uniquePrefix = createUniqueFilePrefix();
-        const filePath = `properties/${propertyId}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
-        const { error: storageError } = await supabaseClient.storage.from('property-images').upload(filePath, file);
+        const validationError = getSupabaseFileValidationError(file, {
+          imagesOnly: true,
+          maxSizeBytes: MAX_FILE_SIZE_BYTES,
+          maxSizeMb: MAX_FILE_SIZE_MB
+        });
+        if (validationError) throw new Error(`"${file.name}": ${validationError}`);
+        const filePath = buildStoragePath(STORAGE_BUCKETS.PROPERTY_IMAGES, {
+          propertyId,
+          fileName: file.name
+        });
+        const { error: storageError } = await supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).upload(filePath, file);
         if (storageError) {
           console.error(`Photo upload error for "${file.name}":`, storageError);
           throw new Error(`"${file.name}": ${storageError.message}`);
         }
-        const { data: publicData } = supabaseClient.storage.from('property-images').getPublicUrl(filePath);
+        const publicUrl = await getSupabaseStorageUrl(STORAGE_BUCKETS.PROPERTY_IMAGES, filePath, { expiresIn: 300 });
         mergedPaths.push(filePath);
-        if (publicData?.publicUrl) mergedUrls.push(publicData.publicUrl);
+        if (publicUrl) mergedUrls.push(publicUrl);
         uploadedPaths.push(filePath);
+        uploadedFiles.push({
+          file_name: file.name,
+          file_path: filePath,
+          file_type: file.type || null,
+          file_size: file.size
+        });
       }
       return {
-        photo_bucket: 'property-images',
+        photo_bucket: STORAGE_BUCKETS.PROPERTY_IMAGES,
         photo_paths: mergedPaths,
-        photo_urls: mergedUrls
+        photo_urls: mergedUrls,
+        uploaded_paths: uploadedPaths,
+        uploaded_files: uploadedFiles
       };
     } catch (error) {
       if (uploadedPaths.length) {
-        await supabaseClient.storage.from('property-images').remove(uploadedPaths);
+        await supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).remove(uploadedPaths);
       }
       throw error;
     }
@@ -181,6 +191,83 @@
 
   function isAllowedImageMime(mime) {
     return ALLOWED_IMAGE_MIME_TYPES.includes((mime || '').toLowerCase());
+  }
+
+  function setFormStatus(statusEl, type, message) {
+    if (!statusEl) return;
+    statusEl.className = type ? `form-status ${type}` : 'form-status';
+    statusEl.textContent = message || '';
+  }
+
+  function getPrimaryAccountClientId(accountId) {
+    return getAccountClientIds(accountId)[0] || null;
+  }
+
+  function buildStoragePath(bucketName, options) {
+    const config = options || {};
+    const uniquePrefix = createUniqueFilePrefix();
+    const safeName = sanitizeFilename(config.fileName);
+    if (bucketName === STORAGE_BUCKETS.PROPERTY_IMAGES) {
+      return `properties/${config.propertyId || 'unassigned'}/${uniquePrefix}-${safeName}`;
+    }
+    if (bucketName === STORAGE_BUCKETS.ACCOUNT_FILES) {
+      return `clients/${config.clientId || 'admin'}/accounts/${config.accountId || 'unassigned'}/${uniquePrefix}-${safeName}`;
+    }
+    if (bucketName === STORAGE_BUCKETS.MAINTENANCE_FILES) {
+      return `clients/${config.clientId || 'unknown'}/maintenance/${config.requestId || 'pending'}/${uniquePrefix}-${safeName}`;
+    }
+    return `clients/${config.clientId || 'admin'}/documents/${config.propertyId || config.accountId || 'general'}/${uniquePrefix}-${safeName}`;
+  }
+
+  async function appendPropertyPhoto(propertyId, filePath) {
+    if (!propertyId || !filePath) return null;
+    const property = getPropertyById(propertyId);
+    const photoPaths = getPropertyPhotoPaths(property);
+    const photoUrls = getPropertyPhotoUrls(property);
+    if (!photoPaths.includes(filePath)) photoPaths.push(filePath);
+    const publicUrl = await getSupabaseStorageUrl(STORAGE_BUCKETS.PROPERTY_IMAGES, filePath, { expiresIn: 300 });
+    if (publicUrl && !photoUrls.includes(publicUrl)) photoUrls.push(publicUrl);
+    const { data, error } = await supabaseClient
+      .from('properties')
+      .update({
+        photo_bucket: STORAGE_BUCKETS.PROPERTY_IMAGES,
+        photo_paths: photoPaths,
+        photo_urls: photoUrls,
+        updated_at: nowIso()
+      })
+      .eq('id', propertyId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async function insertPropertyPhotoDocuments(propertyId, uploadedFiles) {
+    if (!propertyId || !uploadedFiles?.length) return;
+    const payload = uploadedFiles.map((file) => ({
+      property_id: propertyId,
+      uploaded_by: adminUserId,
+      file_name: file.file_name,
+      file_path: file.file_path,
+      bucket_name: STORAGE_BUCKETS.PROPERTY_IMAGES,
+      file_type: file.file_type,
+      file_size: file.file_size,
+      category: 'Photo',
+      visibility: 'admin_only',
+      can_client_view: false,
+      can_client_edit: false,
+      requires_signature: false,
+      signature_provider: null,
+      signature_url: null,
+      signature_status: 'available',
+      status: 'Not Reviewed Yet',
+      priority: 'Medium',
+      notes: 'Public property image',
+      hidden: false,
+      updated_at: nowIso()
+    }));
+    const { error } = await supabaseClient.from('documents').insert(payload);
+    if (error) throw error;
   }
 
   function createUniqueFilePrefix() {
@@ -536,20 +623,16 @@
     const account = getAccountById(accountId);
     if (!account) return;
     if (uploadProperty && account.property_id) uploadProperty.value = account.property_id;
-    const clientIds = getAccountClientIds(accountId);
-    if (uploadClient && clientIds.length === 1) uploadClient.value = clientIds[0];
+    const primaryClientId = getPrimaryAccountClientId(accountId);
+    if (uploadClient && primaryClientId) uploadClient.value = primaryClientId;
   }
 
   async function getStorageUrl(bucket, filePath) {
-    if (!bucket || !filePath) return null;
-    const { data: signedData, error: signedError } = await supabaseClient.storage.from(bucket).createSignedUrl(filePath, 300);
-    if (!signedError && signedData?.signedUrl) return signedData.signedUrl;
-    const { data: publicData } = supabaseClient.storage.from(bucket).getPublicUrl(filePath);
-    return publicData?.publicUrl || null;
+    return getSupabaseStorageUrl(bucket, filePath, { expiresIn: 300 });
   }
 
   async function getDocumentUrl(doc) {
-    const bucket = doc.bucket_name || 'property-documents';
+    const bucket = doc.bucket_name || STORAGE_BUCKETS.CLIENT_DOCUMENTS;
     const url = await getStorageUrl(bucket, doc.file_path);
     if (!url) throw new Error('Document URL unavailable');
     return url;
@@ -1169,21 +1252,35 @@
       if (photoFiles.length) {
         try {
           const photoPayload = await uploadPropertyPhotos(savedProperty.id, photoFiles, savedProperty, function (fileName, index, total) {
-            statusEl.className = 'form-status';
-            statusEl.textContent = `Uploading photo ${index} of ${total}: ${fileName}`;
+            setFormStatus(statusEl, '', `Uploading photo ${index} of ${total}: ${fileName}`);
           });
+          const propertyPhotoUpdate = {
+            photo_bucket: photoPayload.photo_bucket,
+            photo_paths: photoPayload.photo_paths,
+            photo_urls: photoPayload.photo_urls,
+            updated_at: nowIso()
+          };
+          if (photoPayload.uploaded_files?.length) {
+            try {
+              await insertPropertyPhotoDocuments(savedProperty.id, photoPayload.uploaded_files);
+            } catch (error) {
+              if (photoPayload.uploaded_paths?.length) {
+                await supabaseClient.storage.from(STORAGE_BUCKETS.PROPERTY_IMAGES).remove(photoPayload.uploaded_paths);
+              }
+              throw error;
+            }
+          }
           const { data, error } = await supabaseClient
             .from('properties')
-            .update({ ...photoPayload, updated_at: nowIso() })
+            .update(propertyPhotoUpdate)
             .eq('id', savedProperty.id)
             .select()
             .single();
           if (error) throw error;
-          savedProperty = data || { ...savedProperty, ...photoPayload };
+          savedProperty = data || { ...savedProperty, ...propertyPhotoUpdate };
         } catch (error) {
           console.error('Photo upload error:', error);
-          statusEl.className = 'form-status error-message';
-          statusEl.textContent = `Property saved, but photo upload failed: ${error.message}. You can retry uploading photos by editing this property.`;
+          setFormStatus(statusEl, 'error-message', `Property saved, but photo upload failed: ${error.message}. You can retry uploading photos by editing this property.`);
           await loadPropertiesData();
           renderProperties();
           renderUsers();
@@ -1193,9 +1290,11 @@
       statusEl.className = 'form-status success-message';
       statusEl.textContent = propertyId ? 'Property updated.' : 'Property saved.';
       resetPropertyForm({ preserveStatus: true });
-      await loadPropertiesData();
+      await Promise.all([loadPropertiesData(), loadDocumentsData()]);
       renderProperties();
+      renderDocuments();
       renderUsers();
+      updateSummaryCards();
       setTimeout(() => {
         closeModal('property');
         resetPropertyForm();
@@ -1254,38 +1353,45 @@
     const form = document.getElementById('upload-form');
     const statusEl = document.getElementById('upload-status');
     const fileInput = document.getElementById('upload-file');
+    const submitBtn = form?.querySelector('button[type="submit"]');
     const file = fileInput?.files?.[0] || null;
-    if (!file) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Please select a file.';
-      return;
-    }
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = `File must be under ${MAX_FILE_SIZE_MB} MB.`;
-      return;
-    }
-    if (!isAllowedMime(file.type) || !hasAllowedExtension(file.name)) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Unsupported file type.';
-      return;
-    }
+    const validationError = getSupabaseFileValidationError(file, {
+      maxSizeBytes: MAX_FILE_SIZE_BYTES,
+      maxSizeMb: MAX_FILE_SIZE_MB
+    });
+    if (validationError) return setFormStatus(statusEl, 'error-message', validationError);
     const accountId = form.querySelector('[name="account_id"]').value || null;
     const account = getAccountById(accountId);
-    const assignedClientIds = accountId ? getAccountClientIds(accountId) : [];
-    const clientId = form.querySelector('[name="client_id"]').value || (assignedClientIds.length === 1 ? assignedClientIds[0] : null);
-    const propertyId = form.querySelector('[name="property_id"]').value || account?.property_id || null;
+    const selectedClientId = form.querySelector('[name="client_id"]').value || null;
+    const clientId = accountId ? (getPrimaryAccountClientId(accountId) || selectedClientId) : selectedClientId;
+    const propertyId = account?.property_id || form.querySelector('[name="property_id"]').value || null;
     const visibility = form.querySelector('[name="visibility"]').value;
-    const requiresSignature = document.getElementById('upload-requires-sig').checked;
-    const canClientEdit = document.getElementById('upload-client-edit').checked || requiresSignature;
-    const canClientView = visibility !== 'admin_only';
-    const bucketName = file.type.startsWith('image/') ? 'property-images' : 'property-documents';
-    const uniquePrefix = createUniqueFilePrefix();
-    const filePath = `${accountId || clientId || 'admin'}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
+    const isPublicPropertyImage = document.getElementById('upload-public-image')?.checked;
+    const requiresSignature = !isPublicPropertyImage && document.getElementById('upload-requires-sig').checked;
+    const property = propertyId ? getPropertyById(propertyId) : null;
+    if (isPublicPropertyImage && !propertyId) {
+      return setFormStatus(statusEl, 'error-message', 'Select a property before marking a file as a public property image.');
+    }
+    if (isPublicPropertyImage && property && !property.is_public && property.visibility !== 'public') {
+      return setFormStatus(statusEl, 'error-message', 'Only public properties can receive public listing images.');
+    }
+    const canClientEdit = !isPublicPropertyImage && (document.getElementById('upload-client-edit').checked || requiresSignature);
+    const canClientView = !isPublicPropertyImage && visibility !== 'admin_only';
+    const bucketName = isPublicPropertyImage
+      ? STORAGE_BUCKETS.PROPERTY_IMAGES
+      : (accountId ? STORAGE_BUCKETS.ACCOUNT_FILES : STORAGE_BUCKETS.CLIENT_DOCUMENTS);
+    const filePath = buildStoragePath(bucketName, {
+      accountId,
+      clientId,
+      propertyId,
+      fileName: file.name
+    });
+    if (submitBtn) submitBtn.disabled = true;
+    setFormStatus(statusEl, '', `Uploading ${file.name}…`);
     const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
     if (storageError) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Upload failed: ' + storageError.message;
+      if (submitBtn) submitBtn.disabled = false;
+      setFormStatus(statusEl, 'error-message', 'Upload failed: ' + storageError.message);
       return;
     }
     const signatureUrl = form.querySelector('[name="signature_url"]').value.trim();
@@ -1299,29 +1405,46 @@
       bucket_name: bucketName,
       file_type: file.type,
       file_size: file.size,
-      category: form.querySelector('[name="category"]').value || 'Other',
-      visibility,
+      category: isPublicPropertyImage ? 'Photo' : (form.querySelector('[name="category"]').value || 'Other'),
+      visibility: isPublicPropertyImage ? 'admin_only' : visibility,
       can_client_view: canClientView,
       can_client_edit: canClientEdit,
       requires_signature: requiresSignature,
       signature_provider: form.querySelector('[name="signature_provider"]').value || null,
       signature_status: form.querySelector('[name="signature_status"]').value || (requiresSignature ? 'pending_signature' : 'available'),
       signature_url: signatureUrl || null,
+      status: 'Not Reviewed Yet',
+      priority: 'Medium',
       notes: form.querySelector('[name="notes"]').value.trim() || null,
       hidden: false,
       updated_at: nowIso()
     };
     const { error: dbError } = await supabaseClient.from('documents').insert([payload]);
     if (dbError) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'File saved but record failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message);
+      await supabaseClient.storage.from(bucketName).remove([filePath]);
+      if (submitBtn) submitBtn.disabled = false;
+      setFormStatus(statusEl, 'error-message', 'Upload failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message));
       return;
     }
-    statusEl.className = 'form-status success-message';
-    statusEl.textContent = 'File uploaded successfully.';
+    if (isPublicPropertyImage) {
+      try {
+        await appendPropertyPhoto(propertyId, filePath);
+      } catch (error) {
+        if (submitBtn) submitBtn.disabled = false;
+        setFormStatus(statusEl, 'error-message', 'File uploaded, but property image sync failed: ' + error.message);
+        await Promise.all([loadDocumentsData(), loadPropertiesData()]);
+        renderDocuments();
+        renderProperties();
+        updateSummaryCards();
+        return;
+      }
+    }
+    if (submitBtn) submitBtn.disabled = false;
+    setFormStatus(statusEl, 'success-message', 'File uploaded successfully.');
     form.reset();
-    await loadDocumentsData();
+    await Promise.all([loadDocumentsData(), loadPropertiesData()]);
     renderDocuments();
+    renderProperties();
     updateSummaryCards();
     setTimeout(() => closeModal('upload'), 1200);
   }
@@ -1701,7 +1824,7 @@
     if (error) { listEl.innerHTML = `<p class="form-status error-message">${escapeHtml(error.message)}</p>`; return; }
     if (!docs || !docs.length) { listEl.innerHTML = '<p class="table-hint">No files uploaded to this account yet.</p>'; return; }
     listEl.innerHTML = docs.map((doc) => `<div class="account-file-item">
-      <div class="account-file-name">${escapeHtml(doc.file_name || doc.file_path || 'Unnamed file')}</div>
+      <button class="action-link account-file-name" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">${escapeHtml(doc.file_name || doc.file_path || 'Unnamed file')}</button>
       <div class="account-file-meta">${escapeHtml(doc.file_type || '')} · ${formatDateTime(doc.created_at)}</div>
       <div class="table-actions">
         <button class="action-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">Open</button>
@@ -1724,6 +1847,8 @@
       uploadBtn.parentNode.replaceChild(freshUploadBtn, uploadBtn);
       freshUploadBtn.addEventListener('click', () => {
         closeModal('account-files');
+        document.getElementById('upload-form')?.reset();
+        setFormStatus(document.getElementById('upload-status'), '', '');
         document.getElementById('upload-account').value = accountId;
         applyUploadAccountDefaults(accountId);
         openModal('upload');
@@ -1827,6 +1952,8 @@
       return;
     }
     if (action === 'account-upload') {
+      document.getElementById('upload-form')?.reset();
+      setFormStatus(document.getElementById('upload-status'), '', '');
       document.getElementById('upload-account').value = accountId;
       applyUploadAccountDefaults(accountId);
       openModal('upload');
@@ -1867,7 +1994,11 @@
       openModal('property');
     });
     document.getElementById('open-account-modal')?.addEventListener('click', () => openModal('account'));
-    document.getElementById('open-upload-modal')?.addEventListener('click', () => openModal('upload'));
+    document.getElementById('open-upload-modal')?.addEventListener('click', () => {
+      document.getElementById('upload-form')?.reset();
+      setFormStatus(document.getElementById('upload-status'), '', '');
+      openModal('upload');
+    });
     document.getElementById('open-task-modal')?.addEventListener('click', () => {
       const form = document.getElementById('task-form');
       if (form) { form.reset(); delete form.dataset.editId; }

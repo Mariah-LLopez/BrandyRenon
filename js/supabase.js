@@ -30,6 +30,83 @@ function sanitizeFilename(name) {
   return safe || 'upload';
 }
 
+const STORAGE_BUCKETS = Object.freeze({
+  PROPERTY_IMAGES: 'property-images',
+  CLIENT_DOCUMENTS: 'client-documents',
+  MAINTENANCE_FILES: 'maintenance-files',
+  ACCOUNT_FILES: 'account-files',
+  LEGACY_PROPERTY_DOCUMENTS: 'property-documents'
+});
+
+const PUBLIC_STORAGE_BUCKETS = new Set([STORAGE_BUCKETS.PROPERTY_IMAGES]);
+const PORTAL_ALLOWED_EXTENSIONS = Object.freeze(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.webp']);
+const PORTAL_ALLOWED_IMAGE_EXTENSIONS = Object.freeze(['.jpg', '.jpeg', '.png', '.webp']);
+const PORTAL_ALLOWED_MIME_TYPES = Object.freeze([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'image/jpeg',
+  'image/png',
+  'image/webp'
+]);
+const PORTAL_ALLOWED_IMAGE_MIME_TYPES = Object.freeze(['image/jpeg', 'image/png', 'image/webp']);
+
+window.STORAGE_BUCKETS = STORAGE_BUCKETS;
+window.SUPABASE_FILE_RULES = Object.freeze({
+  allowedExtensions: PORTAL_ALLOWED_EXTENSIONS,
+  allowedImageExtensions: PORTAL_ALLOWED_IMAGE_EXTENSIONS,
+  allowedMimeTypes: PORTAL_ALLOWED_MIME_TYPES,
+  allowedImageMimeTypes: PORTAL_ALLOWED_IMAGE_MIME_TYPES
+});
+
+function getFileExtension(name) {
+  const match = String(name || '').toLowerCase().match(/(\.[a-z0-9]+)$/);
+  return match ? match[1] : '';
+}
+
+function isPublicStorageBucket(bucketName) {
+  return PUBLIC_STORAGE_BUCKETS.has(String(bucketName || '').trim());
+}
+
+function getSupabaseFileValidationError(file, options) {
+  const config = options || {};
+  const maxSizeBytes = Number(config.maxSizeBytes) || (10 * 1024 * 1024);
+  const maxSizeMb = config.maxSizeMb || Math.round(maxSizeBytes / (1024 * 1024));
+  const imagesOnly = Boolean(config.imagesOnly);
+  const extensions = imagesOnly ? PORTAL_ALLOWED_IMAGE_EXTENSIONS : PORTAL_ALLOWED_EXTENSIONS;
+  const mimeTypes = imagesOnly ? PORTAL_ALLOWED_IMAGE_MIME_TYPES : PORTAL_ALLOWED_MIME_TYPES;
+  const allowedLabel = imagesOnly
+    ? 'JPG, JPEG, PNG, or WEBP'
+    : 'PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG, or WEBP';
+  if (!file) return 'Select a file to upload.';
+  if (Number(file.size || 0) > maxSizeBytes) {
+    return `File must be under ${maxSizeMb} MB.`;
+  }
+  const extension = getFileExtension(file.name);
+  if (!extensions.includes(extension)) {
+    return `Unsupported file type. Allowed types: ${allowedLabel}.`;
+  }
+  const mimeType = String(file.type || '').trim().toLowerCase();
+  if (mimeType && !mimeTypes.includes(mimeType)) {
+    return `Unsupported file type. Allowed types: ${allowedLabel}.`;
+  }
+  return '';
+}
+
+async function getSupabaseStorageUrl(bucketName, filePath, options) {
+  if (!bucketName || !filePath) return null;
+  const expiresIn = Number(options?.expiresIn) > 0 ? Number(options.expiresIn) : 300;
+  if (isPublicStorageBucket(bucketName)) {
+    const { data } = supabaseClient.storage.from(bucketName).getPublicUrl(filePath);
+    return data?.publicUrl || null;
+  }
+  const { data, error } = await supabaseClient.storage.from(bucketName).createSignedUrl(filePath, expiresIn);
+  if (error) throw error;
+  return data?.signedUrl || null;
+}
+
 async function getSession() {
   if (!supabaseClient) return null;
   const { data } = await supabaseClient.auth.getSession();
