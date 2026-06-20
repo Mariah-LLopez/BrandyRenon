@@ -1,15 +1,21 @@
 (function () {
+  const STORAGE_BUCKETS = window.STORAGE_BUCKETS || {
+    PROPERTY_IMAGES: 'property-images',
+    CLIENT_DOCUMENTS: 'client-documents',
+    MAINTENANCE_FILES: 'maintenance-files',
+    ACCOUNT_FILES: 'account-files',
+    LEGACY_PROPERTY_DOCUMENTS: 'property-documents'
+  };
   const MAX_FILE_SIZE_MB = 10;
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-  const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.png', '.jpg', '.jpeg', '.gif', '.webp'];
-  const ALLOWED_MIME_TYPES = [
+  const ALLOWED_EXTENSIONS = window.SUPABASE_FILE_RULES?.allowedExtensions || ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.webp'];
+  const ALLOWED_MIME_TYPES = window.SUPABASE_FILE_RULES?.allowedMimeTypes || [
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'text/plain',
-    'image/png', 'image/jpeg', 'image/gif', 'image/webp'
+    'image/jpeg', 'image/png', 'image/webp'
   ];
 
   let previewMode = false;
@@ -29,6 +35,27 @@
 
   function isAllowedMime(mime) {
     return ALLOWED_MIME_TYPES.includes((mime || '').toLowerCase());
+  }
+
+  function setFormStatus(statusEl, type, message) {
+    if (!statusEl) return;
+    statusEl.className = type ? `form-status ${type}` : 'form-status';
+    statusEl.textContent = message || '';
+  }
+
+  function buildStoragePath(bucketName, options) {
+    const config = options || {};
+    const uniquePrefix = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const safeName = sanitizeFilename(config.fileName);
+    if (bucketName === STORAGE_BUCKETS.MAINTENANCE_FILES) {
+      return `clients/${config.clientId || 'unknown'}/maintenance/${config.requestId || 'pending'}/${uniquePrefix}-${safeName}`;
+    }
+    if (bucketName === STORAGE_BUCKETS.ACCOUNT_FILES) {
+      return `clients/${config.clientId || 'unknown'}/accounts/${config.accountId || 'unassigned'}/${uniquePrefix}-${safeName}`;
+    }
+    return `clients/${config.clientId || 'unknown'}/documents/${config.accountId || config.propertyId || 'general'}/${uniquePrefix}-${safeName}`;
   }
 
   function revealPage() {
@@ -145,6 +172,23 @@
     return '<span class="badge-doc-none">Available</span>';
   }
 
+  function renderDocumentActions(doc) {
+    const buttons = [
+      `<button class="action-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">Open</button>`
+    ];
+    if (doc.visibility === 'client_downloadable' || previewMode) {
+      buttons.push(`<button class="action-link" data-action="download-file" data-id="${escapeHtml(doc.id)}" type="button">Download</button>`);
+    }
+    if (doc.signature_url) {
+      buttons.push(`<button class="action-link badge-doc-required-btn" data-action="sign-file" data-id="${escapeHtml(doc.id)}" type="button">Sign Document</button>`);
+    }
+    return `<div class="table-actions">${buttons.join('')}</div>`;
+  }
+
+  function renderMaintenanceFileActions(file) {
+    return `<span class="table-actions"><button class="action-link" data-action="open-maint-file" data-id="${escapeHtml(file.id)}" type="button">${escapeHtml(file.file_name)}</button><button class="action-link" data-action="download-maint-file" data-id="${escapeHtml(file.id)}" type="button">Download</button></span>`;
+  }
+
   function getPropertyById(propertyId) {
     return allProperties.find((property) => property.id === propertyId) || null;
   }
@@ -166,15 +210,11 @@
   }
 
   async function getStorageUrl(bucket, filePath) {
-    if (!bucket || !filePath) return null;
-    const { data: signedData, error: signedError } = await supabaseClient.storage.from(bucket).createSignedUrl(filePath, 300);
-    if (!signedError && signedData?.signedUrl) return signedData.signedUrl;
-    const { data: publicData } = supabaseClient.storage.from(bucket).getPublicUrl(filePath);
-    return publicData?.publicUrl || null;
+    return getSupabaseStorageUrl(bucket, filePath, { expiresIn: 300 });
   }
 
   async function getDocumentUrl(doc) {
-    return getStorageUrl(doc.bucket_name || 'property-documents', doc.file_path);
+    return getStorageUrl(doc.bucket_name || STORAGE_BUCKETS.CLIENT_DOCUMENTS, doc.file_path);
   }
 
   async function loadProperties(userId) {
@@ -360,7 +400,7 @@
         <td>${escapeHtml(getPropertyById(doc.property_id)?.property_address || 'Unassigned')}</td>
         <td>${signatureBadge(doc)}</td>
         <td>${formatDateOnly(doc.created_at)}</td>
-        <td><div class="table-actions"><button class="action-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">Open</button>${doc.visibility === 'client_downloadable' || previewMode ? `<button class="action-link" data-action="download-file" data-id="${escapeHtml(doc.id)}" type="button">Download</button>` : ''}${doc.signature_url ? `<button class="action-link badge-doc-required-btn" data-action="sign-file" data-id="${escapeHtml(doc.id)}" type="button">Sign Document</button>` : ''}</div></td>
+        <td>${renderDocumentActions(doc)}</td>
       </tr>
     `).join('');
     });
@@ -380,7 +420,9 @@
       config.empty.hidden = true;
       config.tbody.innerHTML = config.rows.map((request) => {
         const files = getMaintenanceFiles(request.id);
-        const fileLinks = files.length ? `<div class="file-link-grid">${files.map((file) => `<button class="action-link" data-action="open-maint-file" data-id="${escapeHtml(file.id)}" type="button">${escapeHtml(file.file_name)}</button>`).join('')}</div>` : 'None';
+        const fileLinks = files.length
+          ? `<div class="file-link-grid">${files.map((file) => renderMaintenanceFileActions(file)).join('')}</div>`
+          : 'None';
         return `
           <tr>
             <td>${formatDateTime(request.created_at)}</td>
@@ -400,26 +442,34 @@
   async function openDocument(docId) {
     const doc = allDocuments.find((item) => item.id === docId);
     if (!doc) return;
-    const url = await getDocumentUrl(doc);
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    try {
+      const url = await getDocumentUrl(doc);
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      window.alert(`Unable to open file: ${error.message}`);
+    }
   }
 
   async function downloadDocument(docId) {
     const doc = allDocuments.find((item) => item.id === docId);
     if (!doc) return;
-    const url = await getDocumentUrl(doc);
-    if (!url) return;
-    const response = await fetch(url);
-    if (!response.ok) return;
-    const blob = await response.blob();
-    const objectUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = objectUrl;
-    link.download = doc.file_name || 'file';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(objectUrl);
+    try {
+      const url = await getDocumentUrl(doc);
+      if (!url) return;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = doc.file_name || 'file';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      window.alert(`Unable to download file: ${error.message}`);
+    }
   }
 
   function openSignatureLink(docId) {
@@ -431,8 +481,34 @@
   async function openMaintenanceFile(fileId) {
     const file = allMaintenanceFiles.find((item) => item.id === fileId);
     if (!file) return;
-    const url = await getStorageUrl(file.bucket_name || 'maintenance-files', file.file_path);
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    try {
+      const url = await getStorageUrl(file.bucket_name || STORAGE_BUCKETS.MAINTENANCE_FILES, file.file_path);
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      window.alert(`Unable to open maintenance file: ${error.message}`);
+    }
+  }
+
+  async function downloadMaintenanceFile(fileId) {
+    const file = allMaintenanceFiles.find((item) => item.id === fileId);
+    if (!file) return;
+    try {
+      const url = await getStorageUrl(file.bucket_name || STORAGE_BUCKETS.MAINTENANCE_FILES, file.file_path);
+      if (!url) return;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = file.file_name || 'maintenance-file';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      window.alert(`Unable to download maintenance file: ${error.message}`);
+    }
   }
 
   async function handleUpload(event, userId) {
@@ -447,35 +523,31 @@
     const account = getAccountById(accountSelect?.value);
     const file = fileInput?.files?.[0] || null;
     if (!account || !account.client_upload_enabled) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Select an account that allows client uploads.';
+      setFormStatus(statusEl, 'error-message', 'Select an account that allows client uploads.');
       return;
     }
     if (!file || !categorySelect?.value) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Select an account, category, and file.';
+      setFormStatus(statusEl, 'error-message', 'Select an account, category, and file.');
       return;
     }
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = `File must be under ${MAX_FILE_SIZE_MB} MB.`;
-      return;
-    }
-    if (!isAllowedMime(file.type) || !hasAllowedExtension(file.name)) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Unsupported file type.';
-      return;
-    }
+    const validationError = getSupabaseFileValidationError(file, {
+      maxSizeBytes: MAX_FILE_SIZE_BYTES,
+      maxSizeMb: MAX_FILE_SIZE_MB
+    });
+    if (validationError) return setFormStatus(statusEl, 'error-message', validationError);
     uploadBtn.disabled = true;
-    const uniquePrefix = typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const filePath = `${userId}/${account.id}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
-    const { error: storageError } = await supabaseClient.storage.from('property-documents').upload(filePath, file);
+    setFormStatus(statusEl, '', `Uploading ${file.name}…`);
+    const bucketName = accountSelect?.value && account ? STORAGE_BUCKETS.ACCOUNT_FILES : STORAGE_BUCKETS.CLIENT_DOCUMENTS;
+    const filePath = buildStoragePath(bucketName, {
+      clientId: userId,
+      accountId: account?.id || null,
+      propertyId: account?.property_id || null,
+      fileName: file.name
+    });
+    const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
     if (storageError) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Upload failed: ' + storageError.message;
       uploadBtn.disabled = false;
+      setFormStatus(statusEl, 'error-message', 'Upload failed: ' + storageError.message);
       return;
     }
     const { error: dbError } = await supabaseClient.from('documents').insert([{
@@ -485,26 +557,27 @@
       uploaded_by: userId,
       file_name: file.name,
       file_path: filePath,
-      bucket_name: 'property-documents',
+      bucket_name: bucketName,
       file_type: file.type,
       file_size: file.size,
       category: categorySelect.value,
       visibility: 'client_visible',
       can_client_view: true,
       can_client_edit: true,
+      status: 'Not Reviewed Yet',
+      priority: 'Medium',
       notes: notesInput?.value.trim() || null,
       hidden: false,
       updated_at: new Date().toISOString()
     }]);
     uploadBtn.disabled = false;
     if (dbError) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'File saved but record failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message);
+      await supabaseClient.storage.from(bucketName).remove([filePath]);
+      setFormStatus(statusEl, 'error-message', 'Upload failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message));
       return;
     }
     event.target.reset();
-    statusEl.className = 'form-status success-message';
-    statusEl.textContent = 'File uploaded successfully.';
+    setFormStatus(statusEl, 'success-message', 'File uploaded successfully.');
     notifySubmission({
       submission_type: 'Client Document Upload',
       name: document.getElementById('client-name')?.textContent || 'Portal Client',
@@ -528,12 +601,23 @@
     const filesInput = document.getElementById('maintenance-files');
     const statusEl = document.getElementById('maintenance-form-status');
     const submitBtn = document.getElementById('maintenance-submit-btn');
-    if (!title || !description) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Title and description are required.';
+    if (!title || !description || !propertyId) {
+      setFormStatus(statusEl, 'error-message', 'Please provide a title, description, and select a property.');
       return;
     }
+    const uploads = Array.from(filesInput?.files || []);
+    for (const file of uploads) {
+      const validationError = getSupabaseFileValidationError(file, {
+        maxSizeBytes: MAX_FILE_SIZE_BYTES,
+        maxSizeMb: MAX_FILE_SIZE_MB
+      });
+      if (validationError) {
+        setFormStatus(statusEl, 'error-message', `"${file.name}": ${validationError}`);
+        return;
+      }
+    }
     submitBtn.disabled = true;
+    setFormStatus(statusEl, '', 'Submitting…');
     const requestPayload = {
       client_id: userId,
       property_id: propertyId,
@@ -547,39 +631,49 @@
     };
     const { data: request, error } = await supabaseClient.from('maintenance_requests').insert([requestPayload]).select().single();
     if (error) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Unable to create request: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message);
+      setFormStatus(statusEl, 'error-message', 'Unable to create request: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(error) : error.message));
       submitBtn.disabled = false;
       return;
     }
-    const uploads = Array.from(filesInput?.files || []);
-    for (const file of uploads) {
-      if (file.size > MAX_FILE_SIZE_BYTES || !isAllowedMime(file.type) || !hasAllowedExtension(file.name)) continue;
-      const bucketName = 'maintenance-files';
-      const uniquePrefix = typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const filePath = `${userId}/${request.id}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
+    for (let index = 0; index < uploads.length; index++) {
+      const file = uploads[index];
+      const bucketName = STORAGE_BUCKETS.MAINTENANCE_FILES;
+      const filePath = buildStoragePath(bucketName, {
+        clientId: userId,
+        requestId: request.id,
+        fileName: file.name
+      });
+      setFormStatus(statusEl, '', `Uploading file ${index + 1} of ${uploads.length}: ${file.name}`);
       const { error: storageError } = await supabaseClient.storage.from(bucketName).upload(filePath, file);
-      if (!storageError) {
-        await supabaseClient.from('maintenance_files').insert([{
-          maintenance_request_id: request.id,
-          client_id: userId,
-          account_id: accountId,
-          property_id: propertyId,
-          file_name: file.name,
-          file_path: filePath,
-          bucket_name: bucketName,
-          file_type: file.type,
-          file_size: file.size,
-          category: file.type.startsWith('image/') ? 'Photo' : 'Other'
-        }]);
+      if (storageError) {
+        submitBtn.disabled = false;
+        setFormStatus(statusEl, 'error-message', 'Maintenance file upload failed: ' + storageError.message);
+        await loadMaintenance(userId);
+        return;
+      }
+      const { error: fileError } = await supabaseClient.from('maintenance_files').insert([{
+        maintenance_request_id: request.id,
+        client_id: userId,
+        property_id: propertyId,
+        account_id: accountId,
+        bucket_name: bucketName,
+        file_path: filePath,
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
+        category: file.type.startsWith('image/') ? 'Photo' : 'Other',
+        uploaded_by: userId
+      }]);
+      if (fileError) {
+        await supabaseClient.storage.from(bucketName).remove([filePath]);
+        submitBtn.disabled = false;
+        setFormStatus(statusEl, 'error-message', 'Maintenance file save failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(fileError) : fileError.message));
+        return;
       }
     }
     event.target.reset();
     submitBtn.disabled = false;
-    statusEl.className = 'form-status success-message';
-    statusEl.textContent = 'Maintenance request submitted.';
+    setFormStatus(statusEl, 'success-message', 'Maintenance request submitted.');
     notifySubmission({
       submission_type: 'Maintenance Request',
       name: document.getElementById('client-name')?.textContent || 'Portal Client',
@@ -870,8 +964,12 @@
     });
     ['maintenance-active-tbody', 'maintenance-completed-tbody'].forEach((tbodyId) => {
       document.getElementById(tbodyId)?.addEventListener('click', function (event) {
-        const button = event.target.closest('[data-action="open-maint-file"]');
-        if (button) openMaintenanceFile(button.getAttribute('data-id'));
+        const button = event.target.closest('[data-action]');
+        if (!button) return;
+        const action = button.getAttribute('data-action');
+        const id = button.getAttribute('data-id');
+        if (action === 'open-maint-file') openMaintenanceFile(id);
+        if (action === 'download-maint-file') downloadMaintenanceFile(id);
       });
     });
     document.getElementById('client-upload-form')?.addEventListener('submit', function (event) { handleUpload(event, activeUserId); });

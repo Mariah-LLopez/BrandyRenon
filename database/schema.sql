@@ -147,7 +147,7 @@ create table if not exists public.documents (
   uploaded_by         uuid references public.profiles (id) on delete set null,
   file_name           text not null,
   file_path           text not null,
-  bucket_name         text not null default 'property-documents',
+  bucket_name         text not null default 'client-documents',
   file_type           text,
   file_size           bigint,
   category            text,
@@ -381,54 +381,109 @@ alter table public.renovation_clients alter column status set not null;
 -- Create these two buckets in the Supabase console (Storage > New bucket),
 -- then uncomment and run the policy statements below.
 --
--- Bucket: property-documents  (private)
--- Bucket: property-images     (public)
+-- Buckets: property-images (public), client-documents (private),
+--          maintenance-files (private), account-files (private)
 -- -------------------------------------------------------------------------
 
--- insert into storage.buckets (id, name, public) values ('property-documents', 'property-documents', false) on conflict do nothing;
--- insert into storage.buckets (id, name, public) values ('property-images', 'property-images', true) on conflict do nothing;
+insert into storage.buckets (id, name, public)
+values
+  ('property-images', 'property-images', true),
+  ('client-documents', 'client-documents', false),
+  ('maintenance-files', 'maintenance-files', false),
+  ('account-files', 'account-files', false)
+on conflict (id) do update set
+  name = excluded.name,
+  public = excluded.public;
 
--- -- property-documents: clients can read files in their own folder.
--- -- Covers two path structures:
--- --   {client_id}/{uuid}-{file}            ← client self-uploads
--- --   admin/users/{client_id}/{uuid}-{file} ← admin uploads to a client
--- create policy "doc_storage_client_select" on storage.objects
---   for select using (
---     bucket_id = 'property-documents'
---     and (
---       auth.uid()::text = (string_to_array(name, '/'))[1]
---       or (
---         (string_to_array(name, '/'))[1] = 'admin'
---         and (string_to_array(name, '/'))[2] = 'users'
---         and auth.uid()::text = (string_to_array(name, '/'))[3]
---       )
---     )
---   );
+drop policy if exists "storage_admin_all" on storage.objects;
+create policy "storage_admin_all" on storage.objects
+  for all using (public.is_admin()) with check (public.is_admin());
 
--- -- property-documents: clients can upload to their own folder
--- create policy "doc_storage_client_insert" on storage.objects
---   for insert with check (
---     bucket_id = 'property-documents'
---     and auth.uid()::text = (string_to_array(name, '/'))[1]
---   );
+drop policy if exists "property_images_public_select" on storage.objects;
+create policy "property_images_public_select" on storage.objects
+  for select using (bucket_id = 'property-images');
 
--- -- property-documents: admins have full access
--- create policy "doc_storage_admin_all" on storage.objects
---   for all using (
---     bucket_id = 'property-documents'
---     and public.is_admin()
---   );
+drop policy if exists "client_documents_client_select" on storage.objects;
+create policy "client_documents_client_select" on storage.objects
+  for select using (
+    bucket_id = 'client-documents'
+    and exists (
+      select 1
+      from public.documents d
+      where d.bucket_name = bucket_id
+        and d.file_path = name
+        and d.client_id = auth.uid()
+        and d.can_client_view = true
+        and d.hidden = false
+    )
+  );
 
--- -- property-images: anyone can read
--- create policy "img_storage_public_select" on storage.objects
---   for select using (bucket_id = 'property-images');
+drop policy if exists "account_files_client_select" on storage.objects;
+create policy "account_files_client_select" on storage.objects
+  for select using (
+    bucket_id = 'account-files'
+    and exists (
+      select 1
+      from public.documents d
+      where d.bucket_name = bucket_id
+        and d.file_path = name
+        and d.client_id = auth.uid()
+        and d.can_client_view = true
+        and d.hidden = false
+    )
+  );
 
--- -- property-images: only admins can write
--- create policy "img_storage_admin_write" on storage.objects
---   for insert with check (
---     bucket_id = 'property-images'
---     and public.is_admin()
---   );
+drop policy if exists "legacy_property_documents_client_select" on storage.objects;
+create policy "legacy_property_documents_client_select" on storage.objects
+  for select using (
+    bucket_id = 'property-documents'
+    and exists (
+      select 1
+      from public.documents d
+      where d.bucket_name = bucket_id
+        and d.file_path = name
+        and d.client_id = auth.uid()
+        and d.can_client_view = true
+        and d.hidden = false
+    )
+  );
+
+drop policy if exists "maintenance_files_client_select_storage" on storage.objects;
+create policy "maintenance_files_client_select_storage" on storage.objects
+  for select using (
+    bucket_id = 'maintenance-files'
+    and exists (
+      select 1
+      from public.maintenance_files mf
+      where mf.bucket_name = bucket_id
+        and mf.file_path = name
+        and mf.client_id = auth.uid()
+    )
+  );
+
+drop policy if exists "client_documents_client_insert_storage" on storage.objects;
+create policy "client_documents_client_insert_storage" on storage.objects
+  for insert with check (
+    bucket_id = 'client-documents'
+    and split_part(name, '/', 1) = 'clients'
+    and split_part(name, '/', 2) = auth.uid()::text
+  );
+
+drop policy if exists "account_files_client_insert_storage" on storage.objects;
+create policy "account_files_client_insert_storage" on storage.objects
+  for insert with check (
+    bucket_id = 'account-files'
+    and split_part(name, '/', 1) = 'clients'
+    and split_part(name, '/', 2) = auth.uid()::text
+  );
+
+drop policy if exists "maintenance_files_client_insert_storage" on storage.objects;
+create policy "maintenance_files_client_insert_storage" on storage.objects
+  for insert with check (
+    bucket_id = 'maintenance-files'
+    and split_part(name, '/', 1) = 'clients'
+    and split_part(name, '/', 2) = auth.uid()::text
+  );
 
 -- -------------------------------------------------------------------------
 -- Performance indexes
@@ -717,6 +772,7 @@ alter table public.documents add column if not exists signature_url text;
 alter table public.documents add column if not exists signature_status text;
 alter table public.documents add column if not exists updated_at timestamptz;
 alter table public.documents add column if not exists completed_at timestamptz;
+alter table public.documents alter column bucket_name set default 'client-documents';
 update public.documents
 set signature_status = case
   when coalesce(signed, false) then 'signed'
@@ -798,6 +854,7 @@ create table if not exists public.maintenance_files (
   client_id uuid not null references public.profiles (id) on delete cascade,
   account_id uuid references public.accounts (id) on delete set null,
   property_id uuid references public.properties (id) on delete set null,
+  uploaded_by uuid references public.profiles (id) on delete set null,
   file_name text not null,
   file_path text not null,
   bucket_name text not null default 'maintenance-files',
@@ -806,6 +863,7 @@ create table if not exists public.maintenance_files (
   category text,
   created_at timestamptz not null default now()
 );
+alter table public.maintenance_files add column if not exists uploaded_by uuid references public.profiles (id) on delete set null;
 alter table public.maintenance_files enable row level security;
 drop policy if exists "maintenance_files_admin_all" on public.maintenance_files;
 create policy "maintenance_files_admin_all" on public.maintenance_files
