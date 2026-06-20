@@ -107,23 +107,28 @@
     openModal('property');
   }
 
-  async function uploadPropertyPhotos(propertyId, files, property) {
+  async function uploadPropertyPhotos(propertyId, files, property, onProgress) {
     const existingProperty = property || {};
     const mergedPaths = getPropertyPhotoPaths(existingProperty).slice();
     const mergedUrls = getPropertyPhotoUrls(existingProperty).slice();
     const uploadedPaths = [];
     try {
-      for (const file of files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (typeof onProgress === 'function') onProgress(file.name, i + 1, files.length);
         if (file.size > MAX_FILE_SIZE_BYTES) {
-          throw new Error(`Each photo must be under ${MAX_FILE_SIZE_MB} MB.`);
+          throw new Error(`"${file.name}" exceeds the ${MAX_FILE_SIZE_MB} MB limit.`);
         }
         if (!isAllowedImageMime(file.type) || !hasAllowedImageExtension(file.name)) {
-          throw new Error('Property photos must be PNG, JPG, JPEG, GIF, or WEBP files.');
+          throw new Error(`"${file.name}" is not an allowed image type (PNG, JPG, JPEG, GIF, or WEBP).`);
         }
         const uniquePrefix = createUniqueFilePrefix();
         const filePath = `properties/${propertyId}/${uniquePrefix}-${sanitizeFilename(file.name)}`;
         const { error: storageError } = await supabaseClient.storage.from('property-images').upload(filePath, file);
-        if (storageError) throw new Error(storageError.message);
+        if (storageError) {
+          console.error(`Photo upload error for "${file.name}":`, storageError);
+          throw new Error(`"${file.name}": ${storageError.message}`);
+        }
         const { data: publicData } = supabaseClient.storage.from('property-images').getPublicUrl(filePath);
         mergedPaths.push(filePath);
         if (publicData?.publicUrl) mergedUrls.push(publicData.publicUrl);
@@ -1112,7 +1117,9 @@
   async function handleAddProperty(event) {
     event.preventDefault();
     const form = document.getElementById('property-form');
+    const submitBtn = document.getElementById('property-submit-btn');
     const statusEl = document.getElementById('property-status');
+    if (!form || !statusEl) return;
     const propertyAddress = form.querySelector('[name="property_address"]').value.trim();
     const visibility = form.querySelector('[name="visibility"]').value;
     const propertyId = form.dataset.editId || form.querySelector('[name="property_id"]').value || null;
@@ -1130,62 +1137,72 @@
       notes: form.querySelector('[name="notes"]').value.trim() || null,
       updated_at: nowIso()
     };
-    statusEl.textContent = '';
+    if (submitBtn) submitBtn.disabled = true;
     statusEl.className = 'form-status';
-    let savedProperty = getPropertyById(propertyId);
-    let dbError = null;
-    if (propertyId) {
-      const { data, error } = await supabaseClient.from('properties').update(payload).eq('id', propertyId).select().single();
-      savedProperty = data || savedProperty;
-      dbError = error;
-    } else {
-      const { data, error } = await supabaseClient.from('properties').insert([payload]).select().single();
-      savedProperty = data || savedProperty;
-      dbError = error;
-    }
-    if (dbError) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message);
-      return;
-    }
-    if (!savedProperty?.id) {
-      statusEl.className = 'form-status error-message';
-      statusEl.textContent = 'Property saved successfully, but could not load the record for photo upload. Please refresh and try uploading photos again.';
-      await loadPropertiesData();
-      renderProperties();
-      renderUsers();
-      return;
-    }
-    if (photoFiles.length) {
-      try {
-        const photoPayload = await uploadPropertyPhotos(savedProperty.id, photoFiles, savedProperty);
-        const { data, error } = await supabaseClient
-          .from('properties')
-          .update({ ...photoPayload, updated_at: nowIso() })
-          .eq('id', savedProperty.id)
-          .select()
-          .single();
-        if (error) throw error;
-        savedProperty = data || { ...savedProperty, ...photoPayload };
-      } catch (error) {
+    statusEl.textContent = 'Saving…';
+    try {
+      let savedProperty = getPropertyById(propertyId);
+      let dbError = null;
+      if (propertyId) {
+        const { data, error } = await supabaseClient.from('properties').update(payload).eq('id', propertyId).select().single();
+        savedProperty = data || savedProperty;
+        dbError = error;
+      } else {
+        const { data, error } = await supabaseClient.from('properties').insert([payload]).select().single();
+        savedProperty = data || savedProperty;
+        dbError = error;
+      }
+      if (dbError) {
+        console.error('Property save error:', dbError);
         statusEl.className = 'form-status error-message';
-        statusEl.textContent = `Property saved, but photo upload failed: ${error.message}. You can retry uploading photos by editing this property.`;
+        statusEl.textContent = 'Failed: ' + (typeof formatSupabaseSchemaError === 'function' ? formatSupabaseSchemaError(dbError) : dbError.message);
+        return;
+      }
+      if (!savedProperty?.id) {
+        statusEl.className = 'form-status error-message';
+        statusEl.textContent = 'Property saved successfully, but could not load the record for photo upload. Please refresh and try uploading photos again.';
         await loadPropertiesData();
         renderProperties();
         renderUsers();
         return;
       }
+      if (photoFiles.length) {
+        try {
+          const photoPayload = await uploadPropertyPhotos(savedProperty.id, photoFiles, savedProperty, function (fileName, index, total) {
+            statusEl.className = 'form-status';
+            statusEl.textContent = `Uploading photo ${index} of ${total}: ${fileName}`;
+          });
+          const { data, error } = await supabaseClient
+            .from('properties')
+            .update({ ...photoPayload, updated_at: nowIso() })
+            .eq('id', savedProperty.id)
+            .select()
+            .single();
+          if (error) throw error;
+          savedProperty = data || { ...savedProperty, ...photoPayload };
+        } catch (error) {
+          console.error('Photo upload error:', error);
+          statusEl.className = 'form-status error-message';
+          statusEl.textContent = `Property saved, but photo upload failed: ${error.message}. You can retry uploading photos by editing this property.`;
+          await loadPropertiesData();
+          renderProperties();
+          renderUsers();
+          return;
+        }
+      }
+      statusEl.className = 'form-status success-message';
+      statusEl.textContent = propertyId ? 'Property updated.' : 'Property saved.';
+      resetPropertyForm({ preserveStatus: true });
+      await loadPropertiesData();
+      renderProperties();
+      renderUsers();
+      setTimeout(() => {
+        closeModal('property');
+        resetPropertyForm();
+      }, 1200);
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
     }
-    statusEl.className = 'form-status success-message';
-    statusEl.textContent = propertyId ? 'Property updated.' : 'Property saved.';
-    resetPropertyForm({ preserveStatus: true });
-    await loadPropertiesData();
-    renderProperties();
-    renderUsers();
-    setTimeout(() => {
-      closeModal('property');
-      resetPropertyForm();
-    }, 1200);
   }
 
   async function handleAddAccount(event) {
