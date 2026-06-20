@@ -4,16 +4,18 @@
 
 (function () {
   const PASSWORD_UPDATE_REDIRECT_DELAY = 1500;
+  const RESET_PASSWORD_PAGE = 'reset-password.html';
 
   function getCurrentPageName() {
-    return window.location.pathname.split('/').pop() || '';
+    const pathname = window.location.pathname || '';
+    return pathname.split('/').filter(Boolean).pop() || '';
   }
 
   function getPasswordResetRedirectUrl() {
     try {
-      return new URL('reset-password.html', window.location.href).toString();
+      return new URL(`/${RESET_PASSWORD_PAGE}`, window.location.origin).toString();
     } catch (error) {
-      return 'reset-password.html';
+      return `/${RESET_PASSWORD_PAGE}`;
     }
   }
 
@@ -55,7 +57,7 @@
 
   async function redirectIfLoggedIn() {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
-    if (getCurrentPageName() === 'reset-password.html') return false;
+    if (getCurrentPageName() === RESET_PASSWORD_PAGE) return false;
     const session = await getSession();
     if (!session) return;
     const profile = await getCurrentUserProfile();
