@@ -172,6 +172,23 @@
     return '<span class="badge-doc-none">Available</span>';
   }
 
+  function renderDocumentActions(doc) {
+    const buttons = [
+      `<button class="action-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">Open</button>`
+    ];
+    if (doc.visibility === 'client_downloadable' || previewMode) {
+      buttons.push(`<button class="action-link" data-action="download-file" data-id="${escapeHtml(doc.id)}" type="button">Download</button>`);
+    }
+    if (doc.signature_url) {
+      buttons.push(`<button class="action-link badge-doc-required-btn" data-action="sign-file" data-id="${escapeHtml(doc.id)}" type="button">Sign Document</button>`);
+    }
+    return `<div class="table-actions">${buttons.join('')}</div>`;
+  }
+
+  function renderMaintenanceFileActions(file) {
+    return `<span class="table-actions"><button class="action-link" data-action="open-maint-file" data-id="${escapeHtml(file.id)}" type="button">${escapeHtml(file.file_name)}</button><button class="action-link" data-action="download-maint-file" data-id="${escapeHtml(file.id)}" type="button">Download</button></span>`;
+  }
+
   function getPropertyById(propertyId) {
     return allProperties.find((property) => property.id === propertyId) || null;
   }
@@ -383,7 +400,7 @@
         <td>${escapeHtml(getPropertyById(doc.property_id)?.property_address || 'Unassigned')}</td>
         <td>${signatureBadge(doc)}</td>
         <td>${formatDateOnly(doc.created_at)}</td>
-        <td><div class="table-actions"><button class="action-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">Open</button>${doc.visibility === 'client_downloadable' || previewMode ? ` <button class="action-link" data-action="download-file" data-id="${escapeHtml(doc.id)}" type="button">Download</button>` : ''}${doc.signature_url ? ` <button class="action-link badge-doc-required-btn" data-action="sign-file" data-id="${escapeHtml(doc.id)}" type="button">Sign Document</button>` : ''}</div></td>
+        <td>${renderDocumentActions(doc)}</td>
       </tr>
     `).join('');
     });
@@ -404,7 +421,7 @@
       config.tbody.innerHTML = config.rows.map((request) => {
         const files = getMaintenanceFiles(request.id);
         const fileLinks = files.length
-          ? `<div class="file-link-grid">${files.map((file) => `<span class="table-actions"><button class="action-link" data-action="open-maint-file" data-id="${escapeHtml(file.id)}" type="button">${escapeHtml(file.file_name)}</button><button class="action-link" data-action="download-maint-file" data-id="${escapeHtml(file.id)}" type="button">Download</button></span>`).join('')}</div>`
+          ? `<div class="file-link-grid">${files.map((file) => renderMaintenanceFileActions(file)).join('')}</div>`
           : 'None';
         return `
           <tr>

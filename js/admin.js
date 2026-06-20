@@ -1841,7 +1841,7 @@
     if (error) { listEl.innerHTML = `<p class="form-status error-message">${escapeHtml(error.message)}</p>`; return; }
     if (!docs || !docs.length) { listEl.innerHTML = '<p class="table-hint">No files uploaded to this account yet.</p>'; return; }
     listEl.innerHTML = docs.map((doc) => `<div class="account-file-item">
-      <button class="action-link account-file-name" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">${escapeHtml(doc.file_name || doc.file_path || 'Unnamed file')}</button>
+      <button class="action-link account-file-name" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button" aria-label="Open file ${escapeHtml(doc.file_name || doc.file_path || 'Unnamed file')}">${escapeHtml(doc.file_name || doc.file_path || 'Unnamed file')}</button>
       <div class="account-file-meta">${escapeHtml(doc.file_type || '')} · ${formatDateTime(doc.created_at)}</div>
       <div class="table-actions">
         <button class="action-link" data-action="download-doc" data-id="${escapeHtml(doc.id)}" type="button">Download</button>
