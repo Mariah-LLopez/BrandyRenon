@@ -196,9 +196,14 @@
     if (!property?.id) return [];
     const docs = allPropertyPhotoDocs.filter((doc) => doc.property_id === property.id && doc.file_path);
     const urls = await Promise.all(
-      docs.map((doc) =>
-        getSupabaseStorageUrl(doc.bucket_name || STORAGE_BUCKETS.PROPERTY_IMAGES, doc.file_path, { expiresIn: 3600 }).catch(() => null)
-      )
+      docs.map((doc) => {
+        const bucket = doc.bucket_name || STORAGE_BUCKETS.PROPERTY_IMAGES;
+        if (!doc.bucket_name) console.warn('Property photo document missing bucket_name, defaulting to property-images:', doc.id);
+        return getSupabaseStorageUrl(bucket, doc.file_path, { expiresIn: 3600 }).catch((err) => {
+          console.error('Failed to get signed URL for property photo:', doc.id, err);
+          return null;
+        });
+      })
     );
     return urls.filter(Boolean);
   }
