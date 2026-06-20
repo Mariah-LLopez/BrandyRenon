@@ -211,6 +211,13 @@
     return getAccountClientIds(accountId)[0] || null;
   }
 
+  function resolveUploadClientId(accountId, selectedClientId) {
+    if (!accountId) return selectedClientId || null;
+    const assignedClientIds = getAccountClientIds(accountId);
+    if (selectedClientId && assignedClientIds.includes(selectedClientId)) return selectedClientId;
+    return getPrimaryAccountClientId(accountId) || selectedClientId || null;
+  }
+
   function buildStoragePath(bucketName, options) {
     const config = options || {};
     const uniquePrefix = createUniqueFilePrefix();
@@ -1372,10 +1379,7 @@
     const accountId = form.querySelector('[name="account_id"]').value || null;
     const account = getAccountById(accountId);
     const selectedClientId = form.querySelector('[name="client_id"]').value || null;
-    const assignedClientIds = accountId ? getAccountClientIds(accountId) : [];
-    const clientId = accountId
-      ? ((selectedClientId && assignedClientIds.includes(selectedClientId)) ? selectedClientId : (getPrimaryAccountClientId(accountId) || selectedClientId))
-      : selectedClientId;
+    const clientId = resolveUploadClientId(accountId, selectedClientId);
     const propertyId = account?.property_id || form.querySelector('[name="property_id"]').value || null;
     const visibility = form.querySelector('[name="visibility"]').value;
     const isPublicPropertyImage = document.getElementById('upload-public-image')?.checked;
@@ -1840,7 +1844,6 @@
       <button class="action-link account-file-name" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">${escapeHtml(doc.file_name || doc.file_path || 'Unnamed file')}</button>
       <div class="account-file-meta">${escapeHtml(doc.file_type || '')} · ${formatDateTime(doc.created_at)}</div>
       <div class="table-actions">
-        <button class="action-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">Open</button>
         <button class="action-link" data-action="download-doc" data-id="${escapeHtml(doc.id)}" type="button">Download</button>
         <button class="action-link" data-action="edit-signature" data-id="${escapeHtml(doc.id)}" type="button">Signature</button>
         <button class="action-link" data-action="delete-doc" data-id="${escapeHtml(doc.id)}" type="button">Delete</button>

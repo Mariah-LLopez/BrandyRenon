@@ -383,7 +383,7 @@
         <td>${escapeHtml(getPropertyById(doc.property_id)?.property_address || 'Unassigned')}</td>
         <td>${signatureBadge(doc)}</td>
         <td>${formatDateOnly(doc.created_at)}</td>
-        <td><div class="table-actions"><button class="action-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">Open</button> <button class="action-link" data-action="download-file" data-id="${escapeHtml(doc.id)}" type="button">Download</button>${doc.signature_url ? ` <button class="action-link badge-doc-required-btn" data-action="sign-file" data-id="${escapeHtml(doc.id)}" type="button">Sign Document</button>` : ''}</div></td>
+        <td><div class="table-actions"><button class="action-link" data-action="open-file" data-id="${escapeHtml(doc.id)}" type="button">Open</button>${doc.visibility === 'client_downloadable' || previewMode ? ` <button class="action-link" data-action="download-file" data-id="${escapeHtml(doc.id)}" type="button">Download</button>` : ''}${doc.signature_url ? ` <button class="action-link badge-doc-required-btn" data-action="sign-file" data-id="${escapeHtml(doc.id)}" type="button">Sign Document</button>` : ''}</div></td>
       </tr>
     `).join('');
     });
@@ -585,7 +585,7 @@
     const statusEl = document.getElementById('maintenance-form-status');
     const submitBtn = document.getElementById('maintenance-submit-btn');
     if (!title || !description || !propertyId) {
-      setFormStatus(statusEl, 'error-message', 'Select a property and enter the request details.');
+      setFormStatus(statusEl, 'error-message', 'Please provide a title, description, and select a property.');
       return;
     }
     const uploads = Array.from(filesInput?.files || []);
