@@ -6,8 +6,8 @@ alter table public.profiles add column if not exists user_type text;
 alter table public.profiles add column if not exists updated_at timestamptz;
 update public.profiles
 set user_type = case
-  when coalesce(nullif(user_type, ''), '') in ('Property Owner', 'Owner', 'Property Management Client') then 'Rental Owner'
-  when coalesce(nullif(user_type, ''), '') = '' then 'Other'
+  when nullif(user_type, '') in ('Property Owner', 'Owner', 'Property Management Client') then 'Rental Owner'
+  when coalesce(user_type, '') = '' then 'Other'
   else user_type
 end,
 updated_at = coalesce(updated_at, created_at, now());

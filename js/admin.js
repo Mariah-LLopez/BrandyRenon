@@ -329,8 +329,7 @@
   }
 
   function normalizeMaintenancePriority(value) {
-    const map = { urgent: 'High', emergency: 'High' };
-    return map[String(value || '').toLowerCase()] || (MAINTENANCE_PRIORITIES.includes(value) ? value : 'Medium');
+    return normalizePriority(value);
   }
 
   function debounce(fn, delay) {
@@ -966,7 +965,7 @@
       const typeOptions = USER_TYPES.map((userType) => `<option value="${userType}"${normalizeUserType(user.user_type || 'Other') === userType ? ' selected' : ''}>${escapeHtml(userType)}</option>`).join('');
       const statusOptions = USER_STATUSES.map((status) => `<option value="${status}"${status === (user.status || 'active') ? ' selected' : ''}>${status.charAt(0).toUpperCase() + status.slice(1)}</option>`).join('');
       const clientActions = user.role !== 'admin'
-        ? `<button class="action-link" data-action="view-client" data-id="${escapeHtml(user.id)}" type="button">View Portal</button>`
+        ? `<button class="action-link" data-action="view-client" data-id="${escapeHtml(user.id)}" type="button">Preview Client Portal</button>`
         : '';
       return `<tr data-user-id="${escapeHtml(user.id)}">
         <td>${escapeHtml(user.email)}</td>
