@@ -16,8 +16,8 @@ alter table public.profiles
 -- Add property detail columns used by the renter dashboard
 -- -------------------------------------------------------------------------
 alter table public.properties add column if not exists property_type   text;
-alter table public.properties add column if not exists bedrooms        numeric(4,1);
-alter table public.properties add column if not exists bathrooms       numeric(4,1);
+alter table public.properties add column if not exists bedrooms        numeric(2,1);
+alter table public.properties add column if not exists bathrooms       numeric(2,1);
 alter table public.properties add column if not exists square_footage  integer;
 alter table public.properties add column if not exists parking         text;
 
@@ -39,7 +39,7 @@ returns table (
 )
 language sql
 security definer
-set search_path = public, auth
+set search_path = public
 as $$
   select p.id, p.full_name, p.email, p.phone, p.role, p.status
   from   public.account_clients ac

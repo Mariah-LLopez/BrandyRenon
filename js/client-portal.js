@@ -14,6 +14,7 @@
     LEGACY_PROPERTY_DOCUMENTS: 'property-documents'
   };
   const MAX_FILE_BYTES = 10 * 1024 * 1024;
+  const MAX_TITLE_LENGTH = 100;
 
   /* ── State ── */
   let activeUserId = null;
@@ -47,9 +48,11 @@
   }
 
   function buildStoragePath(bucket, opts) {
-    const uid = typeof crypto !== 'undefined' && crypto.randomUUID
+    // Use crypto.randomUUID() when available; fall back to a time-based prefix
+    // (not security-sensitive — only used for path uniqueness in storage).
+    const uid = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
       ? crypto.randomUUID()
-      : Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+      : Date.now().toString(36) + '-' + performance.now().toString(36).replace('.', '');
     const safe = sanitizeFilename(opts.fileName || 'upload');
     if (bucket === BUCKETS.MAINTENANCE_FILES) {
       return 'clients/' + (opts.clientId || 'unknown') + '/maintenance/' + (opts.requestId || 'pending') + '/' + uid + '-' + safe;
@@ -188,7 +191,11 @@
     }]);
     if (dbErr) { setStatus(statusEl, 'error-message', 'Could not save record: ' + dbErr.message); return; }
     // Mark task complete if it was a signature request
-    await supabaseClient.from('tasks').update({ status: 'Completed', updated_at: new Date().toISOString(), completed_at: new Date().toISOString() }).eq('id', taskId);
+    const { error: taskErr } = await supabaseClient
+      .from('tasks')
+      .update({ status: 'Completed', updated_at: new Date().toISOString(), completed_at: new Date().toISOString() })
+      .eq('id', taskId);
+    if (taskErr) console.warn('Could not auto-complete task:', taskErr.message);
     setStatus(statusEl, 'success-message', 'Signed document saved successfully!');
     await loadTasks(activeUserId);
   }
@@ -214,7 +221,8 @@
     // Load co-members for primary account
     accountMembers = [];
     if (primaryAccount) {
-      const { data: members } = await supabaseClient.rpc('get_account_members', { p_account_id: primaryAccount.id });
+      const { data: members, error: rpcErr } = await supabaseClient.rpc('get_account_members', { p_account_id: primaryAccount.id });
+      if (rpcErr) console.warn('get_account_members failed:', rpcErr.message);
       accountMembers = members || [];
     }
 
@@ -305,8 +313,8 @@
       const el = document.getElementById(containerId);
       if (!el) return;
       if (!people.length) { el.textContent = '—'; return; }
-      el.innerHTML = people.map(function (p, i) {
-        return '<button class="renter-person-link" data-member-idx="' + i + '" data-container="' + containerId + '" type="button">' +
+      el.innerHTML = people.map(function (p) {
+        return '<button class="renter-person-link" data-container="' + containerId + '" type="button">' +
           escapeHtml(p.full_name || p.email || 'Person') + '</button>';
       }).join(', ');
     }
@@ -432,7 +440,10 @@
       .update({ status: 'Completed', updated_at: new Date().toISOString(), completed_at: new Date().toISOString() })
       .eq('id', taskId)
       .eq('user_id', activeUserId);
-    if (error) { window.alert('Could not complete task: ' + error.message); return; }
+    if (error) {
+      window.alert('Could not complete task: ' + error.message);
+      return;
+    }
     await loadTasks(activeUserId);
   }
 
@@ -592,7 +603,7 @@
         client_id: activeUserId,
         property_id: propertyId,
         account_id: accountId,
-        title: description.slice(0, 100),
+        title: description.slice(0, MAX_TITLE_LENGTH),
         description,
         priority,
         status: 'Not Reviewed Yet',
@@ -635,7 +646,7 @@
       account_id: accountId,
       property_id: propertyId,
       task_type: 'Maintenance Request',
-      title: description.slice(0, 100),
+      title: description.slice(0, MAX_TITLE_LENGTH),
       description,
       status: 'Not Reviewed',
       priority,
@@ -738,15 +749,15 @@
       if (target.id === 'action-active-tab') {
         document.getElementById('action-active-view').hidden = false;
         document.getElementById('action-completed-view').hidden = true;
-        document.getElementById('action-active-tab').classList.remove('renter-toggle-selected');
-        document.getElementById('action-complete-tab').classList.add('renter-toggle-selected');
+        document.getElementById('action-active-tab').classList.add('renter-toggle-selected');
+        document.getElementById('action-complete-tab').classList.remove('renter-toggle-selected');
         return;
       }
       if (target.id === 'action-complete-tab') {
         document.getElementById('action-active-view').hidden = true;
         document.getElementById('action-completed-view').hidden = false;
-        document.getElementById('action-complete-tab').classList.remove('renter-toggle-selected');
-        document.getElementById('action-active-tab').classList.add('renter-toggle-selected');
+        document.getElementById('action-complete-tab').classList.add('renter-toggle-selected');
+        document.getElementById('action-active-tab').classList.remove('renter-toggle-selected');
         return;
       }
 
