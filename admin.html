@@ -31,14 +31,14 @@
 
     <section class="section">
       <div class="container admin-shell">
-        <nav class="portal-tab-bar" aria-label="Admin sections">
+         <nav class="portal-tab-bar" aria-label="Admin sections">
           <button class="portal-tab active" data-tab="dashboard" type="button">Dashboard</button>
           <button class="portal-tab" data-tab="users" type="button">Users</button>
           <button class="portal-tab" data-tab="properties" type="button">Properties</button>
           <button class="portal-tab" data-tab="accounts" type="button">Accounts</button>
           <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
           <button class="portal-tab" data-tab="leads" type="button">Leads</button>
-        </nav>
+          </nav>
         
           <div class="dashboard-workspace-grid">
             <section class="table-card">
@@ -145,7 +145,7 @@
                     <th scope="col">Assigned Properties</th>
                     <th scope="col">Assigned Accounts</th>
                     <th scope="col">Last Updated</th>
-                    <th scope="col">Notes</th>
+                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="users-active-tbody"></tbody>
@@ -166,8 +166,8 @@
                     <th scope="col">Current Role</th>
                     <th scope="col">User Type</th>
                     <th scope="col">Status</th>
-                    <th scope="col">Properties</th>
-                    <th scope="col">Accounts</th>
+                    <th scope="col">Assigned Properties</th>
+                    <th scope="col">Assigned Accounts</th>
                     <th scope="col">Last Updated</th>
                     <th scope="col">Actions</th>
                   </tr>
@@ -244,7 +244,6 @@
             <div id="accounts-active-empty" class="admin-empty-state" hidden>No active accounts found.</div>
           </div>
 
-        <div id="tab-tasks" class="tab-panel" hidden>
           <div class="admin-panel admin-toolbar">
             <div>
               <h2>Tasks</h2>
@@ -299,7 +298,6 @@
           </div>
         </div>
 
-        <div id="tab-messages" class="tab-panel" hidden>
           <div class="admin-panel admin-toolbar">
             <div>
               <h2>Messages &amp; Inquiries</h2>
@@ -341,7 +339,6 @@
           </div>
         </div>
 
-        <div id="tab-documents" class="tab-panel" hidden>
           <div class="admin-panel admin-toolbar">
             <div>
               <h2>Documents</h2>
@@ -393,7 +390,6 @@
           </div>
         </div>
 
-        <div id="tab-signatures" class="tab-panel" hidden>
           <div class="admin-panel admin-toolbar">
             <div>
               <h2>Signature Requests</h2>
@@ -436,7 +432,6 @@
           </div>
         </div>
 
-        <div id="tab-maintenance" class="tab-panel" hidden>
           <div class="admin-panel">
             <h2>Maintenance Requests</h2>
             <p class="table-hint">Clients submit maintenance requests from their portal. Admin can review, add comments, and manage related files here.</p>
