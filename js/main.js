@@ -344,21 +344,63 @@
     updateGrid();
   }
 
-  function setupPropertyGallery() {
-    const mainImage = document.getElementById('detail-main-image');
-    const thumbs = document.querySelectorAll('.thumbnail-button');
-    thumbs.forEach((button) => {
-      button.addEventListener('click', function () {
-        const image = button.getAttribute('data-image');
-        const alt = button.getAttribute('data-alt');
-        if (mainImage && image) {
-          mainImage.src = image;
-          mainImage.alt = alt || mainImage.alt;
-        }
-        thumbs.forEach((thumb) => thumb.classList.remove('active'));
-        button.classList.add('active');
-      });
+  function setupPropertyCarousel() {
+    const slides = document.querySelectorAll('.carousel-slide');
+    const thumbs = document.querySelectorAll('.carousel-thumb');
+    const prevBtn = document.querySelector('.carousel-prev');
+    const nextBtn = document.querySelector('.carousel-next');
+    const counter = document.querySelector('.carousel-counter');
+    const carousel = document.querySelector('.detail-carousel');
+
+    if (!slides.length) return;
+
+    let current = 0;
+    let autoplayTimer = null;
+    const total = slides.length;
+
+    function goTo(index) {
+      slides[current].classList.remove('active');
+      if (thumbs[current]) thumbs[current].classList.remove('active');
+
+      current = (index + total) % total;
+
+      slides[current].classList.add('active');
+      if (thumbs[current]) {
+        thumbs[current].classList.add('active');
+        thumbs[current].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+      if (counter) counter.textContent = `${current + 1} / ${total}`;
+    }
+
+    function startAutoplay() {
+      if (total <= 1) return;
+      stopAutoplay();
+      autoplayTimer = setInterval(() => goTo(current + 1), 5000);
+    }
+
+    function stopAutoplay() {
+      if (autoplayTimer) {
+        clearInterval(autoplayTimer);
+        autoplayTimer = null;
+      }
+    }
+
+    if (prevBtn) prevBtn.addEventListener('click', () => { goTo(current - 1); stopAutoplay(); startAutoplay(); });
+    if (nextBtn) nextBtn.addEventListener('click', () => { goTo(current + 1); stopAutoplay(); startAutoplay(); });
+
+    thumbs.forEach((thumb, index) => {
+      thumb.addEventListener('click', () => { goTo(index); stopAutoplay(); startAutoplay(); });
     });
+
+    if (carousel) {
+      carousel.addEventListener('mouseenter', stopAutoplay);
+      carousel.addEventListener('mouseleave', startAutoplay);
+      carousel.addEventListener('focusin', stopAutoplay);
+      carousel.addEventListener('focusout', startAutoplay);
+    }
+
+    goTo(0);
+    startAutoplay();
   }
 
   function getUrlParam(name) {
@@ -387,6 +429,9 @@
 
     const property = requestedProperty || window.PROPERTIES[0];
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(property.address)}`;
+    const photos = property.photos && property.photos.length ? property.photos : [property.photos[0]];
+    const multiPhoto = photos.length > 1;
+
     mount.innerHTML = `
       <section class="page-hero">
         <div class="container">
@@ -397,31 +442,40 @@
           </div>
         </div>
       </section>
-      <section class="section" style="padding-top:0;padding-bottom:0;">
+
+      <section class="section carousel-section">
         <div class="container">
-          <div class="map-card">
-            <div id="property-detail-map" class="map-container" aria-label="Map showing location of ${property.title}"></div>
-          </div>
-          <p style="margin-top:0.75rem;font-size:0.9rem;">
-            <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="display:inline-block;">View on Google Maps</a>
-          </p>
-        </div>
-      </section>
-      <section class="section">
-        <div class="container detail-layout">
-          <div class="detail-main">
-            <div class="detail-gallery">
-              <div class="gallery-main">
-                <img id="detail-main-image" src="${property.photos[0]}" alt="Primary exterior view of ${property.title}">
-              </div>
-              <div class="thumbnail-strip" aria-label="Property image gallery">
-                ${property.photos.map((photo, index) => `
-                  <button class="thumbnail-button ${index === 0 ? 'active' : ''}" type="button" data-image="${photo}" data-alt="Photo ${index + 1} of ${property.title}">
-                    <img src="${photo}" alt="Thumbnail ${index + 1} for ${property.title}" loading="lazy">
-                  </button>
+          <div class="detail-carousel" aria-label="Photo gallery for ${property.title}">
+            <div class="carousel-track-wrapper">
+              <div class="carousel-track">
+                ${photos.map((photo, index) => `
+                  <div class="carousel-slide${index === 0 ? ' active' : ''}" aria-hidden="${index !== 0}">
+                    <img src="${photo}" alt="Photo ${index + 1} of ${property.title}" loading="${index === 0 ? 'eager' : 'lazy'}">
+                  </div>
                 `).join('')}
               </div>
             </div>
+            ${multiPhoto ? `
+            <button class="carousel-btn carousel-prev" type="button" aria-label="Previous photo">&#8249;</button>
+            <button class="carousel-btn carousel-next" type="button" aria-label="Next photo">&#8250;</button>
+            <div class="carousel-counter" aria-live="polite">1 / ${photos.length}</div>
+            ` : ''}
+          </div>
+          ${multiPhoto ? `
+          <div class="carousel-thumbnails" aria-label="Photo thumbnails">
+            ${photos.map((photo, index) => `
+              <button class="carousel-thumb${index === 0 ? ' active' : ''}" type="button" aria-label="View photo ${index + 1} of ${property.title}">
+                <img src="${photo}" alt="Thumbnail ${index + 1} for ${property.title}" loading="lazy">
+              </button>
+            `).join('')}
+          </div>
+          ` : ''}
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container detail-layout">
+          <div class="detail-main">
             <div class="info-card">
               <div class="detail-header">
                 <div>
@@ -456,6 +510,14 @@
                 <li><strong>Zoning:</strong> ${property.zoningInfo}</li>
               </ul>
             </div>
+            <div class="info-card">
+              <h2>Schedule a Showing</h2>
+              <p>Interested in touring this property? Request a private showing and a representative will follow up promptly.</p>
+              <div class="detail-actions" style="margin-top:1rem;">
+                <button type="button" class="btn-primary" data-open-showing-modal data-property-id="${property.id}">Book a Showing</button>
+                <a class="btn-secondary" href="contact.html?property=${property.id}">Contact Agent</a>
+              </div>
+            </div>
           </div>
           <aside class="detail-sidebar">
             <div class="sticky-card">
@@ -485,12 +547,23 @@
           </aside>
         </div>
       </section>
+
+      <section class="section" style="padding-top:0;padding-bottom:0;">
+        <div class="container">
+          <div class="map-card">
+            <div id="property-detail-map" class="map-container" aria-label="Map showing location of ${property.title}"></div>
+          </div>
+          <p style="margin-top:0.75rem;font-size:0.9rem;">
+            <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="display:inline-block;">View on Google Maps</a>
+          </p>
+        </div>
+      </section>
     `;
 
     const modalPropertySelect = document.querySelector('#showing-form select[name="property"]');
     if (modalPropertySelect) modalPropertySelect.value = property.id;
     window.currentDetailProperty = property;
-    setupPropertyGallery();
+    setupPropertyCarousel();
     refreshMotion(mount);
   }
 

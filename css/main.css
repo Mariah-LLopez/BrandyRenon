@@ -567,6 +567,131 @@ p {
   object-fit: cover;
 }
 
+/* ── Property photo carousel ─────────────────────────────────────────────── */
+
+.carousel-section {
+  padding-top: 0;
+}
+
+.detail-carousel {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  background: var(--color-dark);
+}
+
+.carousel-track-wrapper {
+  overflow: hidden;
+  width: 100%;
+}
+
+.carousel-track {
+  display: flex;
+  width: 100%;
+}
+
+.carousel-slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  display: none;
+}
+
+.carousel-slide.active {
+  display: block;
+}
+
+.carousel-slide img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.88);
+  border: none;
+  border-radius: 50%;
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+  transition: background var(--transition), transform var(--transition);
+  z-index: 2;
+}
+
+.carousel-btn:hover,
+.carousel-btn:focus-visible {
+  background: var(--color-white);
+  transform: translateY(-50%) scale(1.08);
+}
+
+.carousel-prev { left: 0.85rem; }
+.carousel-next { right: 0.85rem; }
+
+.carousel-counter {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--color-white);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 2rem;
+  letter-spacing: 0.03em;
+  z-index: 2;
+}
+
+.carousel-thumbnails {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+}
+
+.carousel-thumb {
+  flex: 0 0 auto;
+  width: clamp(3.5rem, 8vw, 5.5rem);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 2px solid transparent;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.carousel-thumb:hover,
+.carousel-thumb:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.carousel-thumb.active {
+  border-color: var(--color-accent);
+}
+
+.carousel-thumb img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 .thumbnail-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1193,6 +1318,16 @@ th {
   .thumbnail-strip,
   .footer-grid {
     grid-template-columns: 1fr;
+  }
+
+  .carousel-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 1.4rem;
+  }
+
+  .carousel-thumb {
+    width: clamp(3rem, 12vw, 4rem);
   }
 
   .hero {
