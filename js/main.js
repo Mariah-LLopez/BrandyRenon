@@ -103,10 +103,9 @@
         <div class="footer-grid">
           <div>
             <p><strong>Brandy Renon</strong></p>
-            <p>Colorado Premier Realty</p>
-            <p>License: FA.100012345</p>
-            <p><a href="tel:+17205550100">(720) 555-0100</a></p>
-            <p><a href="mailto:brandy@coloradopremierrealty.com">brandy@coloradopremierrealty.com</a></p>
+            <p>License: II100070680</p>
+            <p><a href="tel:+17192918378">(719) 291-8378</a></p>
+            <p><a href="mailto:propertiesinco@gmail.com">propertiesinco@gmail.com</a></p>
           </div>
           <div>
             <p>Equal Housing Opportunity</p>
