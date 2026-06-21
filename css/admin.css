@@ -1503,3 +1503,67 @@
 .status-pill.success  { background: rgba(40, 167, 69, 0.12); color: #146c2e; }
 .status-pill.active   { background: rgba(27, 58, 92, 0.1); color: var(--color-primary); }
 .status-pill.archived { background: rgba(108, 117, 125, 0.12); color: #495057; }
+
+.admin-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.admin-panel,
+.table-card {
+  border-radius: 18px;
+  box-shadow: 0 22px 45px rgba(20, 35, 50, 0.18);
+}
+
+.portal-tab-bar {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.6rem;
+  border-radius: 12px;
+}
+
+.portal-tab {
+  min-width: 110px;
+  text-align: center;
+}
+
+.dashboard-table-scroll table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.dashboard-inline-select,
+.dashboard-inline-notes {
+  width: 100%;
+  min-width: 120px;
+}
+
+td,
+th {
+  vertical-align: top;
+}
+
+.form-actions {
+  margin-top: 1.5rem;
+}
+
+.admin-dashboard-card-grid,
+.client-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.admin-dashboard-card-grid > *,
+.client-dashboard-grid > * {
+  height: 100%;
+}
+
+@media (max-width: 900px) {
+  .admin-dashboard-card-grid,
+  .client-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
