@@ -511,12 +511,8 @@
   function formatInquiryType(value) {
     const labels = {
       general_question: 'General Question',
-      general_inquiry: 'General Question',
       property_inquiry: 'Property Inquiry',
       showing_request: 'Showing Request',
-      renovation_client_inquiry: 'Renovation Client Inquiry',
-      contractor_inquiry: 'Renovation Client Inquiry',
-      house_flip_inquiry: 'Renovation Client Inquiry',
       rental_help: 'Help Finding a Rental',
       buyer_agent_request: 'Request Brandy as My Agent',
       renovation_help: 'Help Renovating',
