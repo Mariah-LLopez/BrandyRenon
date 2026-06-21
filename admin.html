@@ -39,53 +39,7 @@
           <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
           <button class="portal-tab" data-tab="leads" type="button">Leads</button>
         </nav>
-
-        <div id="tab-dashboard" class="tab-panel">
-          <div class="dashboard-cards dashboard-summary-grid admin-summary-cards" id="admin-summary-cards">
-            <div class="dashboard-card summary-card">
-              <p class="eyebrow">Active Accounts</p>
-              <div class="summary-card-count" id="summary-accounts">—</div>
-              <p class="table-hint">Open client and property workspaces</p>
-              <button class="action-link summary-card-link" data-tab-target="accounts" type="button">View Accounts →</button>
-            </div>
-            <div class="dashboard-card summary-card">
-              <p class="eyebrow">Files Needing Action</p>
-              <div class="summary-card-count" id="summary-files">—</div>
-              <p class="table-hint">Documents pending review or signature</p>
-              <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Account Files →</button>
-            </div>
-            <div class="dashboard-card summary-card">
-              <p class="eyebrow">Open Maintenance Requests</p>
-              <div class="summary-card-count" id="summary-maintenance">—</div>
-              <p class="table-hint">Rental client and rental owner requests</p>
-              <button class="action-link summary-card-link" data-tab-target="maintenance" type="button">View Maintenance →</button>
-            </div>
-            <div class="dashboard-card summary-card">
-              <p class="eyebrow">Messages / Inquiries</p>
-              <div class="summary-card-count" id="summary-messages">—</div>
-              <p class="table-hint">Portal messages and lead follow-up</p>
-              <button class="action-link summary-card-link" data-tab-target="leads" type="button">View Leads →</button>
-            </div>
-            <div class="dashboard-card summary-card">
-              <p class="eyebrow">Signature Requests</p>
-              <div class="summary-card-count" id="summary-signatures">—</div>
-              <p class="table-hint">Awaiting signature completion</p>
-              <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Signature Work →</button>
-            </div>
-            <div class="dashboard-card summary-card">
-              <p class="eyebrow">Open Action Items</p>
-              <div class="summary-card-count" id="summary-seller-tasks">—</div>
-              <p class="table-hint">Active items that still need review or completion</p>
-              <button class="action-link summary-card-link" data-dashboard-target="action-items" type="button">Open Action Items →</button>
-            </div>
-            <div class="dashboard-card summary-card">
-              <p class="eyebrow">Completed Tasks</p>
-              <div class="summary-card-count" id="summary-completed-tasks">—</div>
-              <p class="table-hint">Recently finished portal tasks</p>
-              <button class="action-link summary-card-link" data-dashboard-target="completed-tasks" type="button">View Completed →</button>
-            </div>
-          </div>
-
+        
           <div class="dashboard-workspace-grid">
             <section class="table-card">
               <div class="workspace-section-heading">
@@ -178,7 +132,7 @@
           <div class="table-card">
             <div class="workspace-section-heading">
               <h3>Active Users</h3>
-              <p class="table-hint">Visible in the portal and available for assignments.</p>
+              <p class="table-hint">Available for assignments.</p>
             </div>
             <div class="dashboard-table-scroll">
               <table>
@@ -191,7 +145,7 @@
                     <th scope="col">Assigned Properties</th>
                     <th scope="col">Assigned Accounts</th>
                     <th scope="col">Last Updated</th>
-                    <th scope="col">Actions</th>
+                    <th scope="col">Notes</th>
                   </tr>
                 </thead>
                 <tbody id="users-active-tbody"></tbody>
@@ -212,8 +166,8 @@
                     <th scope="col">Current Role</th>
                     <th scope="col">User Type</th>
                     <th scope="col">Status</th>
-                    <th scope="col">Assigned Properties</th>
-                    <th scope="col">Assigned Accounts</th>
+                    <th scope="col">Properties</th>
+                    <th scope="col">Accounts</th>
                     <th scope="col">Last Updated</th>
                     <th scope="col">Actions</th>
                   </tr>
@@ -238,16 +192,14 @@
               <table>
                 <thead>
                   <tr>
-                    <th scope="col">Visibility</th>
                     <th scope="col">Property Address</th>
                     <th scope="col">Workflow Status</th>
-                    <th scope="col">Assigned Users</th>
-                    <th scope="col">Assigned Accounts</th>
+                    <th scope="col">Users</th>
+                    <th scope="col">Accounts</th>
                     <th scope="col">Account Type</th>
                     <th scope="col">Photos</th>
                     <th scope="col">Documents</th>
                     <th scope="col">Admin Notes</th>
-                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="properties-tbody"></tbody>
@@ -276,19 +228,14 @@
               <table>
                 <thead>
                   <tr>
-                    <th scope="col">Account Name</th>
                     <th scope="col">Account Type</th>
-                    <th scope="col">Client</th>
+                    <th scope="col">User(s)</th>
                     <th scope="col">Property</th>
                     <th scope="col">Status</th>
-                    <th scope="col">Priority</th>
                     <th scope="col">Documents</th>
                     <th scope="col">Photos</th>
-                    <th scope="col">Receipts</th>
-                    <th scope="col">Signature Requests</th>
                     <th scope="col">Notes</th>
                     <th scope="col">Activity</th>
-                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="accounts-active-tbody"></tbody>
@@ -297,38 +244,11 @@
             <div id="accounts-active-empty" class="admin-empty-state" hidden>No active accounts found.</div>
           </div>
 
-          <div class="table-card workflow-panel" data-workflow-panel="accounts-completed" hidden>
-            <div class="dashboard-table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Account Name</th>
-                    <th scope="col">Account Type</th>
-                    <th scope="col">Client</th>
-                    <th scope="col">Property</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Priority</th>
-                    <th scope="col">Documents</th>
-                    <th scope="col">Photos</th>
-                    <th scope="col">Receipts</th>
-                    <th scope="col">Signature Requests</th>
-                    <th scope="col">Notes</th>
-                    <th scope="col">Activity</th>
-                    <th scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="accounts-completed-tbody"></tbody>
-              </table>
-            </div>
-            <div id="accounts-completed-empty" class="admin-empty-state" hidden>No completed accounts found.</div>
-          </div>
-        </div>
-
         <div id="tab-tasks" class="tab-panel" hidden>
           <div class="admin-panel admin-toolbar">
             <div>
               <h2>Tasks</h2>
-              <p class="table-hint">Manage all tasks across accounts. Create seller tasks, document requests, inquiry follow-ups, and more.</p>
+              <p class="table-hint">Manage all tasks across accounts.</p>
             </div>
             <div class="filter-grid admin-user-filters">
               <div class="form-group">
@@ -340,8 +260,6 @@
                   <option value="Showing Request">Showing Request</option>
                   <option value="Document Upload">Document Upload</option>
                   <option value="Signature Request">Signature Request</option>
-                  <option value="Seller Task">Seller Task</option>
-                  <option value="Buyer Task">Buyer Task</option>
                   <option value="Admin Follow-Up">Admin Follow-Up</option>
                   <option value="General Message">General Message</option>
                 </select>
@@ -385,7 +303,7 @@
           <div class="admin-panel admin-toolbar">
             <div>
               <h2>Messages &amp; Inquiries</h2>
-              <p class="table-hint">Portal messages submitted by authenticated users. Use Leads tab for public contact form submissions.</p>
+              <p class="table-hint">Portal messages submitted by authenticated users. </p>
             </div>
             <div class="filter-grid admin-user-filters">
               <div class="form-group">
