@@ -31,58 +31,140 @@
 
     <section class="section">
       <div class="container admin-shell">
-        <div class="dashboard-cards dashboard-summary-grid admin-summary-cards" id="admin-summary-cards">
-          <div class="dashboard-card summary-card">
-            <p class="eyebrow">Accounts</p>
-            <div class="summary-card-count" id="summary-accounts">—</div>
-            <p class="table-hint">Active accounts</p>
-            <button class="action-link summary-card-link" data-tab-target="accounts" type="button">View Accounts →</button>
-          </div>
-          <div class="dashboard-card summary-card">
-            <p class="eyebrow">Files Needing Action</p>
-            <div class="summary-card-count" id="summary-files">—</div>
-            <p class="table-hint">Pending review or signature</p>
-            <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Account Center →</button>
-          </div>
-          <div class="dashboard-card summary-card">
-            <p class="eyebrow">Maintenance</p>
-            <div class="summary-card-count" id="summary-maintenance">—</div>
-            <p class="table-hint">Open requests</p>
-            <button class="action-link summary-card-link" data-tab-target="maintenance" type="button">View Maintenance →</button>
-          </div>
-          <div class="dashboard-card summary-card">
-            <p class="eyebrow">Messages / Inquiries</p>
-            <div class="summary-card-count" id="summary-messages">—</div>
-            <p class="table-hint">Unread messages &amp; leads</p>
-            <button class="action-link summary-card-link" data-tab-target="leads" type="button">View Leads →</button>
-          </div>
-          <div class="dashboard-card summary-card">
-            <p class="eyebrow">Signature Requests</p>
-            <div class="summary-card-count" id="summary-signatures">—</div>
-            <p class="table-hint">Awaiting signature</p>
-            <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Account Center →</button>
-          </div>
-          <div class="dashboard-card summary-card">
-            <p class="eyebrow">Seller Tasks</p>
-            <div class="summary-card-count" id="summary-seller-tasks">—</div>
-            <p class="table-hint">Open seller tasks</p>
-            <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Account Center →</button>
-          </div>
-        </div>
-
         <nav class="portal-tab-bar" aria-label="Admin sections">
-          <button class="portal-tab active" data-tab="users" type="button">Users</button>
+          <button class="portal-tab active" data-tab="dashboard" type="button">Dashboard</button>
+          <button class="portal-tab" data-tab="users" type="button">Users</button>
           <button class="portal-tab" data-tab="properties" type="button">Properties</button>
           <button class="portal-tab" data-tab="accounts" type="button">Accounts</button>
           <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
           <button class="portal-tab" data-tab="leads" type="button">Leads</button>
         </nav>
 
-        <div id="tab-users" class="tab-panel">
+        <div id="tab-dashboard" class="tab-panel">
+          <div class="dashboard-cards dashboard-summary-grid admin-summary-cards" id="admin-summary-cards">
+            <div class="dashboard-card summary-card">
+              <p class="eyebrow">Active Accounts</p>
+              <div class="summary-card-count" id="summary-accounts">—</div>
+              <p class="table-hint">Open client and property workspaces</p>
+              <button class="action-link summary-card-link" data-tab-target="accounts" type="button">View Accounts →</button>
+            </div>
+            <div class="dashboard-card summary-card">
+              <p class="eyebrow">Files Needing Action</p>
+              <div class="summary-card-count" id="summary-files">—</div>
+              <p class="table-hint">Documents pending review or signature</p>
+              <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Account Files →</button>
+            </div>
+            <div class="dashboard-card summary-card">
+              <p class="eyebrow">Open Maintenance Requests</p>
+              <div class="summary-card-count" id="summary-maintenance">—</div>
+              <p class="table-hint">Rental client and rental owner requests</p>
+              <button class="action-link summary-card-link" data-tab-target="maintenance" type="button">View Maintenance →</button>
+            </div>
+            <div class="dashboard-card summary-card">
+              <p class="eyebrow">Messages / Inquiries</p>
+              <div class="summary-card-count" id="summary-messages">—</div>
+              <p class="table-hint">Portal messages and lead follow-up</p>
+              <button class="action-link summary-card-link" data-tab-target="leads" type="button">View Leads →</button>
+            </div>
+            <div class="dashboard-card summary-card">
+              <p class="eyebrow">Signature Requests</p>
+              <div class="summary-card-count" id="summary-signatures">—</div>
+              <p class="table-hint">Awaiting signature completion</p>
+              <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Signature Work →</button>
+            </div>
+            <div class="dashboard-card summary-card">
+              <p class="eyebrow">Open Seller Tasks</p>
+              <div class="summary-card-count" id="summary-seller-tasks">—</div>
+              <p class="table-hint">Seller-facing tasks still in progress</p>
+              <button class="action-link summary-card-link" data-dashboard-target="seller-tasks" type="button">Open Seller Tasks →</button>
+            </div>
+            <div class="dashboard-card summary-card">
+              <p class="eyebrow">Completed Tasks</p>
+              <div class="summary-card-count" id="summary-completed-tasks">—</div>
+              <p class="table-hint">Recently finished portal tasks</p>
+              <button class="action-link summary-card-link" data-dashboard-target="completed-tasks" type="button">View Completed →</button>
+            </div>
+          </div>
+
+          <div class="dashboard-workspace-grid">
+            <section class="admin-panel workspace-card" id="dashboard-panel-accounts">
+              <div class="workspace-card-header">
+                <div>
+                  <p class="eyebrow">Dashboard</p>
+                  <h2>Active Accounts</h2>
+                </div>
+                <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Accounts</button>
+              </div>
+              <div class="workspace-card-body" id="dashboard-accounts-preview"></div>
+            </section>
+            <section class="admin-panel workspace-card" id="dashboard-panel-files">
+              <div class="workspace-card-header">
+                <div>
+                  <p class="eyebrow">Dashboard</p>
+                  <h2>Files Needing Action</h2>
+                </div>
+                <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Accounts</button>
+              </div>
+              <div class="workspace-card-body" id="dashboard-files-preview"></div>
+            </section>
+            <section class="admin-panel workspace-card" id="dashboard-panel-maintenance">
+              <div class="workspace-card-header">
+                <div>
+                  <p class="eyebrow">Dashboard</p>
+                  <h2>Open Maintenance</h2>
+                </div>
+                <button class="action-link summary-card-link" data-tab-target="maintenance" type="button">Open Maintenance</button>
+              </div>
+              <div class="workspace-card-body" id="dashboard-maintenance-preview"></div>
+            </section>
+            <section class="admin-panel workspace-card" id="dashboard-panel-messages">
+              <div class="workspace-card-header">
+                <div>
+                  <p class="eyebrow">Dashboard</p>
+                  <h2>Messages &amp; Leads</h2>
+                </div>
+                <button class="action-link summary-card-link" data-tab-target="leads" type="button">Open Leads</button>
+              </div>
+              <div class="workspace-card-body" id="dashboard-messages-preview"></div>
+            </section>
+            <section class="admin-panel workspace-card" id="dashboard-panel-signatures">
+              <div class="workspace-card-header">
+                <div>
+                  <p class="eyebrow">Dashboard</p>
+                  <h2>Signature Requests</h2>
+                </div>
+                <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Accounts</button>
+              </div>
+              <div class="workspace-card-body" id="dashboard-signatures-preview"></div>
+            </section>
+            <section class="admin-panel workspace-card" id="dashboard-panel-seller-tasks" data-dashboard-section="seller-tasks">
+              <div class="workspace-card-header">
+                <div>
+                  <p class="eyebrow">Dashboard</p>
+                  <h2>Open Seller Tasks</h2>
+                </div>
+                <button class="action-link summary-card-link" data-dashboard-target="seller-tasks" type="button">Stay Here</button>
+              </div>
+              <div class="workspace-card-body" id="dashboard-seller-tasks-preview"></div>
+            </section>
+            <section class="admin-panel workspace-card" id="dashboard-panel-completed-tasks" data-dashboard-section="completed-tasks">
+              <div class="workspace-card-header">
+                <div>
+                  <p class="eyebrow">Dashboard</p>
+                  <h2>Completed Tasks</h2>
+                </div>
+                <button class="action-link summary-card-link" data-dashboard-target="completed-tasks" type="button">Stay Here</button>
+              </div>
+              <div class="workspace-card-body" id="dashboard-completed-tasks-preview"></div>
+            </section>
+          </div>
+        </div>
+
+        <div id="tab-users" class="tab-panel" hidden>
           <div class="admin-panel admin-toolbar">
             <div>
-              <h2>User Management</h2>
-              <p class="table-hint">Search users, change roles and status, assign properties and accounts, and preview the client portal.</p>
+              <h2>Users</h2>
+              <p class="table-hint">Manage active and inactive users, update roles and user types instantly, and assign properties or accounts without a save button.</p>
             </div>
             <div class="filter-grid admin-user-filters" aria-label="User filters">
               <div class="form-group">
@@ -93,24 +175,52 @@
             <button id="open-invite-modal" class="btn-primary" type="button">Invite Client</button>
           </div>
           <div class="table-card">
+            <div class="workspace-section-heading">
+              <h3>Active Users</h3>
+              <p class="table-hint">Visible in the portal and available for assignments.</p>
+            </div>
             <div class="dashboard-table-scroll">
               <table>
                 <thead>
                   <tr>
                     <th scope="col">Email</th>
-                    <th scope="col">Current Role</th>
+                    <th scope="col">Role</th>
                     <th scope="col">User Type</th>
                     <th scope="col">Status</th>
-                    <th scope="col">Account Created</th>
                     <th scope="col">Assigned Properties</th>
                     <th scope="col">Assigned Accounts</th>
+                    <th scope="col">Last Updated</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
-                <tbody id="users-tbody"></tbody>
+                <tbody id="users-active-tbody"></tbody>
               </table>
             </div>
-            <div id="users-empty" class="admin-empty-state" hidden>No users found.</div>
+            <div id="users-active-empty" class="admin-empty-state" hidden>No active users found.</div>
+          </div>
+          <div class="table-card">
+            <div class="workspace-section-heading">
+              <h3>Inactive Users</h3>
+              <p class="table-hint">Kept for historical portal records and account context.</p>
+            </div>
+            <div class="dashboard-table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Email</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">User Type</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Assigned Properties</th>
+                    <th scope="col">Assigned Accounts</th>
+                    <th scope="col">Last Updated</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="users-inactive-tbody"></tbody>
+              </table>
+            </div>
+            <div id="users-inactive-empty" class="admin-empty-state" hidden>No inactive users found.</div>
           </div>
         </div>
 
@@ -118,7 +228,7 @@
           <div class="admin-panel admin-toolbar">
             <div>
               <h2>Properties</h2>
-              <p class="table-hint">Manage internal properties, public listings, account links, and property notes.</p>
+              <p class="table-hint">Manage public listings and internal properties, linked users, linked accounts, files, and admin notes in one place.</p>
             </div>
             <button id="open-property-modal" class="btn-primary" type="button">Add Property</button>
           </div>
@@ -127,10 +237,15 @@
               <table>
                 <thead>
                   <tr>
-                    <th scope="col">Property</th>
-                    <th scope="col">Workflow Status</th>
                     <th scope="col">Visibility</th>
-                    <th scope="col">Last Updated</th>
+                    <th scope="col">Property Address</th>
+                    <th scope="col">Workflow Status</th>
+                    <th scope="col">Assigned Users</th>
+                    <th scope="col">Assigned Accounts</th>
+                    <th scope="col">Account Type</th>
+                    <th scope="col">Photos</th>
+                    <th scope="col">Documents</th>
+                    <th scope="col">Admin Notes</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
@@ -145,9 +260,9 @@
           <div class="admin-panel admin-toolbar">
             <div>
               <h2>Accounts</h2>
-              <p class="table-hint">Accounts replace separate transaction and document groupings for buyers, sellers, rentals, leases, renovations, and property management.</p>
+              <p class="table-hint">Accounts are the main workspace for buyer, seller, rental, rental owner, renovation, and property management work.</p>
             </div>
-            <button id="open-account-modal" class="btn-primary" type="button">New Account</button>
+            <button id="open-account-modal" class="btn-primary" type="button">Add Account</button>
           </div>
 
           <nav class="portal-tab-bar workflow-tab-bar" aria-label="Account workflow">
@@ -155,31 +270,23 @@
             <button class="portal-tab" data-workflow-group="accounts" data-workflow-target="completed" type="button">Completed Accounts</button>
           </nav>
 
-          <div class="admin-panel admin-toolbar">
-            <div>
-              <h3>Account Center</h3>
-              <p class="table-hint">Manage account-linked documents, signature requests, messages, and assigned tasks without leaving Accounts.</p>
-            </div>
-            <div class="table-actions table-actions-stack">
-              <button class="action-link summary-card-link" data-tab-target="documents" type="button">Documents</button>
-              <button class="action-link summary-card-link" data-tab-target="signatures" type="button">Signature Requests</button>
-              <button class="action-link summary-card-link" data-tab-target="messages" type="button">Messages / Requests</button>
-              <button class="action-link summary-card-link" data-tab-target="tasks" type="button">Assigned Tasks</button>
-            </div>
-          </div>
-
           <div class="table-card workflow-panel" data-workflow-panel="accounts-active">
             <div class="dashboard-table-scroll">
               <table>
                 <thead>
                   <tr>
                     <th scope="col">Account Name</th>
-                    <th scope="col">Client</th>
-                    <th scope="col">Assigned Property</th>
                     <th scope="col">Account Type</th>
+                    <th scope="col">Client</th>
+                    <th scope="col">Property</th>
                     <th scope="col">Status</th>
                     <th scope="col">Priority</th>
-                    <th scope="col">Last Updated</th>
+                    <th scope="col">Documents</th>
+                    <th scope="col">Photos</th>
+                    <th scope="col">Receipts</th>
+                    <th scope="col">Signature Requests</th>
+                    <th scope="col">Notes</th>
+                    <th scope="col">Activity</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
@@ -195,12 +302,17 @@
                 <thead>
                   <tr>
                     <th scope="col">Account Name</th>
-                    <th scope="col">Client</th>
-                    <th scope="col">Assigned Property</th>
                     <th scope="col">Account Type</th>
+                    <th scope="col">Client</th>
+                    <th scope="col">Property</th>
                     <th scope="col">Status</th>
                     <th scope="col">Priority</th>
-                    <th scope="col">Completed</th>
+                    <th scope="col">Documents</th>
+                    <th scope="col">Photos</th>
+                    <th scope="col">Receipts</th>
+                    <th scope="col">Signature Requests</th>
+                    <th scope="col">Notes</th>
+                    <th scope="col">Activity</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
@@ -424,11 +536,12 @@
                     <th scope="col">Client</th>
                     <th scope="col">Property</th>
                     <th scope="col">Account</th>
-                    <th scope="col">Title</th>
+                    <th scope="col">Request</th>
                     <th scope="col">Priority</th>
                     <th scope="col">Status</th>
                     <th scope="col">Admin Comments</th>
                     <th scope="col">Files</th>
+                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="maintenance-active-tbody"></tbody>
@@ -446,11 +559,12 @@
                     <th scope="col">Client</th>
                     <th scope="col">Property</th>
                     <th scope="col">Account</th>
-                    <th scope="col">Title</th>
+                    <th scope="col">Request</th>
                     <th scope="col">Priority</th>
                     <th scope="col">Status</th>
                     <th scope="col">Admin Comments</th>
                     <th scope="col">Files</th>
+                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="maintenance-completed-tbody"></tbody>
@@ -476,28 +590,28 @@
 
           <div id="lead-tab-contact" class="lead-tab-panel">
             <div class="table-card">
-              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Type</th><th scope="col">Property Interest</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-contact-tbody"></tbody></table></div>
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Request Type</th><th scope="col">Property of Interest</th><th scope="col">Message</th><th scope="col">Priority</th><th scope="col">Submitted Date</th><th scope="col">Status</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-contact-tbody"></tbody></table></div>
               <div id="lead-contact-empty" class="admin-empty-state" hidden>No active contact requests.</div>
             </div>
           </div>
 
           <div id="lead-tab-showing" class="lead-tab-panel" hidden>
             <div class="table-card">
-              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property</th><th scope="col">Preferred Date</th><th scope="col">Preferred Time</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-showing-tbody"></tbody></table></div>
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property of Interest</th><th scope="col">Preferred Date</th><th scope="col">Preferred Time</th><th scope="col">Message</th><th scope="col">Priority</th><th scope="col">Submitted Date</th><th scope="col">Status</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-showing-tbody"></tbody></table></div>
               <div id="lead-showing-empty" class="admin-empty-state" hidden>No active showing requests.</div>
             </div>
           </div>
 
           <div id="lead-tab-property" class="lead-tab-panel" hidden>
             <div class="table-card">
-              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property Interest</th><th scope="col">Message</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-property-tbody"></tbody></table></div>
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property of Interest</th><th scope="col">Message</th><th scope="col">Priority</th><th scope="col">Submitted Date</th><th scope="col">Status</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-property-tbody"></tbody></table></div>
               <div id="lead-property-empty" class="admin-empty-state" hidden>No active property inquiries.</div>
             </div>
           </div>
 
           <div id="lead-tab-renovation" class="lead-tab-panel" hidden>
             <div class="table-card">
-              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Full Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property Address</th><th scope="col">Service Needed</th><th scope="col">Project Type</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-renovation-tbody"></tbody></table></div>
+              <div class="dashboard-table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Property Address</th><th scope="col">Service Needed</th><th scope="col">Request Type</th><th scope="col">Priority</th><th scope="col">Submitted Date</th><th scope="col">Status</th><th scope="col">Admin Notes</th></tr></thead><tbody id="lead-renovation-tbody"></tbody></table></div>
               <div id="lead-renovation-empty" class="admin-empty-state" hidden>No active renovation inquiries.</div>
             </div>
           </div>
@@ -519,7 +633,9 @@
 
   <div id="property-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="property-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="property" aria-label="Close">×</button><h2 id="property-modal-title">Add Property</h2><form id="property-form" novalidate><input id="prop-id" name="property_id" type="hidden"><div class="form-grid"><div class="form-group full-width"><label for="prop-address">Property Address <span class="required" aria-hidden="true">*</span></label><input id="prop-address" name="property_address" type="text" required></div><div class="form-group"><label for="prop-status">Workflow Status</label><select id="prop-status" name="property_status"><option value="Active">Active</option><option value="Pending">Pending</option><option value="Sold">Sold</option><option value="Coming Soon">Coming Soon</option></select></div><div class="form-group"><label for="prop-visibility">Visibility</label><select id="prop-visibility" name="visibility"><option value="internal">Internal Property</option><option value="public">Public Listing</option></select></div><div class="form-group full-width"><label for="prop-notes">Notes</label><textarea id="prop-notes" name="notes"></textarea></div><div class="form-group full-width"><label for="prop-photos">Property Photos</label><input id="prop-photos" name="property_photos" type="file" accept=".jpg,.jpeg,.png,.webp" multiple><span id="prop-photos-help" class="helper-text">Upload one or more photos for this property. JPG, JPEG, PNG, or WEBP only, up to 10 MB each.</span></div></div><div class="form-actions"><button class="btn-primary" id="property-submit-btn" type="submit">Save Property</button></div><div id="property-status" class="form-status" aria-live="polite"></div></form></div></div>
 
-  <div id="account-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="account-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="account" aria-label="Close">×</button><h2 id="account-modal-title">New Account</h2><form id="account-form" novalidate><div class="form-grid"><div class="form-group full-width"><label for="account-name">Account Name <span class="required" aria-hidden="true">*</span></label><input id="account-name" name="account_name" type="text" required></div><div class="form-group"><label for="account-client">Client</label><select id="account-client" name="primary_client_id"><option value="">No client selected</option></select></div><div class="form-group"><label for="account-property">Property</label><select id="account-property" name="property_id"><option value="">No property selected</option></select></div><div class="form-group"><label for="account-type">Account Type</label><select id="account-type" name="account_type"><option value="Buyer">Buyer</option><option value="Seller">Seller</option><option value="Renter">Renter</option><option value="Rental">Rental</option><option value="Lease">Lease</option><option value="Owner">Owner</option><option value="Property Management">Property Management</option><option value="Renovation">Renovation</option><option value="Contractor">Contractor</option><option value="Other">Other</option></select></div><div class="form-group"><label for="account-status">Status</label><select id="account-status" name="status"><option value="Not Reviewed Yet">Not Reviewed Yet</option><option value="In Progress">In Progress</option><option value="Active">Active</option><option value="Pending Signature">Pending Signature</option><option value="Completed">Completed</option><option value="Archived">Archived</option></select></div><div class="form-group"><label for="account-priority">Priority</label><select id="account-priority" name="priority"><option value="Low">Low</option><option value="Medium" selected>Medium</option><option value="High">High</option></select></div><div class="form-group full-width"><label class="signature-label"><input id="account-client-upload-enabled" name="client_upload_enabled" type="checkbox"> Allow the assigned client to upload files to this account</label></div><div class="form-group full-width"><label for="account-transaction-details">Transaction Details</label><textarea id="account-transaction-details" name="transaction_details"></textarea></div><div class="form-group full-width"><label for="account-internal-notes">Internal Notes</label><textarea id="account-internal-notes" name="internal_notes"></textarea></div><div class="form-group full-width"><label for="account-client-notes">Client Visible Notes</label><textarea id="account-client-notes" name="client_notes"></textarea></div><div class="form-group full-width"><label for="account-required-tasks">Required Documents / Missing Tasks</label><textarea id="account-required-tasks" name="required_tasks"></textarea></div></div><div class="form-actions"><button class="btn-primary" type="submit">Create Account</button></div><div id="account-status-message" class="form-status" aria-live="polite"></div></form></div></div>
+  <div id="account-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="account-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="account" aria-label="Close">×</button><h2 id="account-modal-title">New Account</h2><form id="account-form" novalidate><div class="form-grid"><div class="form-group full-width"><label for="account-name">Account Name <span class="required" aria-hidden="true">*</span></label><input id="account-name" name="account_name" type="text" required></div><div class="form-group"><label for="account-client">Client</label><select id="account-client" name="primary_client_id"><option value="">No client selected</option></select></div><div class="form-group"><label for="account-property">Property</label><select id="account-property" name="property_id"><option value="">No property selected</option></select></div><div class="form-group"><label for="account-type">Account Type</label><select id="account-type" name="account_type"><option value="Buyer Account">Buyer Account</option><option value="Seller Account">Seller Account</option><option value="Rental Account">Rental Account</option><option value="Rental Owner Account">Rental Owner Account</option><option value="Renovation Account">Renovation Account</option><option value="Property Management Account">Property Management Account</option><option value="Other">Other</option></select></div><div class="form-group"><label for="account-status">Status</label><select id="account-status" name="status"><option value="Not Reviewed Yet">Not Reviewed Yet</option><option value="In Progress">In Progress</option><option value="Active">Active</option><option value="Pending Signature">Pending Signature</option><option value="Completed">Completed</option><option value="Archived">Archived</option></select></div><div class="form-group"><label for="account-priority">Priority</label><select id="account-priority" name="priority"><option value="Low">Low</option><option value="Medium" selected>Medium</option><option value="High">High</option></select></div><div class="form-group full-width"><label class="signature-label"><input id="account-client-upload-enabled" name="client_upload_enabled" type="checkbox"> Allow the assigned client to upload files to this account</label></div><div class="form-group full-width"><label for="account-transaction-details">Transaction Details</label><textarea id="account-transaction-details" name="transaction_details"></textarea></div><div class="form-group full-width"><label for="account-internal-notes">Admin Notes</label><textarea id="account-internal-notes" name="internal_notes"></textarea></div><div class="form-group full-width"><label for="account-client-notes">Client Visible Notes</label><textarea id="account-client-notes" name="client_notes"></textarea></div><div class="form-group full-width"><label for="account-required-tasks">Required Documents / Missing Tasks</label><textarea id="account-required-tasks" name="required_tasks"></textarea></div></div><div class="form-actions"><button class="btn-primary" type="submit">Save Account</button></div><div id="account-status-message" class="form-status" aria-live="polite"></div></form></div></div>
+
+  <div id="maintenance-detail-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="maintenance-detail-title"><div class="modal-dialog modal-dialog-wide"><button class="modal-close" type="button" data-close-modal="maintenance-detail" aria-label="Close">×</button><h2 id="maintenance-detail-title">Maintenance Request</h2><div id="maintenance-detail-body" class="maintenance-detail-body"></div></div></div>
 
   <div id="upload-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title"><div class="modal-dialog"><button class="modal-close" type="button" data-close-modal="upload" aria-label="Close">×</button><h2 id="upload-modal-title">Upload Files</h2><form id="upload-form" novalidate><div class="form-grid"><div class="form-group"><label for="upload-account">Assign to Account</label><select id="upload-account" name="account_id"><option value="">No specific account</option></select></div><div class="form-group"><label for="upload-client">Assign to Client</label><select id="upload-client" name="client_id"><option value="">No specific client</option></select></div><div class="form-group"><label for="upload-property">Assign to Property</label><select id="upload-property" name="property_id"><option value="">No specific property</option></select></div><div class="form-group"><label for="upload-category">Category</label><select id="upload-category" name="category"><option value="">Select…</option><option value="Contract">Contract</option><option value="Lease Agreement">Lease Agreement</option><option value="Lease Renewal">Lease Renewal</option><option value="Move-in Inspection">Move-in Inspection</option><option value="Move-out Inspection">Move-out Inspection</option><option value="Property Rules">Property Rules</option><option value="Maintenance Agreement">Maintenance Agreement</option><option value="Insurance Requirement">Insurance Requirement</option><option value="Notice">Notice</option><option value="Receipt">Receipt</option><option value="Photo">Photo</option><option value="Identification">Identification</option><option value="Paystub">Paystub</option><option value="Closing Document">Closing Document</option><option value="Title Document">Title Document</option><option value="Insurance Document">Insurance Document</option><option value="Other">Other</option></select></div><div class="form-group"><label for="upload-visibility">Client Visibility</label><select id="upload-visibility" name="visibility"><option value="admin_only">Admin Only</option><option value="client_visible">Client Can View</option><option value="client_downloadable">Client Can Download</option></select></div><div class="form-group full-width"><label for="upload-file">Files <span class="required" aria-hidden="true">*</span></label><input id="upload-file" name="file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" multiple required><span class="helper-text">Allowed types: PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG, WEBP. Max 10 MB each.</span></div><div class="form-group full-width"><label class="signature-label"><input type="checkbox" id="upload-public-image" name="is_public_property_image"> Save these files as public property images</label><span class="helper-text">Public property images are stored in the property-images bucket and only appear on public listings.</span></div><div class="form-group full-width"><label class="signature-label"><input type="checkbox" id="upload-requires-sig" name="requires_signature"> Requires external signature workflow</label><span class="helper-text">Legally binding signatures must be completed with DocuSign, Dropbox Sign, Adobe Acrobat Sign, or another approved e-signature provider. Signature settings below apply to every file in this batch.</span></div><div class="form-group"><label for="upload-signature-provider">Signature Provider</label><select id="upload-signature-provider" name="signature_provider"><option value="">Select…</option><option value="DocuSign">DocuSign</option><option value="Dropbox Sign">Dropbox Sign</option><option value="Adobe Acrobat Sign">Adobe Acrobat Sign</option><option value="Manual Upload">Manual Upload</option></select></div><div class="form-group"><label for="upload-signature-status">Signature Status</label><select id="upload-signature-status" name="signature_status"><option value="available">Available</option><option value="pending_signature">Pending Signature</option><option value="signed">Signed</option><option value="uploaded">Uploaded</option></select></div><div class="form-group full-width"><label for="upload-signature-url">External Signature URL (applies to all selected files)</label><input id="upload-signature-url" name="signature_url" type="url" placeholder="https://"></div><div class="form-group full-width"><label class="signature-label"><input type="checkbox" id="upload-client-edit" name="can_client_edit"> Allow client edits / uploads against these files</label></div><div class="form-group full-width"><label for="upload-notes">Notes (applies to all selected files)</label><textarea id="upload-notes" name="notes"></textarea></div></div><div class="form-actions"><button class="btn-primary" type="submit">Upload Files</button></div><div id="upload-status" class="form-status" aria-live="polite"></div></form></div></div>
 

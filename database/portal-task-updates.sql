@@ -22,8 +22,13 @@ alter table public.accounts drop constraint if exists accounts_account_type_chec
 alter table public.accounts
   add constraint accounts_account_type_check
   check (account_type in (
-    'Buyer','Seller','Rental','Lease','Property Management','Renovation','Other',
-    'Renter','Owner','Contractor'
+    'Buyer Account',
+    'Seller Account',
+    'Rental Account',
+    'Rental Owner Account',
+    'Renovation Account',
+    'Property Management Account',
+    'Other'
   ));
 
 -- -------------------------------------------------------------------------
@@ -33,7 +38,7 @@ alter table public.maintenance_requests add column if not exists category text;
 alter table public.maintenance_requests drop constraint if exists maintenance_requests_status_check;
 alter table public.maintenance_requests
   add constraint maintenance_requests_status_check
-  check (status in ('Not Reviewed Yet','In Progress','Waiting on Contractor','Completed'));
+  check (status in ('Not Reviewed Yet','In Progress','Completed'));
 
 -- -------------------------------------------------------------------------
 -- tasks

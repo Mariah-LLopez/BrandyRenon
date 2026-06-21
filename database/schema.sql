@@ -31,8 +31,11 @@ create table if not exists public.profiles (
   email       text not null,
   full_name   text,
   role        text not null default 'client' check (role in ('admin','client')),
+  user_type   text not null default 'Other' check (user_type in ('Buyer','Seller','Renter','Rental Owner','Renovation Client','Other')),
+  status      text not null default 'active' check (status in ('active','inactive')),
   phone       text,
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
 );
 
 alter table public.profiles enable row level security;
@@ -64,12 +67,18 @@ language plpgsql
 security definer
 as $$
 begin
-  insert into public.profiles (id, email, full_name, role)
+  insert into public.profiles (id, email, full_name, role, user_type, updated_at)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', ''),
-    coalesce(new.raw_user_meta_data->>'role', 'client')
+    coalesce(new.raw_user_meta_data->>'role', 'client'),
+    case
+      when coalesce(new.raw_user_meta_data->>'user_type', 'Other') in ('Property Owner', 'Owner', 'Property Management Client')
+        then 'Rental Owner'
+      else coalesce(new.raw_user_meta_data->>'user_type', 'Other')
+    end,
+    now()
   )
   on conflict (id) do nothing;
   return new;
@@ -688,6 +697,7 @@ create table if not exists public.accounts (
   property_id uuid references public.properties (id) on delete set null,
   account_type text not null default 'Other',
   status text not null default 'Not Reviewed Yet',
+  priority text not null default 'Medium',
   transaction_details text,
   internal_notes text,
   client_notes text,
@@ -696,7 +706,8 @@ create table if not exists public.accounts (
   completed_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (account_type in ('Buyer','Seller','Rental','Lease','Property Management','Renovation','Other')),
+  check (account_type in ('Buyer Account','Seller Account','Rental Account','Rental Owner Account','Renovation Account','Property Management Account','Other')),
+  check (priority in ('Low','Medium','High')),
   check (status in ('Not Reviewed Yet','In Progress','Active','Pending Signature','Completed','Archived'))
 );
 alter table public.accounts enable row level security;
@@ -813,7 +824,7 @@ create table if not exists public.maintenance_requests (
   completed_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (priority in ('Low','Medium','High','Emergency')),
+  check (priority in ('Low','Medium','High')),
   check (status in ('Not Reviewed Yet','In Progress','Completed'))
 );
 alter table public.maintenance_requests enable row level security;
@@ -935,8 +946,13 @@ alter table public.accounts drop constraint if exists accounts_account_type_chec
 alter table public.accounts
   add constraint accounts_account_type_check
   check (account_type in (
-    'Buyer','Seller','Rental','Lease','Property Management','Renovation','Other',
-    'Renter','Owner','Contractor'
+    'Buyer Account',
+    'Seller Account',
+    'Rental Account',
+    'Rental Owner Account',
+    'Renovation Account',
+    'Property Management Account',
+    'Other'
   ));
 
 -- Extend maintenance_requests
@@ -944,7 +960,7 @@ alter table public.maintenance_requests add column if not exists category text;
 alter table public.maintenance_requests drop constraint if exists maintenance_requests_status_check;
 alter table public.maintenance_requests
   add constraint maintenance_requests_status_check
-  check (status in ('Not Reviewed Yet','In Progress','Waiting on Contractor','Completed'));
+  check (status in ('Not Reviewed Yet','In Progress','Completed'));
 
 -- tasks
 create table if not exists public.tasks (

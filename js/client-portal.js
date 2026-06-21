@@ -780,19 +780,22 @@
     });
   }
 
-  /* ── Apply role label to header ── */
-  function applyRoleLabel(role) {
+  /* ── Apply user type label to header ── */
+  function applyRoleLabel(profile) {
     const badge  = document.getElementById('client-role-badge');
     const eyebrow = document.getElementById('renter-dashboard-eyebrow');
     const roleDisplay = {
-      renter: { label: 'Renter',  eyebrow: 'RENTER DASHBOARD',  css: 'role-renter'  },
-      buyer:  { label: 'Buyer',   eyebrow: 'BUYER DASHBOARD',   css: 'role-buyer'   },
-      seller: { label: 'Seller',  eyebrow: 'SELLER DASHBOARD',  css: 'role-seller'  },
-      owner:  { label: 'Owner',   eyebrow: 'OWNER DASHBOARD',   css: 'role-owner'   },
-      client: { label: 'Client',  eyebrow: 'CLIENT DASHBOARD',  css: 'role-client'  },
-      admin:  { label: 'Admin',   eyebrow: 'CLIENT DASHBOARD',  css: 'role-admin'   }
+      renter: { label: 'Renter', eyebrow: 'RENTER DASHBOARD', css: 'role-renter' },
+      buyer: { label: 'Buyer', eyebrow: 'BUYER DASHBOARD', css: 'role-buyer' },
+      seller: { label: 'Seller', eyebrow: 'SELLER DASHBOARD', css: 'role-seller' },
+      'rental owner': { label: 'Rental Owner', eyebrow: 'RENTAL OWNER DASHBOARD', css: 'role-rental-owner' },
+      'renovation client': { label: 'Renovation Client', eyebrow: 'RENOVATION CLIENT DASHBOARD', css: 'role-renovation-client' },
+      client: { label: 'Client', eyebrow: 'CLIENT DASHBOARD', css: 'role-client' },
+      admin: { label: 'Admin', eyebrow: 'CLIENT DASHBOARD', css: 'role-admin' }
     };
-    const info = roleDisplay[role] || roleDisplay.client;
+    const userTypeKey = String(profile?.user_type || '').toLowerCase();
+    const roleKey = String(profile?.role || 'client').toLowerCase();
+    const info = roleDisplay[userTypeKey] || roleDisplay[roleKey] || roleDisplay.client;
     if (badge)   { badge.textContent  = info.label; badge.className = 'role-badge ' + info.css; }
     if (eyebrow) eyebrow.textContent  = info.eyebrow;
 
@@ -844,7 +847,7 @@
 
     let displayProfile = profile;
     if (isAdminPreview) {
-      const { data: p } = await supabaseClient.from('profiles').select('id, email, full_name, role, status').eq('id', previewClientId).single();
+      const { data: p } = await supabaseClient.from('profiles').select('id, email, full_name, role, status, user_type').eq('id', previewClientId).single();
       if (!p || (!allowedRoles.includes(p.role) && p.role !== 'client')) return window.location.replace('admin.html?tab=users');
       displayProfile = p;
       applyPreviewMode(displayProfile);
@@ -857,7 +860,7 @@
     const emailEl = document.getElementById('client-email');
     if (nameEl)  nameEl.textContent  = displayProfile.full_name || displayProfile.email || 'Client';
     if (emailEl) emailEl.textContent = displayProfile.email || '';
-    applyRoleLabel(displayProfile.role || 'client');
+    applyRoleLabel(displayProfile);
 
     // Logout
     document.getElementById('client-logout')?.addEventListener('click', async function () {

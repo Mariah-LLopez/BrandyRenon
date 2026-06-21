@@ -21,11 +21,11 @@
   const ALLOWED_IMAGE_MIME_TYPES = window.SUPABASE_FILE_RULES?.allowedImageMimeTypes || ['image/jpeg', 'image/png', 'image/webp'];
   const USER_ROLES = ['admin', 'client'];
   const USER_STATUSES = ['active', 'inactive'];
-  const USER_TYPES = ['Buyer', 'Seller', 'Renter', 'Property Owner', 'Renovation Client', 'Property Management Client', 'Other'];
+  const USER_TYPES = ['Buyer', 'Seller', 'Renter', 'Rental Owner', 'Renovation Client', 'Other'];
   const LEAD_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
   const ITEM_PRIORITIES = ['Low', 'Medium', 'High'];
   const ACCOUNT_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Active', 'Pending Signature', 'Completed', 'Archived'];
-  const ACCOUNT_TYPES = ['Buyer', 'Seller', 'Rental', 'Lease', 'Property Management', 'Renovation', 'Renter', 'Owner', 'Contractor', 'Other'];
+  const ACCOUNT_TYPES = ['Buyer Account', 'Seller Account', 'Rental Account', 'Rental Owner Account', 'Renovation Account', 'Property Management Account', 'Other'];
   const MAINTENANCE_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
   const MAINTENANCE_PRIORITIES = ['Low', 'Medium', 'High'];
   const TASK_TYPES = ['Maintenance Request', 'Property Inquiry', 'Showing Request', 'Document Upload', 'Signature Request', 'Seller Task', 'Buyer Task', 'Admin Follow-Up', 'General Message'];
@@ -44,25 +44,25 @@
       table: 'contact_requests',
       statusField: 'admin_status',
       notesField: 'admin_notes',
-      columns: ['name', 'email', 'phone', 'inquiry_type', 'property_interest', 'message', 'created_at', 'status', 'notes']
+      columns: ['name', 'email', 'phone', 'inquiry_type', 'property_interest', 'message', 'priority', 'created_at', 'status', 'notes']
     },
     showing: {
       table: 'showing_requests',
       statusField: 'admin_status',
       notesField: 'admin_notes',
-      columns: ['name', 'email', 'phone', 'property_address', 'preferred_date', 'preferred_time', 'message', 'created_at', 'status', 'notes']
+      columns: ['name', 'email', 'phone', 'property_address', 'preferred_date', 'preferred_time', 'message', 'priority', 'created_at', 'status', 'notes']
     },
     property: {
       table: 'contact_requests',   // derived client-side from allLeads.contact, filtered by inquiry_type
       statusField: 'admin_status',
       notesField: 'admin_notes',
-      columns: ['name', 'email', 'phone', 'property_interest', 'message', 'created_at', 'status', 'notes']
+      columns: ['name', 'email', 'phone', 'property_interest', 'message', 'priority', 'created_at', 'status', 'notes']
     },
     renovation: {
       table: 'renovation_clients',
       statusField: 'status',
       notesField: 'admin_notes',
-      columns: ['full_name', 'email', 'phone', 'property_address', 'service_needed', 'project_type', 'created_at', 'status', 'notes']
+      columns: ['full_name', 'email', 'phone', 'property_address', 'service_needed', 'project_type', 'priority', 'created_at', 'status', 'notes']
     }
   };
 
@@ -274,6 +274,11 @@
     return map[String(value || '').toLowerCase()] || (LEAD_STATUSES.includes(value) ? value : 'Not Reviewed Yet');
   }
 
+  function normalizePriority(value) {
+    const map = { urgent: 'High', emergency: 'High' };
+    return map[String(value || '').toLowerCase()] || (ITEM_PRIORITIES.includes(value) ? value : 'Medium');
+  }
+
   function normalizeMaintenanceStatus(value) {
     const map = {
       new: 'Not Reviewed Yet',
@@ -293,6 +298,38 @@
       cancelled: 'Archived'
     };
     return map[String(value || '').toLowerCase()] || (ACCOUNT_STATUSES.includes(value) ? value : 'Not Reviewed Yet');
+  }
+
+  function normalizeUserType(value) {
+    const map = {
+      owner: 'Rental Owner',
+      'property owner': 'Rental Owner',
+      'property management client': 'Rental Owner',
+      'rental owner': 'Rental Owner'
+    };
+    return map[String(value || '').toLowerCase()] || (USER_TYPES.includes(value) ? value : 'Other');
+  }
+
+  function normalizeAccountType(value) {
+    const map = {
+      buyer: 'Buyer Account',
+      seller: 'Seller Account',
+      rental: 'Rental Account',
+      renter: 'Rental Account',
+      lease: 'Rental Account',
+      owner: 'Rental Owner Account',
+      'property owner': 'Rental Owner Account',
+      'rental owner account': 'Rental Owner Account',
+      renovation: 'Renovation Account',
+      contractor: 'Renovation Account',
+      'property management': 'Property Management Account',
+      'property management client': 'Property Management Account'
+    };
+    return map[String(value || '').toLowerCase()] || (ACCOUNT_TYPES.includes(value) ? value : 'Other');
+  }
+
+  function normalizeMaintenancePriority(value) {
+    return normalizePriority(value);
   }
 
   function debounce(fn, delay) {
@@ -375,13 +412,14 @@
   }
 
   function setActiveMainTab(tabKey) {
+    const target = ['dashboard', 'users', 'properties', 'accounts', 'maintenance', 'leads'].includes(tabKey) ? tabKey : 'dashboard';
     document.querySelectorAll('.portal-tab-bar:not(.leads-sub-tabs):not(.workflow-tab-bar) .portal-tab').forEach((button) => {
-      const active = button.getAttribute('data-tab') === tabKey;
+      const active = button.getAttribute('data-tab') === target;
       button.classList.toggle('active', active);
       button.setAttribute('aria-selected', active ? 'true' : 'false');
     });
     document.querySelectorAll('.tab-panel').forEach((panel) => {
-      panel.hidden = panel.id !== `tab-${tabKey}`;
+      panel.hidden = panel.id !== `tab-${target}`;
     });
   }
 
@@ -589,10 +627,93 @@
     return labels.length <= 2 ? labels.join(', ') : `${labels.slice(0, 2).join(', ')} +${labels.length - 2} more`;
   }
 
+  function getAccountsForUser(userId) {
+    return allAccounts.filter((account) => getAccountClientIds(account.id).includes(userId));
+  }
+
+  function getUsersForProperty(propertyId) {
+    const clientIds = new Set(allPropertyAssignments
+      .filter((assignment) => assignment.property_id === propertyId)
+      .map((assignment) => assignment.client_id));
+    allAccounts
+      .filter((account) => account.property_id === propertyId)
+      .forEach((account) => getAccountClientIds(account.id).forEach((clientId) => clientIds.add(clientId)));
+    return Array.from(clientIds)
+      .map((clientId) => getUserById(clientId))
+      .filter(Boolean);
+  }
+
+  function getAccountsForProperty(propertyId) {
+    return allAccounts.filter((account) => account.property_id === propertyId);
+  }
+
+  function getDocumentsForProperty(propertyId, options) {
+    const config = options || {};
+    return allDocuments.filter((doc) => {
+      if (doc.property_id !== propertyId) return false;
+      if (!config.includePhotos && doc.category === 'Property Photo') return false;
+      return true;
+    });
+  }
+
+  function getDocumentsForAccount(accountId) {
+    return allDocuments.filter((doc) => doc.account_id === accountId);
+  }
+
+  function getAccountPhotoDocs(accountId) {
+    return getDocumentsForAccount(accountId).filter((doc) => doc.category === 'Property Photo' || String(doc.category || '').toLowerCase() === 'photo');
+  }
+
+  function getAccountReceiptDocs(accountId) {
+    return getDocumentsForAccount(accountId).filter((doc) => String(doc.category || '').toLowerCase() === 'receipt');
+  }
+
+  function getSignatureRequestsForAccount(accountId) {
+    return allSigRequests.filter((sig) => sig.account_id === accountId);
+  }
+
+  function getTasksForAccount(accountId) {
+    return allTasks.filter((task) => task.account_id === accountId);
+  }
+
+  function formatCountLabel(count, singular, plural) {
+    if (!count) return `No ${plural || `${singular}s`}`;
+    return `${count} ${count === 1 ? singular : (plural || `${singular}s`)}`;
+  }
+
+  function renderInlineAssignmentEditor(userId, group) {
+    const isPropertyGroup = group === 'properties';
+    const options = isPropertyGroup
+      ? allProperties.map((property) => ({ id: property.id, label: property.property_address || 'Unnamed property' }))
+      : allAccounts.map((account) => ({ id: account.id, label: `${account.account_name} · ${normalizeAccountType(account.account_type || 'Other')}` }));
+    const selectedIds = new Set(isPropertyGroup
+      ? allPropertyAssignments.filter((assignment) => assignment.client_id === userId).map((assignment) => assignment.property_id)
+      : allAccountAssignments.filter((assignment) => assignment.client_id === userId).map((assignment) => assignment.account_id));
+    const summary = selectedIds.size ? `${selectedIds.size} assigned` : 'None assigned';
+    return `<details class="inline-assignment-menu" data-assignment-group="${escapeHtml(group)}" data-user-id="${escapeHtml(userId)}">
+      <summary>${escapeHtml(summary)}</summary>
+      <div class="inline-assignment-list">
+        ${options.length ? options.map((option) => `<label class="inline-assignment-item"><input type="checkbox" value="${escapeHtml(option.id)}"${selectedIds.has(option.id) ? ' checked' : ''}> <span>${escapeHtml(option.label)}</span></label>`).join('') : '<span class="table-hint">No options available.</span>'}
+      </div>
+    </details><span class="autosave-indicator" aria-live="polite"></span>`;
+  }
+
+  function renderFileSummaryButtons(files, emptyLabel, limit) {
+    const max = limit || 2;
+    if (!files.length) return `<div class="mini-asset-stack"><span class="table-hint">${escapeHtml(emptyLabel || 'None')}</span></div>`;
+    return `<div class="mini-asset-stack">
+      <span class="table-hint">${escapeHtml(formatCountLabel(files.length, 'file'))}</span>
+      <div class="inline-file-actions">
+        ${files.slice(0, max).map((file) => `<button class="action-link" data-action="open-doc" data-id="${escapeHtml(file.id)}" type="button">${escapeHtml(file.file_name || 'Open file')}</button><button class="action-link" data-action="download-doc" data-id="${escapeHtml(file.id)}" type="button">Download</button>`).join('')}
+      </div>
+      ${files.length > max ? `<span class="table-hint">+${files.length - max} more</span>` : ''}
+    </div>`;
+  }
+
   function populateUserSelect(select, blankLabel) {
     if (!select) return;
     const current = select.value;
-    const options = allUsers.filter((user) => user.role === 'client').map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.full_name || user.email)}</option>`).join('');
+    const options = allUsers.filter((user) => user.role !== 'admin').map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.full_name || user.email)}</option>`).join('');
     select.innerHTML = `<option value="">${escapeHtml(blankLabel || 'No specific client')}</option>${options}`;
     if (current) select.value = current;
   }
@@ -700,10 +821,15 @@
   async function loadUsersData() {
     const { data, error } = await supabaseClient
       .from('profiles')
-      .select('id, email, full_name, phone, role, status, user_type, created_at')
-      .order('created_at', { ascending: false });
+      .select('id, email, full_name, phone, role, status, user_type, created_at, updated_at')
+      .order('updated_at', { ascending: false, nullsFirst: false });
     if (error) return;
-    allUsers = data || [];
+    allUsers = (data || []).map((user) => ({
+      ...user,
+      role: user.role === 'admin' ? 'admin' : 'client',
+      status: user.status || 'active',
+      user_type: normalizeUserType(user.user_type)
+    }));
     populateUserSelect(document.getElementById('upload-client'));
     populateUserSelect(document.getElementById('account-client'), 'No client selected');
   }
@@ -719,7 +845,12 @@
   async function loadAccountsData() {
     const { data, error } = await supabaseClient.from('accounts').select('*').order('updated_at', { ascending: false });
     if (error) return;
-    allAccounts = (data || []).map((account) => ({ ...account, status: normalizeAccountStatus(account.status) }));
+    allAccounts = (data || []).map((account) => ({
+      ...account,
+      status: normalizeAccountStatus(account.status),
+      priority: normalizePriority(account.priority),
+      account_type: normalizeAccountType(account.account_type)
+    }));
     populateAccountSelect(document.getElementById('upload-account'));
   }
 
@@ -750,7 +881,11 @@
       supabaseClient.from('maintenance_files').select('*').order('created_at', { ascending: false })
     ]);
     if (!requests.error) {
-      allMaintenanceRequests = (requests.data || []).map((request) => ({ ...request, status: normalizeMaintenanceStatus(request.status) }));
+      allMaintenanceRequests = (requests.data || []).map((request) => ({
+        ...request,
+        status: normalizeMaintenanceStatus(request.status),
+        priority: normalizeMaintenancePriority(request.priority)
+      }));
     }
     if (!files.error) allMaintenanceFiles = files.data || [];
   }
@@ -763,7 +898,8 @@
     allLeads[sectionKey] = (data || []).map((row) => ({
       ...row,
       [config.statusField]: normalizeLeadStatus(row[config.statusField]),
-      [config.notesField]: row[config.notesField] || null
+      [config.notesField]: row[config.notesField] || null,
+      priority: normalizePriority(row.priority)
     }));
   }
 
@@ -779,8 +915,7 @@
     if (error) return;
     allTasks = (data || []).map((task) => {
       const statusMap = { 'Not Reviewed': 'Not Reviewed Yet', 'Waiting on User': 'In Progress', 'Waiting on Admin': 'In Progress', Archived: 'Completed' };
-      const priorityMap = { Urgent: 'High', Emergency: 'High' };
-      return { ...task, status: statusMap[task.status] || task.status || 'Not Reviewed Yet', priority: priorityMap[task.priority] || task.priority || 'Medium' };
+      return { ...task, status: statusMap[task.status] || task.status || 'Not Reviewed Yet', priority: normalizePriority(task.priority) };
     });
   }
 
@@ -792,7 +927,7 @@
     if (error) return;
     allMessages = (data || []).map((message) => {
       const statusMap = { Open: 'Not Reviewed Yet', 'Not Reviewed': 'Not Reviewed Yet', Replied: 'Completed', Closed: 'Completed' };
-      return { ...message, status: statusMap[message.status] || message.status || 'Not Reviewed Yet' };
+      return { ...message, status: statusMap[message.status] || message.status || 'Not Reviewed Yet', priority: normalizePriority(message.priority) };
     });
   }
 
@@ -806,39 +941,44 @@
   }
 
   function renderUsers() {
-    const tbody = document.getElementById('users-tbody');
-    const empty = document.getElementById('users-empty');
     const term = (document.getElementById('user-search')?.value || '').trim().toLowerCase();
     const filtered = allUsers.filter((user) => {
       if (!term) return true;
       return [user.full_name, user.email, user.role, user.status, user.user_type].some((value) => String(value || '').toLowerCase().includes(term));
     });
-    if (!filtered.length) {
-      tbody.innerHTML = '';
-      empty.hidden = false;
-      return;
-    }
-    empty.hidden = true;
-    tbody.innerHTML = filtered.map((user) => {
+    const groups = {
+      active: filtered.filter((user) => (user.status || 'active') !== 'inactive'),
+      inactive: filtered.filter((user) => (user.status || 'active') === 'inactive')
+    };
+    Object.entries(groups).forEach(([groupKey, rows]) => {
+      const tbody = document.getElementById(`users-${groupKey}-tbody`);
+      const empty = document.getElementById(`users-${groupKey}-empty`);
+      if (!tbody || !empty) return;
+      if (!rows.length) {
+        tbody.innerHTML = '';
+        empty.hidden = false;
+        return;
+      }
+      empty.hidden = true;
+      tbody.innerHTML = rows.map((user) => {
       const roleOptions = USER_ROLES.map((role) => `<option value="${role}"${role === user.role ? ' selected' : ''}>${role.charAt(0).toUpperCase() + role.slice(1)}</option>`).join('');
-      const typeOptions = USER_TYPES.map((userType) => `<option value="${userType}"${(user.user_type || 'Other') === userType ? ' selected' : ''}>${escapeHtml(userType)}</option>`).join('');
+      const typeOptions = USER_TYPES.map((userType) => `<option value="${userType}"${normalizeUserType(user.user_type || 'Other') === userType ? ' selected' : ''}>${escapeHtml(userType)}</option>`).join('');
       const statusOptions = USER_STATUSES.map((status) => `<option value="${status}"${status === (user.status || 'active') ? ' selected' : ''}>${status.charAt(0).toUpperCase() + status.slice(1)}</option>`).join('');
       const clientActions = user.role !== 'admin'
-        ? `<button class="action-link" data-action="assign-properties" data-id="${escapeHtml(user.id)}" type="button">Assign Properties</button>
-           <button class="action-link" data-action="assign-accounts" data-id="${escapeHtml(user.id)}" type="button">Assign Accounts</button>
-           <button class="action-link" data-action="view-client" data-id="${escapeHtml(user.id)}" type="button">View as Client</button>`
+        ? `<button class="action-link" data-action="view-client" data-id="${escapeHtml(user.id)}" type="button">Preview Client Portal</button>`
         : '';
       return `<tr data-user-id="${escapeHtml(user.id)}">
         <td>${escapeHtml(user.email)}</td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-user-role>${roleOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-user-type>${typeOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-user-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
-        <td>${formatDateOnly(user.created_at)}</td>
-        <td class="dashboard-cell-wrap">${escapeHtml(getPropertySummary(user.id))}</td>
-        <td class="dashboard-cell-wrap">${escapeHtml(getAccountSummary(user.id))}</td>
+        <td class="dashboard-cell-wrap">${renderInlineAssignmentEditor(user.id, 'properties')}</td>
+        <td class="dashboard-cell-wrap">${renderInlineAssignmentEditor(user.id, 'accounts')}</td>
+        <td>${formatDateTime(user.updated_at || user.created_at)}</td>
         <td class="users-actions-cell"><div class="table-actions table-actions-stack">${clientActions}</div></td>
       </tr>`;
-    }).join('');
+      }).join('');
+    });
   }
 
   async function renderProperties() {
@@ -858,12 +998,22 @@
         `<option value="public"${property.visibility === 'public' ? ' selected' : ''}>Public Listing</option>`
       ].join('');
       const photoUrl = photoUrls[i];
-      const photoCount = allDocuments.filter((doc) => doc.property_id === property.id && doc.category === 'Property Photo' && doc.file_path).length;
+      const linkedUsers = getUsersForProperty(property.id);
+      const linkedAccounts = getAccountsForProperty(property.id);
+      const propertyDocs = getDocumentsForProperty(property.id);
+      const photoDocs = getDocumentsForProperty(property.id, { includePhotos: true }).filter((doc) => doc.category === 'Property Photo');
+      const photoCount = photoDocs.length;
+      const accountTypes = Array.from(new Set(linkedAccounts.map((account) => normalizeAccountType(account.account_type || 'Other'))));
       return `<tr data-property-id="${escapeHtml(property.id)}">
-        <td class="dashboard-cell-wrap"><div class="property-summary-stack">${photoUrl ? `<img class="property-photo-preview" src="${escapeHtml(photoUrl)}" alt="Photo of ${escapeHtml(property.property_address)}">` : '<div class="property-photo-preview property-photo-placeholder">No Photo</div>'}<div class="property-photo-meta"><strong>${escapeHtml(property.property_address)}</strong><span class="property-photo-count">${photoCount} photo${photoCount === 1 ? '' : 's'}</span><textarea class="dashboard-inline-notes dashboard-notes-sm" data-prop-notes rows="2" aria-label="Property notes">${escapeHtml(property.notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></div></div></td>
-        <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-prop-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
         <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-prop-visibility>${visibilityOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
-        <td>${formatDateTime(property.updated_at || property.created_at)}</td>
+        <td class="dashboard-cell-wrap"><div class="property-summary-stack">${photoUrl ? `<img class="property-photo-preview" src="${escapeHtml(photoUrl)}" alt="Photo of ${escapeHtml(property.property_address)}">` : '<div class="property-photo-preview property-photo-placeholder">No Photo</div>'}<div class="property-photo-meta"><strong>${escapeHtml(property.property_address)}</strong><span class="property-photo-count">${photoCount} photo${photoCount === 1 ? '' : 's'}</span><span class="table-hint">${property.visibility === 'public' ? 'Public website listing' : 'Internal portal record'}</span></div></div></td>
+        <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-prop-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
+        <td class="dashboard-cell-wrap">${linkedUsers.length ? linkedUsers.map((user) => escapeHtml(user.full_name || user.email)).join('<br>') : 'Unassigned'}</td>
+        <td class="dashboard-cell-wrap">${linkedAccounts.length ? linkedAccounts.map((account) => escapeHtml(account.account_name)).join('<br>') : 'No accounts'}</td>
+        <td class="dashboard-cell-wrap">${accountTypes.length ? accountTypes.map((type) => escapeHtml(type)).join('<br>') : 'No account types'}</td>
+        <td>${photoDocs.length ? `<div class="mini-asset-stack"><span class="table-hint">${escapeHtml(formatCountLabel(photoDocs.length, 'photo'))}</span><div class="inline-file-actions"><button class="action-link" data-action="open-doc" data-id="${escapeHtml(photoDocs[0].id)}" type="button">Open Photo</button><button class="action-link" data-action="download-doc" data-id="${escapeHtml(photoDocs[0].id)}" type="button">Download</button></div></div>` : '<span class="table-hint">No photos</span>'}</td>
+        <td>${renderFileSummaryButtons(propertyDocs, 'No documents')}</td>
+        <td><textarea class="dashboard-inline-notes dashboard-notes-sm" data-prop-notes rows="3" aria-label="Property notes">${escapeHtml(property.notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></td>
         <td><div class="table-actions table-actions-stack"><button class="action-link" data-action="edit-property" data-id="${escapeHtml(property.id)}" type="button">Edit / Photos</button><button class="action-link" data-action="delete-property" data-id="${escapeHtml(property.id)}" type="button">Delete</button></div></td>
       </tr>`;
     }).join('');
@@ -884,14 +1034,25 @@
       config.tbody.innerHTML = config.rows.map((account) => {
         const statusOptions = ACCOUNT_STATUSES.map((s) => `<option value="${s}"${account.status === s ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
         const priorityOptions = ITEM_PRIORITIES.map((priority) => `<option value="${priority}"${priority === (account.priority || 'Medium') ? ' selected' : ''}>${priority}</option>`).join('');
+        const accountDocs = getDocumentsForAccount(account.id);
+        const accountPhotos = getAccountPhotoDocs(account.id);
+        const accountReceipts = getAccountReceiptDocs(account.id);
+        const accountSigs = getSignatureRequestsForAccount(account.id);
+        const accountTasks = getTasksForAccount(account.id);
+        const primaryProperty = getPropertyById(account.property_id);
         return `<tr data-account-id="${escapeHtml(account.id)}">
           <td class="dashboard-cell-wrap"><strong>${escapeHtml(account.account_name)}</strong>${account.client_notes ? `<div class="table-hint">${escapeHtml(account.client_notes)}</div>` : ''}</td>
+          <td>${escapeHtml(normalizeAccountType(account.account_type || 'Other'))}</td>
           <td>${escapeHtml(getAccountClientLabels(account.id))}</td>
-          <td>${escapeHtml(getPropertyById(account.property_id)?.property_address || 'Unassigned')}</td>
-          <td>${escapeHtml(account.account_type || 'Other')}</td>
+          <td>${escapeHtml(primaryProperty?.property_address || 'Unassigned')}</td>
           <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-account-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
           <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-account-priority>${priorityOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
-          <td>${formatDateTime(groupKey === 'completed' ? (account.completed_at || account.updated_at) : account.updated_at)}</td>
+          <td>${renderFileSummaryButtons(accountDocs.filter((doc) => doc.category !== 'Property Photo'), 'No documents', 1)}</td>
+          <td>${renderFileSummaryButtons(accountPhotos, 'No photos', 1)}</td>
+          <td>${renderFileSummaryButtons(accountReceipts, 'No receipts', 1)}</td>
+          <td class="dashboard-cell-wrap">${accountSigs.length ? accountSigs.slice(0, 2).map((sig) => `${escapeHtml(sig.title)}<br><span class="table-hint">${escapeHtml(sig.status)}</span>`).join('<br>') : 'No signature requests'}</td>
+          <td><textarea class="dashboard-inline-notes dashboard-notes-sm" data-account-notes rows="3">${escapeHtml(account.internal_notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></td>
+          <td class="dashboard-cell-wrap"><strong>${formatDateTime(groupKey === 'completed' ? (account.completed_at || account.updated_at) : account.updated_at)}</strong><div class="table-hint">${escapeHtml(formatCountLabel(accountTasks.length, 'task'))} · ${escapeHtml(formatCountLabel(accountDocs.length, 'file'))}</div></td>
           <td><div class="table-actions table-actions-stack"><button class="action-link" data-action="view-account-files" data-id="${escapeHtml(account.id)}" type="button">Files</button><button class="action-link" data-action="account-upload" data-id="${escapeHtml(account.id)}" type="button">Upload File</button><button class="action-link" data-action="delete-account" data-id="${escapeHtml(account.id)}" type="button">Delete</button></div></td>
         </tr>`;
       }).join('');
@@ -962,6 +1123,7 @@
           <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-maint-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
           <td><textarea class="dashboard-inline-notes" data-maint-comments rows="3">${escapeHtml(request.admin_comments || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></td>
           <td>${fileLinks}</td>
+          <td><div class="table-actions"><button class="action-link" data-action="open-maintenance" data-id="${escapeHtml(request.id)}" type="button">Open</button></div></td>
         </tr>`;
       }).join('');
     });
@@ -973,6 +1135,11 @@
     return `<select class="dashboard-inline-select" data-lead-status="${escapeHtml(sectionKey)}">${LEAD_STATUSES.map((option) => `<option value="${escapeHtml(option)}"${option === current ? ' selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select><span class="autosave-indicator" aria-live="polite"></span>`;
   }
 
+  function renderLeadPrioritySelect(sectionKey, row) {
+    const current = normalizePriority(row.priority);
+    return `<select class="dashboard-inline-select" data-lead-priority="${escapeHtml(sectionKey)}">${ITEM_PRIORITIES.map((option) => `<option value="${escapeHtml(option)}"${option === current ? ' selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select><span class="autosave-indicator" aria-live="polite"></span>`;
+  }
+
   function renderLeadNotes(sectionKey, row) {
     const config = LEAD_SECTIONS[sectionKey] || LEAD_SECTIONS.contact;
     return `<textarea class="dashboard-inline-notes" data-lead-notes="${escapeHtml(sectionKey)}" rows="4">${escapeHtml(row[config.notesField] || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span>`;
@@ -981,6 +1148,7 @@
   function renderLeadCell(sectionKey, field, row) {
     const config = LEAD_SECTIONS[sectionKey] || LEAD_SECTIONS.contact;
     if (field === 'status') return renderLeadStatusSelect(sectionKey, row);
+    if (field === 'priority') return renderLeadPrioritySelect(sectionKey, row);
     if (field === 'notes') return renderLeadNotes(sectionKey, row);
     if (field === 'created_at') return formatDateTime(row.created_at);
     if (field === 'preferred_date') return formatDateOnly(row.preferred_date);
@@ -1146,18 +1314,100 @@
     }).join('');
   }
 
+  function renderDashboardList(containerId, items, renderer) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (!items.length) {
+      container.innerHTML = '<p class="workspace-empty">Nothing to review right now.</p>';
+      return;
+    }
+    container.innerHTML = `<div class="workspace-list">${items.map(renderer).join('')}</div>`;
+  }
+
+  function renderDashboardWorkspace() {
+    renderDashboardList('dashboard-accounts-preview', allAccounts.filter((account) => !['Completed', 'Archived'].includes(account.status)).slice(0, 5), (account) => {
+      const clientLabel = getAccountClientLabels(account.id);
+      return `<article class="workspace-list-item">
+        <div class="workspace-list-item-header"><strong>${escapeHtml(account.account_name)}</strong><span>${escapeHtml(account.status)}</span></div>
+        <div class="workspace-meta-row"><span>${escapeHtml(normalizeAccountType(account.account_type || 'Other'))}</span><span>${escapeHtml(getPropertyById(account.property_id)?.property_address || 'No property')}</span></div>
+        <div class="workspace-meta-row"><span>${escapeHtml(clientLabel)}</span><button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Accounts</button></div>
+      </article>`;
+    });
+
+    renderDashboardList('dashboard-files-preview', allDocuments.filter((doc) => {
+      const sigState = doc.signature_status || (doc.signed ? 'signed' : (doc.requires_signature ? 'pending_signature' : 'available'));
+      return sigState === 'pending_signature' || sigState === 'uploaded' || doc.status === 'Not Reviewed Yet';
+    }).slice(0, 5), (doc) => `<article class="workspace-list-item">
+      <div class="workspace-list-item-header"><strong>${escapeHtml(doc.file_name || 'Untitled file')}</strong><span>${escapeHtml(doc.category || 'Other')}</span></div>
+      <div class="workspace-meta-row"><span>${escapeHtml(getAccountById(doc.account_id)?.account_name || 'No account')}</span><span>${escapeHtml(getUserById(doc.client_id)?.full_name || getUserById(doc.client_id)?.email || 'No client')}</span></div>
+      <div class="workspace-file-actions"><button class="action-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">Open</button><button class="action-link" data-action="download-doc" data-id="${escapeHtml(doc.id)}" type="button">Download</button></div>
+    </article>`);
+
+    renderDashboardList('dashboard-maintenance-preview', allMaintenanceRequests.filter((request) => request.status !== 'Completed').slice(0, 5), (request) => `<article class="workspace-list-item">
+      <div class="workspace-list-item-header"><strong>${escapeHtml(request.title || 'Maintenance request')}</strong><span>${escapeHtml(request.priority || 'Medium')}</span></div>
+      <div class="workspace-meta-row"><span>${escapeHtml(getPropertyById(request.property_id)?.property_address || 'No property')}</span><span>${escapeHtml(getUserById(request.client_id)?.full_name || getUserById(request.client_id)?.email || 'No client')}</span></div>
+      <div class="workspace-file-actions"><button class="action-link" data-action="open-maintenance" data-id="${escapeHtml(request.id)}" type="button">Open Request</button></div>
+    </article>`);
+
+    const openMessages = [
+      ...allMessages.filter((msg) => msg.status !== 'Completed').map((msg) => ({
+        title: msg.subject || 'Portal message',
+        meta: msg.message_type || 'General Message',
+        detail: getUserById(msg.user_id)?.full_name || getUserById(msg.user_id)?.email || 'Portal user'
+      })),
+      ...(allLeads.contact || []).filter((row) => normalizeLeadStatus(row.admin_status) !== 'Completed').map((row) => ({
+        title: row.name || 'Contact request',
+        meta: formatInquiryType(row.inquiry_type),
+        detail: row.email || 'Lead'
+      })),
+      ...(allLeads.showing || []).filter((row) => normalizeLeadStatus(row.admin_status) !== 'Completed').map((row) => ({
+        title: row.name || 'Showing request',
+        meta: 'Showing Request',
+        detail: row.property_address || row.email || 'Lead'
+      })),
+      ...(allLeads.renovation || []).filter((row) => normalizeLeadStatus(row.status) !== 'Completed').map((row) => ({
+        title: row.full_name || 'Renovation client',
+        meta: 'Renovation Client',
+        detail: row.property_address || row.email || 'Lead'
+      }))
+    ].slice(0, 5);
+    renderDashboardList('dashboard-messages-preview', openMessages, (item) => `<article class="workspace-list-item">
+      <div class="workspace-list-item-header"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.meta)}</span></div>
+      <div class="workspace-meta-row"><span>${escapeHtml(item.detail)}</span><button class="action-link summary-card-link" data-tab-target="leads" type="button">Open Leads</button></div>
+    </article>`);
+
+    renderDashboardList('dashboard-signatures-preview', allSigRequests.filter((sig) => !['Signed', 'Declined', 'Expired'].includes(sig.status)).slice(0, 5), (sig) => `<article class="workspace-list-item">
+      <div class="workspace-list-item-header"><strong>${escapeHtml(sig.title)}</strong><span>${escapeHtml(sig.status)}</span></div>
+      <div class="workspace-meta-row"><span>${escapeHtml(sig.provider || 'Manual Upload')}</span><span>${escapeHtml(getAccountById(sig.account_id)?.account_name || 'No account')}</span></div>
+      <div class="workspace-file-actions">${sig.signature_url ? `<a class="action-link" href="${escapeHtml(sig.signature_url)}" target="_blank" rel="noopener noreferrer">Open Link</a>` : '<span class="table-hint">No signature link</span>'}</div>
+    </article>`);
+
+    renderDashboardList('dashboard-seller-tasks-preview', allTasks.filter((task) => task.task_type === 'Seller Task' && task.status !== 'Completed').slice(0, 5), (task) => `<article class="workspace-list-item">
+      <div class="workspace-list-item-header"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(task.priority || 'Medium')}</span></div>
+      <div class="workspace-meta-row"><span>${escapeHtml(getAccountById(task.account_id)?.account_name || 'No account')}</span><span>${escapeHtml(task.status)}</span></div>
+      <div class="workspace-file-actions"><button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Account</button></div>
+    </article>`);
+
+    renderDashboardList('dashboard-completed-tasks-preview', allTasks.filter((task) => task.status === 'Completed').slice(0, 5), (task) => `<article class="workspace-list-item">
+      <div class="workspace-list-item-header"><strong>${escapeHtml(task.title)}</strong><span>${formatDateTime(task.completed_at || task.updated_at || task.created_at)}</span></div>
+      <div class="workspace-meta-row"><span>${escapeHtml(task.task_type || 'Task')}</span><span>${escapeHtml(getAccountById(task.account_id)?.account_name || 'No account')}</span></div>
+    </article>`);
+  }
+
   function updateSummaryCards() {
     const activeAccounts = allAccounts.filter((a) => !['Completed', 'Archived'].includes(a.status)).length;
     const filesNeedingAction = allDocuments.filter((d) => {
       const sigState = d.signature_status || (d.signed ? 'signed' : (d.requires_signature ? 'pending_signature' : 'available'));
-      return sigState === 'pending_signature' || sigState === 'uploaded';
+      return sigState === 'pending_signature' || sigState === 'uploaded' || d.status === 'Not Reviewed Yet';
     }).length;
     const openMaintenance = allMaintenanceRequests.filter((m) => m.status !== 'Completed').length;
-    const openMessages = allMessages.filter((m) => m.status === 'Not Reviewed Yet').length
-      + (allLeads.contact || []).filter((l) => l.admin_status === 'Not Reviewed Yet').length
-      + (allLeads.showing || []).filter((l) => l.admin_status === 'Not Reviewed Yet').length;
+    const openMessages = allMessages.filter((m) => m.status !== 'Completed').length
+      + (allLeads.contact || []).filter((l) => normalizeLeadStatus(l.admin_status) !== 'Completed').length
+      + (allLeads.showing || []).filter((l) => normalizeLeadStatus(l.admin_status) !== 'Completed').length
+      + (allLeads.renovation || []).filter((l) => normalizeLeadStatus(l.status) !== 'Completed').length;
     const openSigRequests = allSigRequests.filter((s) => !['Signed', 'Declined', 'Expired'].includes(s.status)).length;
     const sellerTasks = allTasks.filter((t) => t.task_type === 'Seller Task' && !['Completed', 'Archived'].includes(t.status)).length;
+    const completedTasks = allTasks.filter((t) => t.status === 'Completed').length;
 
     const set = (id, val) => {
       const el = document.getElementById(id);
@@ -1169,6 +1419,8 @@
     set('summary-messages', openMessages);
     set('summary-signatures', openSigRequests);
     set('summary-seller-tasks', sellerTasks);
+    set('summary-completed-tasks', completedTasks);
+    renderDashboardWorkspace();
   }
 
   async function handleInvite(event) {
@@ -1605,6 +1857,24 @@
     if (field === 'status') { renderSigRequests(); updateSummaryCards(); }
   }
 
+  async function autoSaveDocument(rowEl, field, value) {
+    const docId = rowEl.closest('[data-document-id]')?.getAttribute('data-document-id');
+    if (!docId) return;
+    const indicatorEl = rowEl.closest('.account-file-item')?.querySelector('.autosave-indicator');
+    setAutosaveState(indicatorEl, 'saving');
+    const payload = { [field]: value, updated_at: nowIso() };
+    if (field === 'visibility') payload.can_client_view = value !== 'admin_only';
+    const { error } = await supabaseClient.from('documents').update(payload).eq('id', docId);
+    if (error) return setAutosaveState(indicatorEl, 'error', error.message);
+    setAutosaveState(indicatorEl, 'saved');
+    const doc = allDocuments.find((item) => item.id === docId);
+    if (doc) {
+      doc[field] = value;
+      if (field === 'visibility') doc.can_client_view = value !== 'admin_only';
+    }
+    updateSummaryCards();
+  }
+
   async function saveUser(userId, row) {
     const role = row.querySelector('[data-user-role]')?.value;
     const status = row.querySelector('[data-user-status]')?.value;
@@ -1707,7 +1977,42 @@
     setAutosaveState(indicatorEl, 'saved');
     const user = allUsers.find((u) => u.id === userId);
     if (user) user[field] = value;
-    if (field === 'role') renderUsers();
+    if (field === 'role' || field === 'status') renderUsers();
+  }
+
+  async function autoSaveUserAssignments(inputEl, group) {
+    const details = inputEl.closest('[data-assignment-group]');
+    const userId = details?.getAttribute('data-user-id');
+    if (!details || !userId) return;
+    const indicatorEl = details.parentElement?.querySelector('.autosave-indicator');
+    const selectedIds = Array.from(details.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
+    setAutosaveState(indicatorEl, 'saving');
+    if (group === 'properties') {
+      const { error: deleteError } = await supabaseClient.from('client_property_assignments').delete().eq('client_id', userId);
+      if (deleteError) return setAutosaveState(indicatorEl, 'error', deleteError.message);
+      if (selectedIds.length) {
+        const { error: insertError } = await supabaseClient.from('client_property_assignments').insert(selectedIds.map((propertyId) => ({ client_id: userId, property_id: propertyId })));
+        if (insertError) return setAutosaveState(indicatorEl, 'error', insertError.message);
+      }
+      allPropertyAssignments = allPropertyAssignments.filter((assignment) => assignment.client_id !== userId)
+        .concat(selectedIds.map((propertyId) => ({ client_id: userId, property_id: propertyId })));
+    } else {
+      const { error: deleteError } = await supabaseClient.from('account_clients').delete().eq('client_id', userId);
+      if (deleteError) return setAutosaveState(indicatorEl, 'error', deleteError.message);
+      if (selectedIds.length) {
+        const { error: insertError } = await supabaseClient.from('account_clients').insert(selectedIds.map((accountId) => ({ account_id: accountId, client_id: userId })));
+        if (insertError) return setAutosaveState(indicatorEl, 'error', insertError.message);
+      }
+      allAccountAssignments = allAccountAssignments.filter((assignment) => assignment.client_id !== userId)
+        .concat(selectedIds.map((accountId) => ({ account_id: accountId, client_id: userId })));
+    }
+    setAutosaveState(indicatorEl, 'saved');
+    const summary = selectedIds.length ? `${selectedIds.length} assigned` : 'None assigned';
+    const summaryEl = details.querySelector('summary');
+    if (summaryEl) summaryEl.textContent = summary;
+    renderUsers();
+    renderProperties();
+    renderAccounts();
   }
 
   async function autoSaveProperty(rowEl, field, value) {
@@ -1745,6 +2050,7 @@
       if (field === 'status' && !nowCompleted && wasCompleted) account.completed_at = null;
     }
     if (field === 'status') renderAccounts();
+    updateSummaryCards();
   }
 
   async function autoSaveMaintenance(rowEl, field, value) {
@@ -1768,6 +2074,7 @@
       if (field === 'status' && !nowCompleted && wasCompleted) req.completed_at = null;
     }
     if (field === 'status') renderMaintenanceTables();
+    updateSummaryCards();
   }
 
   async function autoSaveLead(rowEl, sectionKey, field, value) {
@@ -1778,7 +2085,7 @@
     const config = LEAD_SECTIONS[dbSection] || LEAD_SECTIONS.contact;
     const indicatorEl = rowEl.closest('td')?.querySelector('.autosave-indicator');
     setAutosaveState(indicatorEl, 'saving');
-    const dbField = field === 'status' ? config.statusField : config.notesField;
+    const dbField = field === 'status' ? config.statusField : field === 'priority' ? 'priority' : config.notesField;
     const wasCompleted = (allLeads[dbSection] || []).find((r) => r.id === rowId)?.[config.statusField] === 'Completed';
     const nowCompleted = field === 'status' && value === 'Completed';
     const { error } = await supabaseClient.from(config.table).update({
@@ -1805,6 +2112,30 @@
     }
   }
 
+  function openMaintenanceDetail(requestId) {
+    const request = allMaintenanceRequests.find((item) => item.id === requestId);
+    const body = document.getElementById('maintenance-detail-body');
+    if (!request || !body) return;
+    const files = getMaintenanceFiles(request.id);
+    body.innerHTML = `<div class="maintenance-detail-grid">
+      <section class="maintenance-detail-card"><h3>Property</h3><p>${escapeHtml(getPropertyById(request.property_id)?.property_address || 'Unassigned')}</p></section>
+      <section class="maintenance-detail-card"><h3>Account</h3><p>${escapeHtml(getAccountById(request.account_id)?.account_name || 'Unassigned')}</p></section>
+      <section class="maintenance-detail-card"><h3>Client</h3><p>${escapeHtml(getUserById(request.client_id)?.full_name || getUserById(request.client_id)?.email || 'N/A')}</p></section>
+      <section class="maintenance-detail-card"><h3>Priority</h3><p>${escapeHtml(request.priority || 'Medium')}</p></section>
+      <section class="maintenance-detail-card"><h3>Status</h3><p>${escapeHtml(request.status || 'Not Reviewed Yet')}</p></section>
+      <section class="maintenance-detail-card"><h3>Description</h3><p>${escapeHtml(request.description || 'No description provided.')}</p></section>
+    </div>
+    <section class="maintenance-detail-card">
+      <h3>Admin Comments</h3>
+      <p>${escapeHtml(request.admin_comments || 'No admin comments yet.')}</p>
+    </section>
+    <section class="maintenance-detail-card">
+      <h3>Attached Files</h3>
+      ${files.length ? `<div class="workspace-list">${files.map((file) => `<div class="workspace-list-item"><div class="workspace-list-item-header"><strong>${escapeHtml(file.file_name)}</strong></div><div class="workspace-file-actions"><button class="action-link" data-action="open-maint-file" data-id="${escapeHtml(file.id)}" type="button">Open</button><button class="action-link" data-action="download-maint-file" data-id="${escapeHtml(file.id)}" type="button">Download</button></div></div>`).join('')}</div>` : '<p class="workspace-empty">No attached files.</p>'}
+    </section>`;
+    openModal('maintenance-detail');
+  }
+
   async function viewAccountFiles(accountId) {
     const account = allAccounts.find((a) => a.id === accountId);
     if (!account) return;
@@ -1818,9 +2149,24 @@
     const { data: docs, error } = await supabaseClient.from('documents').select('*').eq('account_id', accountId).order('created_at', { ascending: false });
     if (error) { listEl.innerHTML = `<p class="form-status error-message">${escapeHtml(error.message)}</p>`; return; }
     if (!docs || !docs.length) { listEl.innerHTML = '<p class="table-hint">No files uploaded to this account yet.</p>'; return; }
-    listEl.innerHTML = docs.map((doc) => `<div class="account-file-item">
+    listEl.innerHTML = docs.map((doc) => `<div class="account-file-item" data-document-id="${escapeHtml(doc.id)}">
       <button class="action-link account-file-name" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button" aria-label="Open file ${escapeHtml(doc.file_name || doc.file_path || 'Unnamed file')}">${escapeHtml(doc.file_name || doc.file_path || 'Unnamed file')}</button>
       <div class="account-file-meta">${escapeHtml(doc.file_type || '')} · ${formatDateTime(doc.created_at)}</div>
+      <div class="account-file-meta">
+        <label>Visibility
+          <select class="dashboard-inline-select" data-account-doc-visibility>
+            <option value="admin_only"${doc.visibility === 'admin_only' ? ' selected' : ''}>Admin Only</option>
+            <option value="client_visible"${doc.visibility === 'client_visible' ? ' selected' : ''}>Client Can View</option>
+            <option value="client_downloadable"${doc.visibility === 'client_downloadable' ? ' selected' : ''}>Client Can Download</option>
+          </select>
+        </label>
+        <label>Signature
+          <select class="dashboard-inline-select" data-account-doc-signature>
+            ${Object.entries(SIGNATURE_STATUS_LABELS).map(([key, label]) => `<option value="${escapeHtml(key)}"${(doc.signature_status || 'available') === key ? ' selected' : ''}>${escapeHtml(label)}</option>`).join('')}
+          </select>
+        </label>
+        <span class="autosave-indicator" aria-live="polite"></span>
+      </div>
       <div class="table-actions">
         <button class="action-link" data-action="download-doc" data-id="${escapeHtml(doc.id)}" type="button">Download</button>
         <button class="action-link" data-action="edit-signature" data-id="${escapeHtml(doc.id)}" type="button">Signature</button>
@@ -1834,6 +2180,11 @@
       const button = event.target.closest('[data-action]');
       if (!button) return;
       handleDocumentAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
+    });
+    freshList.addEventListener('change', function (event) {
+      const el = event.target;
+      if (el.hasAttribute('data-account-doc-visibility')) autoSaveDocument(el, 'visibility', el.value);
+      if (el.hasAttribute('data-account-doc-signature')) autoSaveDocument(el, 'signature_status', el.value);
     });
     const uploadBtn = document.getElementById('account-files-upload-btn');
     if (uploadBtn) {
@@ -2029,13 +2380,26 @@
         updateTabParams({ tab: btn.getAttribute('data-tab-target') });
       });
     });
+    document.querySelectorAll('.summary-card-link[data-dashboard-target]').forEach((btn) => {
+      btn.addEventListener('click', function () {
+        setActiveMainTab('dashboard');
+        updateTabParams({ tab: 'dashboard' });
+        const target = document.querySelector(`[data-dashboard-section="${btn.getAttribute('data-dashboard-target')}"]`);
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
 
     // ── Autosave: Users ──────────────────────────────────────────────────────
-    document.getElementById('users-tbody')?.addEventListener('change', function (event) {
-      const el = event.target;
-      if (el.hasAttribute('data-user-role')) autoSaveUser(el, 'role', el.value);
-      if (el.hasAttribute('data-user-type')) autoSaveUser(el, 'user_type', el.value);
-      if (el.hasAttribute('data-user-status')) autoSaveUser(el, 'status', el.value);
+    ['users-active-tbody', 'users-inactive-tbody'].forEach((tbodyId) => {
+      document.getElementById(tbodyId)?.addEventListener('change', function (event) {
+        const el = event.target;
+        if (el.hasAttribute('data-user-role')) autoSaveUser(el, 'role', el.value);
+        if (el.hasAttribute('data-user-type')) autoSaveUser(el, 'user_type', normalizeUserType(el.value));
+        if (el.hasAttribute('data-user-status')) autoSaveUser(el, 'status', el.value);
+        if (el.matches('[data-assignment-group] input[type="checkbox"], .inline-assignment-menu input[type="checkbox"]')) {
+          autoSaveUserAssignments(el, el.closest('[data-assignment-group]')?.getAttribute('data-assignment-group'));
+        }
+      });
     });
 
     // ── Autosave: Properties ─────────────────────────────────────────────────
@@ -2055,6 +2419,10 @@
         const el = event.target;
         if (el.hasAttribute('data-account-status')) autoSaveAccount(el, 'status', el.value);
         if (el.hasAttribute('data-account-priority')) autoSaveAccount(el, 'priority', el.value);
+      });
+      document.getElementById(tbodyId)?.addEventListener('input', function (event) {
+        const el = event.target;
+        if (el.hasAttribute('data-account-notes')) debouncedUpdate(el, 650, () => autoSaveAccount(el, 'internal_notes', el.value.trim() || null));
       });
     });
 
@@ -2098,31 +2466,53 @@
       });
     });
 
-    document.getElementById('users-tbody')?.addEventListener('click', function (event) {
-      const button = event.target.closest('[data-action]');
-      if (!button) return;
-      const action = button.getAttribute('data-action');
-      const userId = button.getAttribute('data-id');
-      if (action === 'assign-properties') openPropertyAssignmentModal(userId);
-      if (action === 'assign-accounts') openAccountAssignmentModal(userId);
-      if (action === 'view-client') window.location.href = `client-portal.html?view_as_client=${encodeURIComponent(userId)}`;
+    ['users-active-tbody', 'users-inactive-tbody'].forEach((tbodyId) => {
+      document.getElementById(tbodyId)?.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-action]');
+        if (!button) return;
+        const action = button.getAttribute('data-action');
+        const userId = button.getAttribute('data-id');
+        if (action === 'view-client') window.location.href = `client-portal.html?view_as_client=${encodeURIComponent(userId)}`;
+      });
     });
 
     document.getElementById('properties-tbody')?.addEventListener('click', function (event) {
       const button = event.target.closest('[data-action]');
-      if (button) handlePropertyAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
+      if (!button) return;
+      const action = button.getAttribute('data-action');
+      const id = button.getAttribute('data-id');
+      if (action === 'open-doc' || action === 'download-doc') return handleDocumentAction(action, id);
+      handlePropertyAction(action, id);
     });
 
     ['accounts-active-tbody', 'accounts-completed-tbody'].forEach((tbodyId) => {
       document.getElementById(tbodyId)?.addEventListener('click', function (event) {
         const button = event.target.closest('[data-action]');
-        if (button) handleAccountAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
+        if (!button) return;
+        const action = button.getAttribute('data-action');
+        const id = button.getAttribute('data-id');
+        if (action === 'open-doc' || action === 'download-doc') return handleDocumentAction(action, id);
+        handleAccountAction(action, id);
       });
     });
 
     document.getElementById('documents-tbody')?.addEventListener('click', function (event) {
       const button = event.target.closest('[data-action]');
       if (button) handleDocumentAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
+    });
+    document.getElementById('tab-dashboard')?.addEventListener('click', function (event) {
+      const tabButton = event.target.closest('[data-tab-target]');
+      if (tabButton) {
+        const tabKey = tabButton.getAttribute('data-tab-target');
+        setActiveMainTab(tabKey);
+        updateTabParams({ tab: tabKey });
+      }
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = button.getAttribute('data-action');
+      const id = button.getAttribute('data-id');
+      if (action === 'open-doc' || action === 'download-doc') handleDocumentAction(action, id);
+      if (action === 'open-maintenance') openMaintenanceDetail(id);
     });
 
     document.getElementById('tasks-tbody')?.addEventListener('click', function (event) {
@@ -2134,33 +2524,33 @@
       if (action === 'delete-task') deleteTask(id);
     });
 
-    document.getElementById('messages-tbody')?.addEventListener('click', function (event) {
+    document.getElementById('messages-tbody')?.addEventListener('click', async function (event) {
       const button = event.target.closest('[data-action]');
       if (!button) return;
       const action = button.getAttribute('data-action');
       const id = button.getAttribute('data-id');
       if (action === 'delete-message') {
         if (!window.confirm('Delete this message?')) return;
-        supabaseClient.from('messages').delete().eq('id', id).then(async () => {
-          await loadMessagesData();
-          renderMessages();
-          updateSummaryCards();
-        });
+        const { error } = await supabaseClient.from('messages').delete().eq('id', id);
+        if (error) return window.alert(error.message);
+        await loadMessagesData();
+        renderMessages();
+        updateSummaryCards();
       }
     });
 
-    document.getElementById('sig-requests-tbody')?.addEventListener('click', function (event) {
+    document.getElementById('sig-requests-tbody')?.addEventListener('click', async function (event) {
       const button = event.target.closest('[data-action]');
       if (!button) return;
       const action = button.getAttribute('data-action');
       const id = button.getAttribute('data-id');
       if (action === 'delete-sig') {
         if (!window.confirm('Delete this signature request?')) return;
-        supabaseClient.from('signature_requests').delete().eq('id', id).then(async () => {
-          await loadSigRequestsData();
-          renderSigRequests();
-          updateSummaryCards();
-        });
+        const { error } = await supabaseClient.from('signature_requests').delete().eq('id', id);
+        if (error) return window.alert(error.message);
+        await loadSigRequestsData();
+        renderSigRequests();
+        updateSummaryCards();
       }
     });
 
@@ -2172,7 +2562,16 @@
         const id = button.getAttribute('data-id');
         if (action === 'open-maint-file') openMaintenanceFile(id, false);
         if (action === 'download-maint-file') openMaintenanceFile(id, true);
+        if (action === 'open-maintenance') openMaintenanceDetail(id);
       });
+    });
+    document.getElementById('maintenance-detail-body')?.addEventListener('click', function (event) {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = button.getAttribute('data-action');
+      const id = button.getAttribute('data-id');
+      if (action === 'open-maint-file') openMaintenanceFile(id, false);
+      if (action === 'download-maint-file') openMaintenanceFile(id, true);
     });
 
     // ── Autosave: Leads ──────────────────────────────────────────────────────
@@ -2186,6 +2585,7 @@
         const sectionKey = tr?.getAttribute('data-lead-section');
         if (!sectionKey) return;
         if (target.hasAttribute('data-lead-status')) autoSaveLead(target, sectionKey, 'status', target.value);
+        if (target.hasAttribute('data-lead-priority')) autoSaveLead(target, sectionKey, 'priority', target.value);
       });
       el.addEventListener('input', function (event) {
         const target = event.target;
