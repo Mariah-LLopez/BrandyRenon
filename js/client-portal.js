@@ -66,6 +66,12 @@
     return isNaN(d) ? escapeHtml(val) : escapeHtml(d.toLocaleDateString());
   }
 
+  function deriveTitleFromText(text) {
+    if (!text) return '';
+    const trimmed = text.trim();
+    return trimmed.length > MAX_TITLE_LENGTH ? trimmed.slice(0, MAX_TITLE_LENGTH - 1) + '…' : trimmed;
+  }
+
   function fileIconHtml(fileName) {
     const ext = (fileName || '').toLowerCase().split('.').pop();
     const map = { pdf: '🔴', doc: '🔵', docx: '🔵', xls: '🟢', xlsx: '🟢', jpg: '🟡', jpeg: '🟡', png: '🟡', webp: '🟡' };
@@ -587,6 +593,10 @@
       setStatus(statusEl, 'error-message', 'Please select a property and describe the issue.');
       return;
     }
+    if (description.length > MAX_TITLE_LENGTH) {
+      setStatus(statusEl, 'error-message', 'Description is too long. Please keep it under ' + MAX_TITLE_LENGTH + ' characters.');
+      return;
+    }
     const uploads = Array.from(filesInput ? filesInput.files : []);
     for (const file of uploads) {
       const err = getSupabaseFileValidationError(file, { maxSizeBytes: MAX_FILE_BYTES, maxSizeMb: 10 });
@@ -603,7 +613,7 @@
         client_id: activeUserId,
         property_id: propertyId,
         account_id: accountId,
-        title: description.slice(0, MAX_TITLE_LENGTH),
+        title: deriveTitleFromText(description),
         description,
         priority,
         status: 'Not Reviewed Yet',
@@ -646,7 +656,7 @@
       account_id: accountId,
       property_id: propertyId,
       task_type: 'Maintenance Request',
-      title: description.slice(0, MAX_TITLE_LENGTH),
+      title: deriveTitleFromText(description),
       description,
       status: 'Not Reviewed',
       priority,
