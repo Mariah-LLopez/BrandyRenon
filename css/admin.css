@@ -669,18 +669,28 @@
   color: transparent;
 }
 
-.autosave-indicator.saving {
+.autosave-indicator.saving,
+.autosave-indicator.autosave-saving {
   color: var(--color-muted, #888);
 }
 
-.autosave-indicator.saved {
+.autosave-indicator.saved,
+.autosave-indicator.autosave-saved {
   color: #2d8a4e;
 }
 
-.autosave-indicator.error {
+.autosave-indicator.error,
+.autosave-indicator.autosave-error {
   color: var(--color-error, #c0392b);
   font-style: normal;
   font-weight: 600;
+}
+
+.dashboard-inline-multiselect {
+  min-width: 220px;
+  min-height: 112px;
+  max-height: 180px;
+  padding: 0.4rem;
 }
 
 /* ==========================================================================
@@ -856,7 +866,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.25rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 @media (max-width: 960px) {
@@ -876,6 +886,13 @@
   gap: 0.75rem;
   align-content: start;
   min-height: 280px;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.renter-card > * {
+  min-width: 0;
 }
 
 .renter-card-title {
@@ -972,6 +989,8 @@
 .maintenance-status-list {
   display: grid;
   gap: 0.75rem;
+  max-height: 18rem;
+  overflow: auto;
 }
 
 .maintenance-status-item {
@@ -1008,6 +1027,8 @@
   display: grid;
   gap: 0.4rem;
   margin-bottom: 0.5rem;
+  max-height: 11rem;
+  overflow: auto;
 }
 
 .renter-task-item {

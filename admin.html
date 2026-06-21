@@ -73,10 +73,10 @@
               <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Signature Work →</button>
             </div>
             <div class="dashboard-card summary-card">
-              <p class="eyebrow">Open Seller Tasks</p>
+              <p class="eyebrow">Open Action Items</p>
               <div class="summary-card-count" id="summary-seller-tasks">—</div>
-              <p class="table-hint">Seller-facing tasks still in progress</p>
-              <button class="action-link summary-card-link" data-dashboard-target="seller-tasks" type="button">Open Seller Tasks →</button>
+              <p class="table-hint">Active items that still need review or completion</p>
+              <button class="action-link summary-card-link" data-dashboard-target="action-items" type="button">Open Action Items →</button>
             </div>
             <div class="dashboard-card summary-card">
               <p class="eyebrow">Completed Tasks</p>
@@ -87,75 +87,76 @@
           </div>
 
           <div class="dashboard-workspace-grid">
-            <section class="admin-panel workspace-card" id="dashboard-panel-accounts">
-              <div class="workspace-card-header">
-                <div>
-                  <p class="eyebrow">Dashboard</p>
-                  <h2>Active Accounts</h2>
-                </div>
-                <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Accounts</button>
+            <section class="table-card">
+              <div class="workspace-section-heading">
+                <h3>Maintenance Requests</h3>
+                <p class="table-hint">Active maintenance items with inline status and property updates.</p>
               </div>
-              <div class="workspace-card-body" id="dashboard-accounts-preview"></div>
+              <div class="dashboard-table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Email</th>
+                      <th scope="col">Current Role</th>
+                      <th scope="col">User Type</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Request Date</th>
+                      <th scope="col">Property</th>
+                      <th scope="col">Request Link</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboard-maintenance-tbody"></tbody>
+                </table>
+              </div>
+              <div id="dashboard-maintenance-empty" class="admin-empty-state" hidden>No active maintenance requests.</div>
             </section>
-            <section class="admin-panel workspace-card" id="dashboard-panel-files">
-              <div class="workspace-card-header">
-                <div>
-                  <p class="eyebrow">Dashboard</p>
-                  <h2>Files Needing Action</h2>
-                </div>
-                <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Accounts</button>
+
+            <section class="table-card" data-dashboard-section="action-items">
+              <div class="workspace-section-heading">
+                <h3>Action Items</h3>
+                <p class="table-hint">Active account and workflow tasks that still need action.</p>
               </div>
-              <div class="workspace-card-body" id="dashboard-files-preview"></div>
+              <div class="dashboard-table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Email</th>
+                      <th scope="col">Current Role</th>
+                      <th scope="col">User Type</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Request Date</th>
+                      <th scope="col">Property</th>
+                      <th scope="col">Request Link</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboard-action-items-tbody"></tbody>
+                </table>
+              </div>
+              <div id="dashboard-action-items-empty" class="admin-empty-state" hidden>No active action items.</div>
             </section>
-            <section class="admin-panel workspace-card" id="dashboard-panel-maintenance">
-              <div class="workspace-card-header">
-                <div>
-                  <p class="eyebrow">Dashboard</p>
-                  <h2>Open Maintenance</h2>
-                </div>
-                <button class="action-link summary-card-link" data-tab-target="maintenance" type="button">Open Maintenance</button>
+
+            <section class="table-card" data-dashboard-section="completed-tasks">
+              <div class="workspace-section-heading">
+                <h3>Completed Tasks</h3>
+                <p class="table-hint">Archived completed records from tasks, maintenance, leads, signatures, accounts, and document actions.</p>
               </div>
-              <div class="workspace-card-body" id="dashboard-maintenance-preview"></div>
-            </section>
-            <section class="admin-panel workspace-card" id="dashboard-panel-messages">
-              <div class="workspace-card-header">
-                <div>
-                  <p class="eyebrow">Dashboard</p>
-                  <h2>Messages &amp; Leads</h2>
-                </div>
-                <button class="action-link summary-card-link" data-tab-target="leads" type="button">Open Leads</button>
+              <div class="dashboard-table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Type</th>
+                      <th scope="col">Email</th>
+                      <th scope="col">Current Role</th>
+                      <th scope="col">User Type</th>
+                      <th scope="col">Completed</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Request Link</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboard-completed-tasks-tbody"></tbody>
+                </table>
               </div>
-              <div class="workspace-card-body" id="dashboard-messages-preview"></div>
-            </section>
-            <section class="admin-panel workspace-card" id="dashboard-panel-signatures">
-              <div class="workspace-card-header">
-                <div>
-                  <p class="eyebrow">Dashboard</p>
-                  <h2>Signature Requests</h2>
-                </div>
-                <button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Accounts</button>
-              </div>
-              <div class="workspace-card-body" id="dashboard-signatures-preview"></div>
-            </section>
-            <section class="admin-panel workspace-card" id="dashboard-panel-seller-tasks" data-dashboard-section="seller-tasks">
-              <div class="workspace-card-header">
-                <div>
-                  <p class="eyebrow">Dashboard</p>
-                  <h2>Open Seller Tasks</h2>
-                </div>
-                <button class="action-link summary-card-link" data-dashboard-target="seller-tasks" type="button">Stay Here</button>
-              </div>
-              <div class="workspace-card-body" id="dashboard-seller-tasks-preview"></div>
-            </section>
-            <section class="admin-panel workspace-card" id="dashboard-panel-completed-tasks" data-dashboard-section="completed-tasks">
-              <div class="workspace-card-header">
-                <div>
-                  <p class="eyebrow">Dashboard</p>
-                  <h2>Completed Tasks</h2>
-                </div>
-                <button class="action-link summary-card-link" data-dashboard-target="completed-tasks" type="button">Stay Here</button>
-              </div>
-              <div class="workspace-card-body" id="dashboard-completed-tasks-preview"></div>
+              <div id="dashboard-completed-tasks-empty" class="admin-empty-state" hidden>No completed tasks.</div>
             </section>
           </div>
         </div>
@@ -184,7 +185,7 @@
                 <thead>
                   <tr>
                     <th scope="col">Email</th>
-                    <th scope="col">Role</th>
+                    <th scope="col">Current Role</th>
                     <th scope="col">User Type</th>
                     <th scope="col">Status</th>
                     <th scope="col">Assigned Properties</th>
@@ -208,7 +209,7 @@
                 <thead>
                   <tr>
                     <th scope="col">Email</th>
-                    <th scope="col">Role</th>
+                    <th scope="col">Current Role</th>
                     <th scope="col">User Type</th>
                     <th scope="col">Status</th>
                     <th scope="col">Assigned Properties</th>
@@ -462,6 +463,7 @@
                     <th scope="col">Client</th>
                     <th scope="col">Access</th>
                     <th scope="col">Signature</th>
+                    <th scope="col">Status</th>
                     <th scope="col">Uploaded</th>
                     <th scope="col">Actions</th>
                   </tr>
