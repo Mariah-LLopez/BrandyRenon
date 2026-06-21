@@ -31,89 +31,23 @@
 
     <section class="section">
       <div class="container admin-shell">
-         <nav class="portal-tab-bar" aria-label="Admin sections">
-          <button class="portal-tab active" data-tab="dashboard" type="button">Dashboard</button>
-          <button class="portal-tab" data-tab="users" type="button">Users</button>
-          <button class="portal-tab" data-tab="properties" type="button">Properties</button>
-          <button class="portal-tab" data-tab="accounts" type="button">Accounts</button>
-          <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
-          <button class="portal-tab" data-tab="leads" type="button">Leads</button>
+          <nav class="portal-tab-bar" aria-label="Admin sections">
+            <button class="portal-tab active" data-tab="dashboard" type="button">Dashboard</button>
+            <button class="portal-tab" data-tab="users" type="button">Users</button>
+            <button class="portal-tab" data-tab="properties" type="button">Properties</button>
+            <button class="portal-tab" data-tab="accounts" type="button">Accounts</button>
+            <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
+            <button class="portal-tab" data-tab="leads" type="button">Leads</button>
           </nav>
-        
-          <div class="dashboard-workspace-grid">
-            <section class="table-card">
-              <div class="workspace-section-heading">
-                <h3>Maintenance Requests</h3>
-                <p class="table-hint">Active maintenance items with inline status and property updates.</p>
-              </div>
-              <div class="dashboard-table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th scope="col">Email</th>
-                      <th scope="col">Current Role</th>
-                      <th scope="col">User Type</th>
-                      <th scope="col">Status</th>
-                      <th scope="col">Request Date</th>
-                      <th scope="col">Property</th>
-                      <th scope="col">Request Link</th>
-                    </tr>
-                  </thead>
-                  <tbody id="dashboard-maintenance-tbody"></tbody>
-                </table>
-              </div>
-              <div id="dashboard-maintenance-empty" class="admin-empty-state" hidden>No active maintenance requests.</div>
-            </section>
 
-            <section class="table-card" data-dashboard-section="action-items">
-              <div class="workspace-section-heading">
-                <h3>Action Items</h3>
-                <p class="table-hint">Active account and workflow tasks that still need action.</p>
+          <div id="tab-dashboard" class="tab-panel">
+            <div class="admin-panel admin-toolbar">
+              <div>
+                <h2>Dashboard</h2>
+                <p class="table-hint">Welcome to the Admin Portal. Use the tabs above to manage users, properties, accounts, maintenance, and leads.</p>
               </div>
-              <div class="dashboard-table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th scope="col">Email</th>
-                      <th scope="col">Current Role</th>
-                      <th scope="col">User Type</th>
-                      <th scope="col">Status</th>
-                      <th scope="col">Request Date</th>
-                      <th scope="col">Property</th>
-                      <th scope="col">Request Link</th>
-                    </tr>
-                  </thead>
-                  <tbody id="dashboard-action-items-tbody"></tbody>
-                </table>
-              </div>
-              <div id="dashboard-action-items-empty" class="admin-empty-state" hidden>No active action items.</div>
-            </section>
-
-            <section class="table-card" data-dashboard-section="completed-tasks">
-              <div class="workspace-section-heading">
-                <h3>Completed Tasks</h3>
-                <p class="table-hint">Archived completed records from tasks, maintenance, leads, signatures, accounts, and document actions.</p>
-              </div>
-              <div class="dashboard-table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th scope="col">Type</th>
-                      <th scope="col">Email</th>
-                      <th scope="col">Current Role</th>
-                      <th scope="col">User Type</th>
-                      <th scope="col">Completed</th>
-                      <th scope="col">Status</th>
-                      <th scope="col">Request Link</th>
-                    </tr>
-                  </thead>
-                  <tbody id="dashboard-completed-tasks-tbody"></tbody>
-                </table>
-              </div>
-              <div id="dashboard-completed-tasks-empty" class="admin-empty-state" hidden>No completed tasks.</div>
-            </section>
+            </div>
           </div>
-        </div>
 
         <div id="tab-users" class="tab-panel" hidden>
           <div class="admin-panel admin-toolbar">
@@ -298,140 +232,7 @@
           </div>
         </div>
 
-          <div class="admin-panel admin-toolbar">
-            <div>
-              <h2>Messages &amp; Inquiries</h2>
-              <p class="table-hint">Portal messages submitted by authenticated users. </p>
-            </div>
-            <div class="filter-grid admin-user-filters">
-              <div class="form-group">
-                <label for="message-filter-status">Status</label>
-                <select id="message-filter-status">
-                  <option value="">All Statuses</option>
-                  <option value="Not Reviewed Yet">Not Reviewed Yet</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="table-card">
-            <div class="dashboard-table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Subject</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">From</th>
-                    <th scope="col">Account</th>
-                    <th scope="col">Message</th>
-                    <th scope="col">Priority</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Admin Notes</th>
-                    <th scope="col">Submitted</th>
-                    <th scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="messages-tbody"></tbody>
-              </table>
-            </div>
-            <div id="messages-empty" class="admin-empty-state" hidden>No messages found.</div>
-          </div>
-        </div>
-
-          <div class="admin-panel admin-toolbar">
-            <div>
-              <h2>Documents</h2>
-              <p class="table-hint">All files uploaded to the portal. Filter by visibility or signature status.</p>
-            </div>
-            <div class="filter-grid admin-user-filters">
-              <div class="form-group">
-                <label for="admin-filter-visibility">Visibility</label>
-                <select id="admin-filter-visibility">
-                  <option value="">All</option>
-                  <option value="admin_only">Admin Only</option>
-                  <option value="client_visible">Client View</option>
-                  <option value="client_downloadable">Client Download</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="admin-filter-signed">Signature</label>
-                <select id="admin-filter-signed">
-                  <option value="">All</option>
-                  <option value="required">Signature Required</option>
-                  <option value="pending">Pending Signature</option>
-                  <option value="signed">Signed</option>
-                </select>
-              </div>
-            </div>
-            <button id="open-upload-modal" class="btn-primary" type="button">Upload File</button>
-          </div>
-          <div class="table-card">
-            <div class="dashboard-table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">File Name</th>
-                    <th scope="col">Category</th>
-                    <th scope="col">Account</th>
-                    <th scope="col">Property</th>
-                    <th scope="col">Client</th>
-                    <th scope="col">Access</th>
-                    <th scope="col">Signature</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Uploaded</th>
-                    <th scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="documents-tbody"></tbody>
-              </table>
-            </div>
-            <div id="documents-empty" class="admin-empty-state" hidden>No documents found.</div>
-          </div>
-        </div>
-
-          <div class="admin-panel admin-toolbar">
-            <div>
-              <h2>Signature Requests</h2>
-              <p class="table-hint">Track e-signature workflows for documents requiring formal signatures.</p>
-            </div>
-            <div class="filter-grid admin-user-filters">
-              <div class="form-group">
-                <label for="sig-filter-status">Status</label>
-                <select id="sig-filter-status">
-                  <option value="">All Statuses</option>
-                  <option value="Signature Needed">Signature Needed</option>
-                  <option value="Sent for Signature">Sent for Signature</option>
-                  <option value="Signed">Signed</option>
-                  <option value="Declined">Declined</option>
-                  <option value="Expired">Expired</option>
-                </select>
-              </div>
-            </div>
-            <button id="open-sig-request-modal" class="btn-primary" type="button">New Signature Request</button>
-          </div>
-          <div class="table-card">
-            <div class="dashboard-table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Title</th>
-                    <th scope="col">User</th>
-                    <th scope="col">Account</th>
-                    <th scope="col">Provider</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Admin Notes</th>
-                    <th scope="col">Created</th>
-                    <th scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="sig-requests-tbody"></tbody>
-              </table>
-            </div>
-            <div id="sig-requests-empty" class="admin-empty-state" hidden>No signature requests found.</div>
-          </div>
-        </div>
-
+        <div id="tab-maintenance" class="tab-panel" hidden>
           <div class="admin-panel">
             <h2>Maintenance Requests</h2>
             <p class="table-hint">Clients submit maintenance requests from their portal. Admin can review, add comments, and manage related files here.</p>
