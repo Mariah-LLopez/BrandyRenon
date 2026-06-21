@@ -367,7 +367,6 @@
       slides[current].classList.add('active');
       if (thumbs[current]) {
         thumbs[current].classList.add('active');
-        thumbs[current].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
       if (counter) counter.textContent = `${current + 1} / ${total}`;
     }
@@ -429,7 +428,9 @@
 
     const property = requestedProperty || window.PROPERTIES[0];
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(property.address)}`;
-    const photos = property.photos && property.photos.length ? property.photos : [property.photos[0]];
+    const photos = Array.isArray(property.photos) && property.photos.length
+      ? property.photos.filter(Boolean)
+      : (property.photos ? [property.photos] : []);
     const multiPhoto = photos.length > 1;
 
     mount.innerHTML = `
