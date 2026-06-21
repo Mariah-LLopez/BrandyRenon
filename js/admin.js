@@ -31,7 +31,7 @@
   const TASK_TYPES = ['Maintenance Request', 'Property Inquiry', 'Showing Request', 'Document Upload', 'Signature Request', 'Seller Task', 'Buyer Task', 'Admin Follow-Up', 'General Message'];
   const TASK_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
   const TASK_PRIORITIES = ['Low', 'Medium', 'High'];
-  const SIG_REQUEST_STATUSES = ['Signature Needed', 'Sent for Signature', 'Signed', 'Declined', 'Expired'];
+  const SIG_REQUEST_STATUSES = ['Signature Needed', 'Sent for Signature', 'Signed', 'Declined', 'Expired', 'Completed'];
   const MESSAGE_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
   const SIGNATURE_STATUS_LABELS = {
     available: 'Available',
@@ -368,6 +368,10 @@
     return el.closest('td')?.querySelector('.autosave-indicator') || null;
   }
 
+  function getElementDataId(el, attrName) {
+    return el.getAttribute(attrName) || el.closest(`[${attrName}]`)?.getAttribute(attrName) || null;
+  }
+
   function openModal(id) {
     const modal = document.getElementById(id + '-modal');
     if (!modal) return;
@@ -471,7 +475,7 @@
     });
 
     const params = new URLSearchParams(window.location.search);
-    setActiveMainTab(params.get('tab') || 'users');
+    setActiveMainTab(params.get('tab') || 'dashboard');
     setActiveLeadTab(params.get('leadTab') || 'contact');
     [['accounts', 'active'], ['maintenance', 'active']].forEach(([group, target]) => setWorkflowTab(group, target));
   }
@@ -533,6 +537,14 @@
     return `<span class="status-pill ${type}">${escapeHtml(normalized)}</span>`;
   }
 
+  function isCompletedStatus(value) {
+    return String(value || '').toLowerCase() === 'completed';
+  }
+
+  function isSignatureCompletedStatus(value) {
+    return ['completed', 'signed', 'declined', 'expired'].includes(String(value || '').toLowerCase());
+  }
+
   function signatureStatusLabel(value) {
     return SIGNATURE_STATUS_LABELS[value] || SIGNATURE_STATUS_LABELS.available;
   }
@@ -557,6 +569,17 @@
 
   function getPropertyById(propertyId) {
     return allProperties.find((property) => property.id === propertyId) || null;
+  }
+
+  function renderPropertySelect(options) {
+    const config = options || {};
+    const current = config.currentId || '';
+    const attrName = config.attrName || 'data-property-id';
+    const blankLabel = config.blankLabel || 'Unassigned';
+    return `<select class="dashboard-inline-select" ${attrName}>
+      <option value="">${escapeHtml(blankLabel)}</option>
+      ${allProperties.map((property) => `<option value="${escapeHtml(property.id)}"${property.id === current ? ' selected' : ''}>${escapeHtml(property.property_address || 'Unnamed property')}</option>`).join('')}
+    </select><span class="autosave-indicator" aria-live="polite"></span>`;
   }
 
   async function getPropertyPhotoUrls(property) {
@@ -689,13 +712,10 @@
     const selectedIds = new Set(isPropertyGroup
       ? allPropertyAssignments.filter((assignment) => assignment.client_id === userId).map((assignment) => assignment.property_id)
       : allAccountAssignments.filter((assignment) => assignment.client_id === userId).map((assignment) => assignment.account_id));
-    const summary = selectedIds.size ? `${selectedIds.size} assigned` : 'None assigned';
-    return `<details class="inline-assignment-menu" data-assignment-group="${escapeHtml(group)}" data-user-id="${escapeHtml(userId)}">
-      <summary>${escapeHtml(summary)}</summary>
-      <div class="inline-assignment-list">
-        ${options.length ? options.map((option) => `<label class="inline-assignment-item"><input type="checkbox" value="${escapeHtml(option.id)}"${selectedIds.has(option.id) ? ' checked' : ''}> <span>${escapeHtml(option.label)}</span></label>`).join('') : '<span class="table-hint">No options available.</span>'}
-      </div>
-    </details><span class="autosave-indicator" aria-live="polite"></span>`;
+    const ariaLabel = isPropertyGroup ? 'Assigned properties' : 'Assigned accounts';
+    return `<select class="dashboard-inline-select dashboard-inline-multiselect" data-user-assignments data-assignment-group="${escapeHtml(group)}" data-user-id="${escapeHtml(userId)}" multiple aria-label="${escapeHtml(ariaLabel)}">
+      ${options.length ? options.map((option) => `<option value="${escapeHtml(option.id)}"${selectedIds.has(option.id) ? ' selected' : ''}>${escapeHtml(option.label)}</option>`).join('') : '<option value="" disabled>No options available.</option>'}
+    </select><span class="autosave-indicator" aria-live="polite"></span>`;
   }
 
   function renderFileSummaryButtons(files, emptyLabel, limit) {
@@ -1080,6 +1100,7 @@
       const property = getPropertyById(doc.property_id);
       const clientInfo = doc.profiles ? (doc.profiles.full_name || doc.profiles.email) : (getUserById(doc.client_id)?.full_name || getUserById(doc.client_id)?.email || 'N/A');
       const signatureMeta = [doc.signature_provider, doc.signature_url ? 'link added' : ''].filter(Boolean).join(' · ');
+      const statusOptions = TASK_STATUSES.map((status) => `<option value="${escapeHtml(status)}"${status === (doc.status || 'Not Reviewed Yet') ? ' selected' : ''}>${escapeHtml(status)}</option>`).join('');
       return `<tr>
         <td><button class="action-link document-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">${escapeHtml(doc.file_name)}</button></td>
         <td>${escapeHtml(doc.category || 'Other')}</td>
@@ -1088,6 +1109,7 @@
         <td>${escapeHtml(clientInfo)}</td>
         <td>${escapeHtml(clientAccessLabel(doc))}</td>
         <td>${sigBadge(doc)}${signatureMeta ? `<div class="table-hint">${escapeHtml(signatureMeta)}</div>` : ''}</td>
+        <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-document-status data-document-id="${escapeHtml(doc.id)}">${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
         <td>${formatDateTime(doc.created_at)}</td>
         <td><div class="table-actions table-actions-stack"><button class="action-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">Open</button><button class="action-link" data-action="download-doc" data-id="${escapeHtml(doc.id)}" type="button">Download</button><button class="action-link" data-action="edit-signature" data-id="${escapeHtml(doc.id)}" type="button">Edit Signature</button><button class="action-link" data-action="toggle-doc" data-id="${escapeHtml(doc.id)}" type="button">${doc.hidden ? 'Unhide' : 'Hide'}</button><button class="action-link" data-action="delete-doc" data-id="${escapeHtml(doc.id)}" type="button">Delete</button></div></td>
       </tr>`;
@@ -1314,84 +1336,167 @@
     }).join('');
   }
 
-  function renderDashboardList(containerId, items, renderer) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    if (!items.length) {
-      container.innerHTML = '<p class="workspace-empty">Nothing to review right now.</p>';
-      return;
-    }
-    container.innerHTML = `<div class="workspace-list">${items.map(renderer).join('')}</div>`;
-  }
-
   function renderDashboardWorkspace() {
-    renderDashboardList('dashboard-accounts-preview', allAccounts.filter((account) => !['Completed', 'Archived'].includes(account.status)).slice(0, 5), (account) => {
-      const clientLabel = getAccountClientLabels(account.id);
-      return `<article class="workspace-list-item">
-        <div class="workspace-list-item-header"><strong>${escapeHtml(account.account_name)}</strong><span>${escapeHtml(account.status)}</span></div>
-        <div class="workspace-meta-row"><span>${escapeHtml(normalizeAccountType(account.account_type || 'Other'))}</span><span>${escapeHtml(getPropertyById(account.property_id)?.property_address || 'No property')}</span></div>
-        <div class="workspace-meta-row"><span>${escapeHtml(clientLabel)}</span><button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Accounts</button></div>
-      </article>`;
-    });
+    const maintenanceBody = document.getElementById('dashboard-maintenance-tbody');
+    const maintenanceEmpty = document.getElementById('dashboard-maintenance-empty');
+    const actionBody = document.getElementById('dashboard-action-items-tbody');
+    const actionEmpty = document.getElementById('dashboard-action-items-empty');
+    const completedBody = document.getElementById('dashboard-completed-tasks-tbody');
+    const completedEmpty = document.getElementById('dashboard-completed-tasks-empty');
 
-    renderDashboardList('dashboard-files-preview', allDocuments.filter((doc) => {
-      const sigState = doc.signature_status || (doc.signed ? 'signed' : (doc.requires_signature ? 'pending_signature' : 'available'));
-      return sigState === 'pending_signature' || sigState === 'uploaded' || doc.status === 'Not Reviewed Yet';
-    }).slice(0, 5), (doc) => `<article class="workspace-list-item">
-      <div class="workspace-list-item-header"><strong>${escapeHtml(doc.file_name || 'Untitled file')}</strong><span>${escapeHtml(doc.category || 'Other')}</span></div>
-      <div class="workspace-meta-row"><span>${escapeHtml(getAccountById(doc.account_id)?.account_name || 'No account')}</span><span>${escapeHtml(getUserById(doc.client_id)?.full_name || getUserById(doc.client_id)?.email || 'No client')}</span></div>
-      <div class="workspace-file-actions"><button class="action-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">Open</button><button class="action-link" data-action="download-doc" data-id="${escapeHtml(doc.id)}" type="button">Download</button></div>
-    </article>`);
+    if (maintenanceBody && maintenanceEmpty) {
+      const activeMaintenance = allMaintenanceRequests.filter((request) => !isCompletedStatus(request.status));
+      if (!activeMaintenance.length) {
+        maintenanceBody.innerHTML = '';
+        maintenanceEmpty.hidden = false;
+      } else {
+        maintenanceEmpty.hidden = true;
+        maintenanceBody.innerHTML = activeMaintenance.map((request) => {
+          const user = getUserById(request.client_id);
+          const statusOptions = MAINTENANCE_STATUSES.map((status) => `<option value="${escapeHtml(status)}"${status === request.status ? ' selected' : ''}>${escapeHtml(status)}</option>`).join('');
+          return `<tr data-maintenance-id="${escapeHtml(request.id)}">
+            <td>${escapeHtml(user?.email || 'N/A')}</td>
+            <td>${escapeHtml(user?.role || 'client')}</td>
+            <td>${escapeHtml(normalizeUserType(user?.user_type || 'Other'))}</td>
+            <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-dash-maint-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
+            <td>${formatDateTime(request.created_at)}</td>
+            <td class="dashboard-editor-cell">${renderPropertySelect({ currentId: request.property_id, attrName: 'data-dash-maint-property', blankLabel: 'Unassigned' })}</td>
+            <td><button class="action-link" data-action="open-maintenance" data-id="${escapeHtml(request.id)}" type="button">Open Request</button></td>
+          </tr>`;
+        }).join('');
+      }
+    }
 
-    renderDashboardList('dashboard-maintenance-preview', allMaintenanceRequests.filter((request) => request.status !== 'Completed').slice(0, 5), (request) => `<article class="workspace-list-item">
-      <div class="workspace-list-item-header"><strong>${escapeHtml(request.title || 'Maintenance request')}</strong><span>${escapeHtml(request.priority || 'Medium')}</span></div>
-      <div class="workspace-meta-row"><span>${escapeHtml(getPropertyById(request.property_id)?.property_address || 'No property')}</span><span>${escapeHtml(getUserById(request.client_id)?.full_name || getUserById(request.client_id)?.email || 'No client')}</span></div>
-      <div class="workspace-file-actions"><button class="action-link" data-action="open-maintenance" data-id="${escapeHtml(request.id)}" type="button">Open Request</button></div>
-    </article>`);
+    if (actionBody && actionEmpty) {
+      const activeActionItems = allTasks.filter((task) => !isCompletedStatus(task.status) && task.status !== 'Archived' && task.task_type !== 'Maintenance Request');
+      if (!activeActionItems.length) {
+        actionBody.innerHTML = '';
+        actionEmpty.hidden = false;
+      } else {
+        actionEmpty.hidden = true;
+        actionBody.innerHTML = activeActionItems.map((task) => {
+          const user = getUserById(task.user_id);
+          const statusOptions = TASK_STATUSES.map((status) => `<option value="${escapeHtml(status)}"${status === task.status ? ' selected' : ''}>${escapeHtml(status)}</option>`).join('');
+          return `<tr data-task-id="${escapeHtml(task.id)}">
+            <td>${escapeHtml(user?.email || 'N/A')}</td>
+            <td>${escapeHtml(user?.role || 'client')}</td>
+            <td>${escapeHtml(normalizeUserType(user?.user_type || 'Other'))}</td>
+            <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-dash-task-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
+            <td>${formatDateTime(task.created_at)}</td>
+            <td class="dashboard-editor-cell">${renderPropertySelect({ currentId: task.property_id, attrName: 'data-dash-task-property', blankLabel: 'Unassigned' })}</td>
+            <td><button class="action-link" data-action="edit-task" data-id="${escapeHtml(task.id)}" type="button">Open Task</button></td>
+          </tr>`;
+        }).join('');
+      }
+    }
 
-    const openMessages = [
-      ...allMessages.filter((msg) => msg.status !== 'Completed').map((msg) => ({
-        title: msg.subject || 'Portal message',
-        meta: msg.message_type || 'General Message',
-        detail: getUserById(msg.user_id)?.full_name || getUserById(msg.user_id)?.email || 'Portal user'
-      })),
-      ...(allLeads.contact || []).filter((row) => normalizeLeadStatus(row.admin_status) !== 'Completed').map((row) => ({
-        title: row.name || 'Contact request',
-        meta: formatInquiryType(row.inquiry_type),
-        detail: row.email || 'Lead'
-      })),
-      ...(allLeads.showing || []).filter((row) => normalizeLeadStatus(row.admin_status) !== 'Completed').map((row) => ({
-        title: row.name || 'Showing request',
-        meta: 'Showing Request',
-        detail: row.property_address || row.email || 'Lead'
-      })),
-      ...(allLeads.renovation || []).filter((row) => normalizeLeadStatus(row.status) !== 'Completed').map((row) => ({
-        title: row.full_name || 'Renovation client',
-        meta: 'Renovation Client',
-        detail: row.property_address || row.email || 'Lead'
-      }))
-    ].slice(0, 5);
-    renderDashboardList('dashboard-messages-preview', openMessages, (item) => `<article class="workspace-list-item">
-      <div class="workspace-list-item-header"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.meta)}</span></div>
-      <div class="workspace-meta-row"><span>${escapeHtml(item.detail)}</span><button class="action-link summary-card-link" data-tab-target="leads" type="button">Open Leads</button></div>
-    </article>`);
-
-    renderDashboardList('dashboard-signatures-preview', allSigRequests.filter((sig) => !['Signed', 'Declined', 'Expired'].includes(sig.status)).slice(0, 5), (sig) => `<article class="workspace-list-item">
-      <div class="workspace-list-item-header"><strong>${escapeHtml(sig.title)}</strong><span>${escapeHtml(sig.status)}</span></div>
-      <div class="workspace-meta-row"><span>${escapeHtml(sig.provider || 'Manual Upload')}</span><span>${escapeHtml(getAccountById(sig.account_id)?.account_name || 'No account')}</span></div>
-      <div class="workspace-file-actions">${sig.signature_url ? `<a class="action-link" href="${escapeHtml(sig.signature_url)}" target="_blank" rel="noopener noreferrer">Open Link</a>` : '<span class="table-hint">No signature link</span>'}</div>
-    </article>`);
-
-    renderDashboardList('dashboard-seller-tasks-preview', allTasks.filter((task) => task.task_type === 'Seller Task' && task.status !== 'Completed').slice(0, 5), (task) => `<article class="workspace-list-item">
-      <div class="workspace-list-item-header"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(task.priority || 'Medium')}</span></div>
-      <div class="workspace-meta-row"><span>${escapeHtml(getAccountById(task.account_id)?.account_name || 'No account')}</span><span>${escapeHtml(task.status)}</span></div>
-      <div class="workspace-file-actions"><button class="action-link summary-card-link" data-tab-target="accounts" type="button">Open Account</button></div>
-    </article>`);
-
-    renderDashboardList('dashboard-completed-tasks-preview', allTasks.filter((task) => task.status === 'Completed').slice(0, 5), (task) => `<article class="workspace-list-item">
-      <div class="workspace-list-item-header"><strong>${escapeHtml(task.title)}</strong><span>${formatDateTime(task.completed_at || task.updated_at || task.created_at)}</span></div>
-      <div class="workspace-meta-row"><span>${escapeHtml(task.task_type || 'Task')}</span><span>${escapeHtml(getAccountById(task.account_id)?.account_name || 'No account')}</span></div>
-    </article>`);
+    if (completedBody && completedEmpty) {
+      const completedRows = [];
+      allTasks.filter((task) => isCompletedStatus(task.status)).forEach((task) => {
+        const user = getUserById(task.user_id);
+        completedRows.push({
+          type: task.task_type || 'Task',
+          email: user?.email || 'N/A',
+          role: user?.role || 'client',
+          userType: normalizeUserType(user?.user_type || 'Other'),
+          completedAt: task.completed_at || task.updated_at || task.created_at,
+          status: task.status || 'Completed',
+          action: `<button class="action-link" data-action="edit-task" data-id="${escapeHtml(task.id)}" type="button">Open Task</button>`
+        });
+      });
+      allMaintenanceRequests.filter((request) => isCompletedStatus(request.status)).forEach((request) => {
+        const user = getUserById(request.client_id);
+        completedRows.push({
+          type: 'Maintenance Request',
+          email: user?.email || 'N/A',
+          role: user?.role || 'client',
+          userType: normalizeUserType(user?.user_type || 'Other'),
+          completedAt: request.completed_at || request.updated_at || request.created_at,
+          status: request.status || 'Completed',
+          action: `<button class="action-link" data-action="open-maintenance" data-id="${escapeHtml(request.id)}" type="button">Open Request</button>`
+        });
+      });
+      allAccounts.filter((account) => isCompletedStatus(account.status)).forEach((account) => {
+        const user = getUserById(getPrimaryAccountClientId(account.id));
+        completedRows.push({
+          type: 'Account',
+          email: user?.email || 'N/A',
+          role: user?.role || 'client',
+          userType: normalizeUserType(user?.user_type || 'Other'),
+          completedAt: account.completed_at || account.updated_at || account.created_at,
+          status: account.status || 'Completed',
+          action: `<button class="action-link" data-tab-target="accounts" type="button">Open Accounts</button>`
+        });
+      });
+      allMessages.filter((message) => isCompletedStatus(message.status)).forEach((message) => {
+        const user = getUserById(message.user_id);
+        completedRows.push({
+          type: 'Message',
+          email: user?.email || 'N/A',
+          role: user?.role || 'client',
+          userType: normalizeUserType(user?.user_type || 'Other'),
+          completedAt: message.completed_at || message.updated_at || message.created_at,
+          status: message.status || 'Completed',
+          action: `<button class="action-link" data-tab-target="leads" type="button">Open Leads</button>`
+        });
+      });
+      allSigRequests.filter((sig) => isSignatureCompletedStatus(sig.status)).forEach((sig) => {
+        const user = getUserById(sig.user_id);
+        completedRows.push({
+          type: 'Signature Request',
+          email: user?.email || 'N/A',
+          role: user?.role || 'client',
+          userType: normalizeUserType(user?.user_type || 'Other'),
+          completedAt: sig.completed_at || sig.updated_at || sig.created_at,
+          status: sig.status || 'Completed',
+          action: sig.signature_url ? `<a class="action-link" href="${escapeHtml(sig.signature_url)}" target="_blank" rel="noopener noreferrer">Open Signature</a>` : `<button class="action-link" data-tab-target="accounts" type="button">Open Accounts</button>`
+        });
+      });
+      allDocuments.filter((doc) => isCompletedStatus(doc.status)).forEach((doc) => {
+        const user = getUserById(doc.client_id);
+        completedRows.push({
+          type: 'Document',
+          email: user?.email || 'N/A',
+          role: user?.role || 'client',
+          userType: normalizeUserType(user?.user_type || 'Other'),
+          completedAt: doc.completed_at || doc.updated_at || doc.created_at,
+          status: doc.status || 'Completed',
+          action: `<button class="action-link" data-action="open-doc" data-id="${escapeHtml(doc.id)}" type="button">Open Document</button>`
+        });
+      });
+      const completedLeads = [
+        ...(allLeads.contact || []).filter((row) => normalizeLeadStatus(row.admin_status) === 'Completed').map((row) => ({ type: 'Lead', email: row.email || 'N/A', completedAt: row.completed_at || row.updated_at || row.created_at, status: 'Completed' })),
+        ...(allLeads.showing || []).filter((row) => normalizeLeadStatus(row.admin_status) === 'Completed').map((row) => ({ type: 'Lead', email: row.email || 'N/A', completedAt: row.completed_at || row.updated_at || row.created_at, status: 'Completed' })),
+        ...(allLeads.renovation || []).filter((row) => normalizeLeadStatus(row.status) === 'Completed').map((row) => ({ type: 'Lead', email: row.email || 'N/A', completedAt: row.completed_at || row.updated_at || row.created_at, status: 'Completed' }))
+      ];
+      completedLeads.forEach((lead) => {
+        completedRows.push({
+          type: lead.type,
+          email: lead.email,
+          role: 'lead',
+          userType: 'Lead',
+          completedAt: lead.completedAt,
+          status: lead.status,
+          action: '<button class="action-link" data-tab-target="leads" type="button">Open Leads</button>'
+        });
+      });
+      completedRows.sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
+      if (!completedRows.length) {
+        completedBody.innerHTML = '';
+        completedEmpty.hidden = false;
+      } else {
+        completedEmpty.hidden = true;
+        completedBody.innerHTML = completedRows.map((item) => `<tr>
+          <td>${escapeHtml(item.type)}</td>
+          <td>${escapeHtml(item.email)}</td>
+          <td>${escapeHtml(item.role)}</td>
+          <td>${escapeHtml(item.userType)}</td>
+          <td>${formatDateTime(item.completedAt)}</td>
+          <td>${statusPill(item.status)}</td>
+          <td>${item.action || '—'}</td>
+        </tr>`).join('');
+      }
+    }
   }
 
   function updateSummaryCards() {
@@ -1406,8 +1511,16 @@
       + (allLeads.showing || []).filter((l) => normalizeLeadStatus(l.admin_status) !== 'Completed').length
       + (allLeads.renovation || []).filter((l) => normalizeLeadStatus(l.status) !== 'Completed').length;
     const openSigRequests = allSigRequests.filter((s) => !['Signed', 'Declined', 'Expired'].includes(s.status)).length;
-    const sellerTasks = allTasks.filter((t) => t.task_type === 'Seller Task' && !['Completed', 'Archived'].includes(t.status)).length;
-    const completedTasks = allTasks.filter((t) => t.status === 'Completed').length;
+    const sellerTasks = allTasks.filter((t) => t.task_type !== 'Maintenance Request' && !isCompletedStatus(t.status) && t.status !== 'Archived').length;
+    const completedTasks = allTasks.filter((t) => isCompletedStatus(t.status)).length
+      + allMaintenanceRequests.filter((m) => isCompletedStatus(m.status)).length
+      + allAccounts.filter((a) => isCompletedStatus(a.status)).length
+      + allMessages.filter((m) => isCompletedStatus(m.status)).length
+      + allDocuments.filter((d) => isCompletedStatus(d.status)).length
+      + allSigRequests.filter((s) => isSignatureCompletedStatus(s.status)).length
+      + (allLeads.contact || []).filter((l) => normalizeLeadStatus(l.admin_status) === 'Completed').length
+      + (allLeads.showing || []).filter((l) => normalizeLeadStatus(l.admin_status) === 'Completed').length
+      + (allLeads.renovation || []).filter((l) => normalizeLeadStatus(l.status) === 'Completed').length;
 
     const set = (id, val) => {
       const el = document.getElementById(id);
@@ -1719,7 +1832,8 @@
       description: form.querySelector('[name="description"]').value.trim() || null,
       user_visible_notes: form.querySelector('[name="user_visible_notes"]').value.trim() || null,
       internal_notes: form.querySelector('[name="internal_notes"]').value.trim() || null,
-      updated_at: nowIso()
+      updated_at: nowIso(),
+      completed_at: isCompletedStatus(form.querySelector('[name="status"]').value) ? nowIso() : null
     };
     let error;
     if (isEdit) {
@@ -1791,7 +1905,8 @@
       status: form.querySelector('[name="status"]').value || 'Signature Needed',
       signature_url: form.querySelector('[name="signature_url"]').value.trim() || null,
       admin_notes: form.querySelector('[name="admin_notes"]').value.trim() || null,
-      updated_at: nowIso()
+      updated_at: nowIso(),
+      completed_at: isSignatureCompletedStatus(form.querySelector('[name="status"]').value) ? nowIso() : null
     };
     const { error } = await supabaseClient.from('signature_requests').insert([payload]);
     if (error) {
@@ -1813,8 +1928,8 @@
     if (!taskId) return;
     const indicatorEl = rowEl.closest('td')?.querySelector('.autosave-indicator');
     setAutosaveState(indicatorEl, 'saving');
-    const nowCompleted = field === 'status' && value === 'Completed';
-    const wasCompleted = allTasks.find((t) => t.id === taskId)?.status === 'Completed';
+    const nowCompleted = field === 'status' && isCompletedStatus(value);
+    const wasCompleted = isCompletedStatus(allTasks.find((t) => t.id === taskId)?.status);
     const { error } = await supabaseClient.from('tasks').update({
       [field]: value,
       updated_at: nowIso(),
@@ -1828,7 +1943,8 @@
       if (nowCompleted) task.completed_at = new Date().toISOString();
       if (field === 'status' && !nowCompleted && wasCompleted) task.completed_at = null;
     }
-    if (field === 'status') { renderTasks(); updateSummaryCards(); }
+    if (field === 'status') renderTasks();
+    updateSummaryCards();
   }
 
   async function autoSaveMessage(rowEl, field, value) {
@@ -1836,12 +1952,23 @@
     if (!msgId) return;
     const indicatorEl = rowEl.closest('td')?.querySelector('.autosave-indicator');
     setAutosaveState(indicatorEl, 'saving');
-    const { error } = await supabaseClient.from('messages').update({ [field]: value, updated_at: nowIso() }).eq('id', msgId);
+    const nowCompleted = field === 'status' && isCompletedStatus(value);
+    const wasCompleted = isCompletedStatus(allMessages.find((m) => m.id === msgId)?.status);
+    const { error } = await supabaseClient.from('messages').update({
+      [field]: value,
+      updated_at: nowIso(),
+      completed_at: nowCompleted ? nowIso() : (wasCompleted && field === 'status' ? null : undefined)
+    }).eq('id', msgId);
     if (error) { setAutosaveState(indicatorEl, 'error', error.message); return; }
     setAutosaveState(indicatorEl, 'saved');
     const msg = allMessages.find((m) => m.id === msgId);
-    if (msg) msg[field] = value;
-    if (field === 'status') { renderMessages(); updateSummaryCards(); }
+    if (msg) {
+      msg[field] = value;
+      if (nowCompleted) msg.completed_at = new Date().toISOString();
+      if (field === 'status' && !nowCompleted && wasCompleted) msg.completed_at = null;
+    }
+    if (field === 'status') renderMessages();
+    updateSummaryCards();
   }
 
   async function autoSaveSigRequest(rowEl, field, value) {
@@ -1849,20 +1976,38 @@
     if (!sigId) return;
     const indicatorEl = rowEl.closest('td')?.querySelector('.autosave-indicator');
     setAutosaveState(indicatorEl, 'saving');
-    const { error } = await supabaseClient.from('signature_requests').update({ [field]: value, updated_at: nowIso() }).eq('id', sigId);
+    const nowCompleted = field === 'status' && isSignatureCompletedStatus(value);
+    const wasCompleted = isSignatureCompletedStatus(allSigRequests.find((s) => s.id === sigId)?.status);
+    const { error } = await supabaseClient.from('signature_requests').update({
+      [field]: value,
+      updated_at: nowIso(),
+      completed_at: nowCompleted ? nowIso() : (wasCompleted && field === 'status' ? null : undefined)
+    }).eq('id', sigId);
     if (error) { setAutosaveState(indicatorEl, 'error', error.message); return; }
     setAutosaveState(indicatorEl, 'saved');
     const sig = allSigRequests.find((s) => s.id === sigId);
-    if (sig) sig[field] = value;
-    if (field === 'status') { renderSigRequests(); updateSummaryCards(); }
+    if (sig) {
+      sig[field] = value;
+      if (nowCompleted) sig.completed_at = new Date().toISOString();
+      if (field === 'status' && !nowCompleted && wasCompleted) sig.completed_at = null;
+    }
+    if (field === 'status') renderSigRequests();
+    updateSummaryCards();
   }
 
   async function autoSaveDocument(rowEl, field, value) {
-    const docId = rowEl.closest('[data-document-id]')?.getAttribute('data-document-id');
+    const docId = getElementDataId(rowEl, 'data-document-id');
     if (!docId) return;
-    const indicatorEl = rowEl.closest('.account-file-item')?.querySelector('.autosave-indicator');
+    const indicatorEl = rowEl.closest('.account-file-item')?.querySelector('.autosave-indicator')
+      || rowEl.closest('td')?.querySelector('.autosave-indicator');
     setAutosaveState(indicatorEl, 'saving');
-    const payload = { [field]: value, updated_at: nowIso() };
+    const nowCompleted = field === 'status' && isCompletedStatus(value);
+    const wasCompleted = isCompletedStatus(allDocuments.find((item) => item.id === docId)?.status);
+    const payload = {
+      [field]: value,
+      updated_at: nowIso(),
+      completed_at: nowCompleted ? nowIso() : (wasCompleted && field === 'status' ? null : undefined)
+    };
     if (field === 'visibility') payload.can_client_view = value !== 'admin_only';
     const { error } = await supabaseClient.from('documents').update(payload).eq('id', docId);
     if (error) return setAutosaveState(indicatorEl, 'error', error.message);
@@ -1871,6 +2016,8 @@
     if (doc) {
       doc[field] = value;
       if (field === 'visibility') doc.can_client_view = value !== 'admin_only';
+      if (nowCompleted) doc.completed_at = new Date().toISOString();
+      if (field === 'status' && !nowCompleted && wasCompleted) doc.completed_at = null;
     }
     updateSummaryCards();
   }
@@ -1981,13 +2128,13 @@
   }
 
   async function autoSaveUserAssignments(inputEl, group) {
-    const details = inputEl.closest('[data-assignment-group]');
-    const userId = details?.getAttribute('data-user-id');
-    if (!details || !userId) return;
-    const indicatorEl = details.parentElement?.querySelector('.autosave-indicator');
-    const selectedIds = Array.from(details.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
+    const userId = inputEl.getAttribute('data-user-id');
+    const assignmentGroup = group || inputEl.getAttribute('data-assignment-group');
+    if (!userId || !assignmentGroup) return;
+    const indicatorEl = inputEl.closest('td')?.querySelector('.autosave-indicator');
+    const selectedIds = Array.from(inputEl.selectedOptions || []).map((option) => option.value).filter(Boolean);
     setAutosaveState(indicatorEl, 'saving');
-    if (group === 'properties') {
+    if (assignmentGroup === 'properties') {
       const { error: deleteError } = await supabaseClient.from('client_property_assignments').delete().eq('client_id', userId);
       if (deleteError) return setAutosaveState(indicatorEl, 'error', deleteError.message);
       if (selectedIds.length) {
@@ -2007,12 +2154,10 @@
         .concat(selectedIds.map((accountId) => ({ account_id: accountId, client_id: userId })));
     }
     setAutosaveState(indicatorEl, 'saved');
-    const summary = selectedIds.length ? `${selectedIds.length} assigned` : 'None assigned';
-    const summaryEl = details.querySelector('summary');
-    if (summaryEl) summaryEl.textContent = summary;
     renderUsers();
     renderProperties();
     renderAccounts();
+    updateSummaryCards();
   }
 
   async function autoSaveProperty(rowEl, field, value) {
@@ -2054,12 +2199,12 @@
   }
 
   async function autoSaveMaintenance(rowEl, field, value) {
-    const maintenanceId = rowEl.closest('tr')?.getAttribute('data-maintenance-id');
+    const maintenanceId = getElementDataId(rowEl, 'data-maintenance-id');
     if (!maintenanceId) return;
     const indicatorEl = rowEl.closest('td')?.querySelector('.autosave-indicator');
     setAutosaveState(indicatorEl, 'saving');
-    const wasCompleted = allMaintenanceRequests.find((m) => m.id === maintenanceId)?.status === 'Completed';
-    const nowCompleted = field === 'status' && value === 'Completed';
+    const wasCompleted = isCompletedStatus(allMaintenanceRequests.find((m) => m.id === maintenanceId)?.status);
+    const nowCompleted = field === 'status' && isCompletedStatus(value);
     const { error } = await supabaseClient.from('maintenance_requests').update({
       [field]: value,
       updated_at: nowIso(),
@@ -2073,7 +2218,7 @@
       if (nowCompleted) req.completed_at = new Date().toISOString();
       if (field === 'status' && !nowCompleted && wasCompleted) req.completed_at = null;
     }
-    if (field === 'status') renderMaintenanceTables();
+    if (field === 'status' || field === 'property_id') renderMaintenanceTables();
     updateSummaryCards();
   }
 
@@ -2110,6 +2255,7 @@
       }
       renderCompletedLeads();
     }
+    updateSummaryCards();
   }
 
   function openMaintenanceDetail(requestId) {
@@ -2117,12 +2263,14 @@
     const body = document.getElementById('maintenance-detail-body');
     if (!request || !body) return;
     const files = getMaintenanceFiles(request.id);
+    const priorityOptions = MAINTENANCE_PRIORITIES.map((priority) => `<option value="${escapeHtml(priority)}"${priority === (request.priority || 'Medium') ? ' selected' : ''}>${escapeHtml(priority)}</option>`).join('');
+    const statusOptions = MAINTENANCE_STATUSES.map((status) => `<option value="${escapeHtml(status)}"${status === (request.status || 'Not Reviewed Yet') ? ' selected' : ''}>${escapeHtml(status)}</option>`).join('');
     body.innerHTML = `<div class="maintenance-detail-grid">
       <section class="maintenance-detail-card"><h3>Property</h3><p>${escapeHtml(getPropertyById(request.property_id)?.property_address || 'Unassigned')}</p></section>
       <section class="maintenance-detail-card"><h3>Account</h3><p>${escapeHtml(getAccountById(request.account_id)?.account_name || 'Unassigned')}</p></section>
       <section class="maintenance-detail-card"><h3>Client</h3><p>${escapeHtml(getUserById(request.client_id)?.full_name || getUserById(request.client_id)?.email || 'N/A')}</p></section>
-      <section class="maintenance-detail-card"><h3>Priority</h3><p>${escapeHtml(request.priority || 'Medium')}</p></section>
-      <section class="maintenance-detail-card"><h3>Status</h3><p>${escapeHtml(request.status || 'Not Reviewed Yet')}</p></section>
+      <section class="maintenance-detail-card"><h3>Priority</h3><select class="dashboard-inline-select" data-maint-detail-priority data-maintenance-id="${escapeHtml(request.id)}">${priorityOptions}</select><span class="autosave-indicator" aria-live="polite"></span></section>
+      <section class="maintenance-detail-card"><h3>Status</h3><select class="dashboard-inline-select" data-maint-detail-status data-maintenance-id="${escapeHtml(request.id)}">${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></section>
       <section class="maintenance-detail-card"><h3>Description</h3><p>${escapeHtml(request.description || 'No description provided.')}</p></section>
     </div>
     <section class="maintenance-detail-card">
@@ -2160,6 +2308,11 @@
             <option value="client_downloadable"${doc.visibility === 'client_downloadable' ? ' selected' : ''}>Client Can Download</option>
           </select>
         </label>
+        <label>Status
+          <select class="dashboard-inline-select" data-account-doc-status>
+            ${TASK_STATUSES.map((status) => `<option value="${escapeHtml(status)}"${status === (doc.status || 'Not Reviewed Yet') ? ' selected' : ''}>${escapeHtml(status)}</option>`).join('')}
+          </select>
+        </label>
         <label>Signature
           <select class="dashboard-inline-select" data-account-doc-signature>
             ${Object.entries(SIGNATURE_STATUS_LABELS).map(([key, label]) => `<option value="${escapeHtml(key)}"${(doc.signature_status || 'available') === key ? ' selected' : ''}>${escapeHtml(label)}</option>`).join('')}
@@ -2184,6 +2337,7 @@
     freshList.addEventListener('change', function (event) {
       const el = event.target;
       if (el.hasAttribute('data-account-doc-visibility')) autoSaveDocument(el, 'visibility', el.value);
+      if (el.hasAttribute('data-account-doc-status')) autoSaveDocument(el, 'status', el.value);
       if (el.hasAttribute('data-account-doc-signature')) autoSaveDocument(el, 'signature_status', el.value);
     });
     const uploadBtn = document.getElementById('account-files-upload-btn');
@@ -2396,8 +2550,8 @@
         if (el.hasAttribute('data-user-role')) autoSaveUser(el, 'role', el.value);
         if (el.hasAttribute('data-user-type')) autoSaveUser(el, 'user_type', normalizeUserType(el.value));
         if (el.hasAttribute('data-user-status')) autoSaveUser(el, 'status', el.value);
-        if (el.matches('[data-assignment-group] input[type="checkbox"], .inline-assignment-menu input[type="checkbox"]')) {
-          autoSaveUserAssignments(el, el.closest('[data-assignment-group]')?.getAttribute('data-assignment-group'));
+        if (el.hasAttribute('data-user-assignments')) {
+          autoSaveUserAssignments(el, el.getAttribute('data-assignment-group'));
         }
       });
     });
@@ -2500,6 +2654,10 @@
       const button = event.target.closest('[data-action]');
       if (button) handleDocumentAction(button.getAttribute('data-action'), button.getAttribute('data-id'));
     });
+    document.getElementById('documents-tbody')?.addEventListener('change', function (event) {
+      const el = event.target;
+      if (el.hasAttribute('data-document-status')) autoSaveDocument(el, 'status', el.value);
+    });
     document.getElementById('tab-dashboard')?.addEventListener('click', function (event) {
       const tabButton = event.target.closest('[data-tab-target]');
       if (tabButton) {
@@ -2513,6 +2671,17 @@
       const id = button.getAttribute('data-id');
       if (action === 'open-doc' || action === 'download-doc') handleDocumentAction(action, id);
       if (action === 'open-maintenance') openMaintenanceDetail(id);
+      if (action === 'edit-task') openEditTaskModal(id);
+    });
+    document.getElementById('dashboard-maintenance-tbody')?.addEventListener('change', function (event) {
+      const el = event.target;
+      if (el.hasAttribute('data-dash-maint-status')) autoSaveMaintenance(el, 'status', el.value);
+      if (el.hasAttribute('data-dash-maint-property')) autoSaveMaintenance(el, 'property_id', el.value || null);
+    });
+    document.getElementById('dashboard-action-items-tbody')?.addEventListener('change', function (event) {
+      const el = event.target;
+      if (el.hasAttribute('data-dash-task-status')) autoSaveTask(el, 'status', el.value);
+      if (el.hasAttribute('data-dash-task-property')) autoSaveTask(el, 'property_id', el.value || null);
     });
 
     document.getElementById('tasks-tbody')?.addEventListener('click', function (event) {
@@ -2572,6 +2741,11 @@
       const id = button.getAttribute('data-id');
       if (action === 'open-maint-file') openMaintenanceFile(id, false);
       if (action === 'download-maint-file') openMaintenanceFile(id, true);
+    });
+    document.getElementById('maintenance-detail-body')?.addEventListener('change', function (event) {
+      const target = event.target;
+      if (target.hasAttribute('data-maint-detail-priority')) autoSaveMaintenance(target, 'priority', target.value);
+      if (target.hasAttribute('data-maint-detail-status')) autoSaveMaintenance(target, 'status', target.value);
     });
 
     // ── Autosave: Leads ──────────────────────────────────────────────────────
