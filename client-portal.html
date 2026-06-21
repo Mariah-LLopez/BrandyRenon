@@ -13,403 +13,220 @@
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <main id="main-content">
-    <section class="page-hero">
-      <div class="container admin-shell">
-        <div class="admin-panel admin-topbar">
-          <div>
-            <p class="eyebrow">Client dashboard</p>
-            <h1>Welcome, <span id="client-name">Client</span></h1>
-            <p>Signed in as <strong id="client-email"></strong></p>
-          </div>
-          <div class="cta-actions">
-            <span id="client-role-badge" class="role-badge role-client">Client</span>
-            <button id="client-logout" class="btn-secondary" type="button">Logout</button>
+
+    <!-- ===== HEADER CARD ===== -->
+    <section class="renter-hero-section">
+      <div class="container">
+        <div class="renter-hero-card">
+          <p id="renter-dashboard-eyebrow" class="renter-eyebrow">RENTER DASHBOARD</p>
+          <h1 class="renter-welcome-heading">Welcome, <span id="client-name">Client</span></h1>
+          <p class="renter-signed-in">Signed in as <strong id="client-email"></strong></p>
+          <div class="renter-hero-actions">
+            <span id="client-role-badge" class="role-badge role-renter">Renter</span>
+            <button id="client-logout" class="btn-primary renter-logout-btn" type="button">Logout</button>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section">
-      <div class="container admin-shell">
-        <nav class="portal-tab-bar" aria-label="Dashboard sections">
-          <button class="portal-tab active" data-tab="accounts" type="button">My Accounts</button>
-          <button class="portal-tab" data-tab="files" type="button">My Documents</button>
-          <button class="portal-tab" data-tab="maintenance" type="button">Maintenance</button>
-          <button class="portal-tab" id="tab-btn-messages" data-tab="messages" type="button">Messages / Requests</button>
-          <button class="portal-tab" id="tab-btn-tasks" data-tab="tasks" type="button">Assigned Tasks</button>
-        </nav>
+    <!-- ===== MAIN CONTENT ===== -->
+    <section class="renter-content-section">
+      <div class="container renter-content-shell">
 
-        <div id="tab-dashboard" class="tab-panel">
-          <div class="admin-panel" style="margin-bottom:1.5rem">
-            <h2>Client Dashboard</h2>
-            <p class="table-hint">Track your accounts, shared files, signatures, and maintenance updates in one place.</p>
-          </div>
-          <div class="dashboard-cards dashboard-summary-grid">
-            <div class="dashboard-card">
-              <p class="eyebrow">Accounts</p>
-              <div id="dashboard-accounts-list" class="dashboard-list"></div>
-              <div id="dashboard-accounts-empty" class="admin-empty-state" hidden>No account records yet.</div>
-            </div>
-            <div class="dashboard-card">
-              <p class="eyebrow">Files Needing Action</p>
-              <div id="dashboard-files-list" class="dashboard-list"></div>
-              <div id="dashboard-files-empty" class="admin-empty-state" hidden>No files need your attention.</div>
-            </div>
-            <div class="dashboard-card">
-              <p class="eyebrow">Maintenance</p>
-              <div id="dashboard-maintenance-list" class="dashboard-list"></div>
-              <div id="dashboard-maintenance-empty" class="admin-empty-state" hidden>No maintenance activity yet.</div>
-            </div>
-            <div class="dashboard-card" id="dashboard-messages-card" hidden>
-              <p class="eyebrow">Messages / Inquiries</p>
-              <div id="dashboard-messages-list" class="dashboard-list"></div>
-              <div id="dashboard-messages-empty" class="admin-empty-state" hidden>No messages yet.</div>
-            </div>
-            <div class="dashboard-card" id="dashboard-tasks-card" hidden>
-              <p class="eyebrow">Assigned Tasks</p>
-              <div id="dashboard-tasks-list" class="dashboard-list"></div>
-              <div id="dashboard-tasks-empty" class="admin-empty-state" hidden>No tasks assigned yet.</div>
-            </div>
-          </div>
-        </div>
+        <!-- ── MAIN DASHBOARD (3-card row) ── -->
+        <div id="renter-main-dashboard">
 
-        <div id="tab-properties" class="tab-panel" hidden>
-          <div class="admin-panel" style="margin-bottom:1.5rem">
-            <h2>Your Properties</h2>
-            <p class="table-hint">Internal or public properties assigned to your accounts or client profile.</p>
-          </div>
-          <div id="properties-grid-client" class="dashboard-cards"></div>
-          <div id="properties-empty" class="admin-empty-state" hidden>No properties are currently assigned to your account.</div>
-        </div>
+          <!-- 3-card grid row -->
+          <div class="renter-cards-row">
 
-        <div id="tab-accounts" class="tab-panel" hidden>
-          <div class="admin-panel" style="margin-bottom:1.5rem">
-            <h2>Your Accounts</h2>
-            <p class="table-hint">Accounts group your transaction, rental, lease, property management, renovation, and related file activity.</p>
-          </div>
-
-          <nav class="portal-tab-bar workflow-tab-bar" aria-label="Client accounts workflow">
-            <button class="portal-tab active" data-workflow-group="client-accounts" data-workflow-target="active" type="button">Active Accounts</button>
-            <button class="portal-tab" data-workflow-group="client-accounts" data-workflow-target="completed" type="button">Completed Accounts</button>
-          </nav>
-
-          <div class="workflow-panel" data-workflow-panel="client-accounts-active">
-            <div id="accounts-active-grid" class="dashboard-cards"></div>
-            <div id="accounts-active-empty" class="admin-empty-state" hidden>No active accounts found.</div>
-          </div>
-
-          <div class="workflow-panel" data-workflow-panel="client-accounts-completed" hidden>
-            <div id="accounts-completed-grid" class="dashboard-cards"></div>
-            <div id="accounts-completed-empty" class="admin-empty-state" hidden>No completed accounts found.</div>
-          </div>
-
-          <div class="form-card" style="margin-top:1.5rem">
-            <div class="admin-panel" style="margin-bottom:1rem">
-              <div>
-                <h3>Submit Account Files</h3>
-                <p class="table-hint">Upload documents only to accounts where your administrator has enabled client uploads.</p>
-              </div>
-            </div>
-            <form id="client-upload-form" novalidate>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="client-upload-account">Account</label>
-                  <select id="client-upload-account" name="account_id"><option value="">Select account…</option></select>
+            <!-- Card 1: Account -->
+            <div class="renter-card" id="renter-account-card">
+              <h2 class="renter-card-title renter-gold">Renter Account:</h2>
+              <div id="renter-account-loading" class="renter-loading-msg">Loading account…</div>
+              <div id="renter-account-content" hidden>
+                <div class="renter-info-row">
+                  <span class="renter-info-key">Owner(s):</span>
+                  <span class="renter-info-value" id="renter-owners-list"></span>
                 </div>
-                <div class="form-group">
-                  <label for="client-upload-category">File Category</label>
-                  <select id="client-upload-category" name="category" required>
-                    <option value="">Select category…</option>
-                    <option value="Contract">Contract</option>
-                    <option value="Lease Agreement">Lease Agreement</option>
-                    <option value="Lease Renewal">Lease Renewal</option>
-                    <option value="Move-in Inspection">Move-in Inspection</option>
-                    <option value="Move-out Inspection">Move-out Inspection</option>
-                    <option value="Property Rules">Property Rules</option>
-                    <option value="Maintenance Agreement">Maintenance Agreement</option>
-                    <option value="Insurance Requirement">Insurance Requirement</option>
-                    <option value="Notice">Notice</option>
-                    <option value="Receipt">Receipt</option>
-                    <option value="Photo">Photo</option>
-                    <option value="Identification">Identification</option>
-                    <option value="Paystub">Paystub</option>
-                    <option value="Closing Document">Closing Document</option>
-                    <option value="Title Document">Title Document</option>
-                    <option value="Insurance Document">Insurance Document</option>
-                    <option value="Other">Other</option>
-                  </select>
+                <div class="renter-info-row">
+                  <span class="renter-info-key">Tenant(s):</span>
+                  <span class="renter-info-value" id="renter-tenants-list"></span>
                 </div>
-                <div class="form-group full-width">
-                  <label for="client-upload-file">Files</label>
-                  <input id="client-upload-file" name="file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" multiple required>
-                  <span class="helper-text">Allowed types: PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG, WEBP. Max 10 MB each.</span>
-                </div>
-                <div class="form-group full-width">
-                  <label for="client-upload-notes">Notes (optional, applies to all selected files)</label>
-                  <textarea id="client-upload-notes" name="notes"></textarea>
+                <div class="renter-info-row">
+                  <span class="renter-info-key">Property:</span>
+                  <span class="renter-info-value" id="renter-property-link"></span>
                 </div>
               </div>
-              <div class="form-actions"><button id="client-upload-btn" class="btn-primary" type="submit">Upload Files</button></div>
-              <div id="upload-status" class="form-status" aria-live="polite"></div>
-            </form>
-          </div>
-        </div>
+              <div id="renter-account-empty" class="renter-empty-msg" hidden>
+                No account assigned yet. Please contact your agent.
+              </div>
+            </div>
 
-        <div id="tab-files" class="tab-panel" hidden>
-          <div class="admin-panel" style="margin-bottom:1.5rem">
-            <div>
-              <h2>Your Files</h2>
-              <p class="table-hint">Open, download, or sign files assigned to your accounts, properties, maintenance activity, or client profile.</p>
+            <!-- Card 2: Maintenance Request -->
+            <div class="renter-card" id="renter-maintenance-card">
+              <h2 class="renter-card-title renter-gold">Maintenance Request:</h2>
+
+              <!-- Form (shown when no existing request) -->
+              <div id="maintenance-form-view">
+                <form id="maintenance-form" novalidate>
+                  <div class="renter-form-group">
+                    <label for="maintenance-property">Property</label>
+                    <select id="maintenance-property" name="property_id">
+                      <option value="">Select property…</option>
+                    </select>
+                  </div>
+                  <div class="renter-form-group">
+                    <label for="maintenance-priority">Priority</label>
+                    <select id="maintenance-priority" name="priority">
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                      <option value="High">High</option>
+                      <option value="Emergency">Emergency</option>
+                    </select>
+                  </div>
+                  <div class="renter-form-group">
+                    <label for="maintenance-description">Description</label>
+                    <textarea id="maintenance-description" name="description" rows="3" required placeholder="Describe the issue…"></textarea>
+                  </div>
+                  <div class="renter-form-group">
+                    <label for="maintenance-files">Attach Files</label>
+                    <input id="maintenance-files" name="files" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" multiple>
+                    <span class="renter-helper-text">PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, WEBP — max 10 MB each.</span>
+                  </div>
+                  <div class="renter-form-actions">
+                    <button id="maintenance-submit-btn" class="btn-primary" type="submit">Submit</button>
+                  </div>
+                  <div id="maintenance-form-status" class="form-status" aria-live="polite"></div>
+                </form>
+              </div>
+
+              <!-- Submitted state -->
+              <div id="maintenance-submitted-view" hidden>
+                <div class="maintenance-submitted-banner">
+                  <p class="maintenance-submitted-text">Your Request Has Been Submitted!</p>
+                </div>
+                <div id="maintenance-status-list" class="maintenance-status-list"></div>
+                <div class="renter-form-actions" style="margin-top:1rem">
+                  <button id="maintenance-new-btn" class="btn-secondary" type="button">Submit New Request</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Action Items -->
+            <div class="renter-card" id="renter-action-card">
+              <h2 class="renter-card-title renter-gold">Action Items:</h2>
+
+              <!-- Active view -->
+              <div id="action-active-view">
+                <p class="renter-sub-label">Active To Do:</p>
+                <div id="active-tasks-list" class="renter-task-list"></div>
+                <p class="renter-sub-label" style="margin-top:0.75rem">Active Admin Message:</p>
+                <div id="active-admin-msg" class="renter-admin-msg"></div>
+              </div>
+
+              <!-- Completed view -->
+              <div id="action-completed-view" hidden>
+                <p class="renter-sub-label">Completed To Do:</p>
+                <div id="completed-tasks-list" class="renter-task-list"></div>
+                <p class="renter-sub-label" style="margin-top:0.75rem">Completed Admin Message:</p>
+                <div id="completed-admin-msg" class="renter-admin-msg"></div>
+              </div>
+
+              <div class="renter-toggle-row">
+                <button id="action-active-tab" class="renter-toggle-btn renter-toggle-selected" type="button">Active</button>
+                <button id="action-complete-tab" class="renter-toggle-btn" type="button">Complete</button>
+              </div>
+            </div>
+
+          </div><!-- /.renter-cards-row -->
+        </div><!-- /#renter-main-dashboard -->
+
+        <!-- ── DETAIL PANELS (shown one at a time, replacing the 3-card row) ── -->
+
+        <!-- Person detail -->
+        <div id="person-detail-panel" class="renter-detail-panel" hidden>
+          <div class="renter-detail-card">
+            <div class="renter-detail-header">
+              <button class="renter-back-btn" data-back="main" type="button" aria-label="Back to dashboard">&#8592;</button>
+              <span id="person-detail-heading" class="renter-detail-heading"></span>
+            </div>
+            <div class="renter-detail-body person-detail-body">
+              <div class="person-detail-fields">
+                <div class="renter-detail-row"><span class="renter-detail-key">Full Name:</span><span id="person-full-name" class="renter-detail-val"></span></div>
+                <div class="renter-detail-row"><span class="renter-detail-key">Email:</span><span id="person-email" class="renter-detail-val"></span></div>
+                <div class="renter-detail-row"><span class="renter-detail-key">Phone Number:</span><span id="person-phone" class="renter-detail-val"></span></div>
+                <div class="renter-detail-row"><span class="renter-detail-key">Account Type:</span><span id="person-account-type" class="renter-detail-val"></span></div>
+                <div class="renter-detail-row"><span class="renter-detail-key">Account Status:</span><span id="person-account-status" class="renter-detail-val"></span></div>
+              </div>
+              <div class="person-avatar-wrap">
+                <svg class="person-avatar-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <circle cx="50" cy="50" r="47" fill="none" stroke="#1b3a5c" stroke-width="3"/>
+                  <circle cx="50" cy="37" r="15" fill="none" stroke="#1b3a5c" stroke-width="3"/>
+                  <path d="M14 82 Q22 60 50 60 Q78 60 86 82" fill="none" stroke="#1b3a5c" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+              </div>
             </div>
           </div>
-          <nav class="portal-tab-bar workflow-tab-bar" aria-label="Client files workflow">
-            <button class="portal-tab active" data-workflow-group="client-files" data-workflow-target="active" type="button">Active / Pending</button>
-            <button class="portal-tab" data-workflow-group="client-files" data-workflow-target="completed" type="button">Completed</button>
-          </nav>
-          <div class="table-card workflow-panel" data-workflow-panel="client-files-active">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">File Name</th>
-                  <th scope="col">Category</th>
-                  <th scope="col">Account</th>
-                  <th scope="col">Property</th>
-                  <th scope="col">Signature</th>
-                  <th scope="col">Uploaded</th>
-                  <th scope="col">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="documents-active-tbody"></tbody>
-            </table>
-            <div id="documents-active-empty" class="admin-empty-state" hidden>No active documents found.</div>
-          </div>
-          <div class="table-card workflow-panel" data-workflow-panel="client-files-completed" hidden>
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">File Name</th>
-                  <th scope="col">Category</th>
-                  <th scope="col">Account</th>
-                  <th scope="col">Property</th>
-                  <th scope="col">Signature</th>
-                  <th scope="col">Uploaded</th>
-                  <th scope="col">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="documents-completed-tbody"></tbody>
-            </table>
-            <div id="documents-completed-empty" class="admin-empty-state" hidden>No completed documents found.</div>
-          </div>
         </div>
 
-        <div id="tab-maintenance" class="tab-panel" hidden>
-          <div class="admin-panel" style="margin-bottom:1.5rem">
-            <h2>Maintenance Requests</h2>
-            <p class="table-hint">Submit requests from inside the portal, attach files, and track admin comments and status updates.</p>
-          </div>
-          <div class="form-card" style="margin-bottom:1.5rem">
-            <form id="maintenance-form" novalidate>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="maintenance-property">Property</label>
-                  <select id="maintenance-property" name="property_id"><option value="">Select property…</option></select>
-                </div>
-                <div class="form-group">
-                  <label for="maintenance-account">Account (optional)</label>
-                  <select id="maintenance-account" name="account_id"><option value="">Select account…</option></select>
-                </div>
-                <div class="form-group">
-                  <label for="maintenance-priority">Priority</label>
-                  <select id="maintenance-priority" name="priority" required><option value="Medium">Medium</option><option value="Low">Low</option><option value="High">High</option></select>
-                </div>
-                <div class="form-group full-width">
-                  <label for="maintenance-title">Title</label>
-                  <input id="maintenance-title" name="title" type="text" required>
-                </div>
-                <div class="form-group full-width">
-                  <label for="maintenance-description">Description</label>
-                  <textarea id="maintenance-description" name="description" required></textarea>
-                </div>
-                <div class="form-group full-width">
-                  <label for="maintenance-files">Attach photos, receipts, PDFs, or documents</label>
-                  <input id="maintenance-files" name="files" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" multiple>
-                  <span class="helper-text">Allowed types: PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG, WEBP. Max 10 MB.</span>
-                </div>
+        <!-- Property detail -->
+        <div id="property-detail-panel" class="renter-detail-panel" hidden>
+          <div class="renter-detail-card">
+            <div class="renter-detail-header">
+              <button class="renter-back-btn" data-back="main" type="button" aria-label="Back to dashboard">&#8592;</button>
+              <span id="property-detail-heading" class="renter-detail-heading"></span>
+            </div>
+            <div class="renter-detail-body property-detail-body">
+              <div class="property-detail-fields">
+                <div class="renter-detail-row"><span class="renter-detail-key">Property Type:</span><span id="prop-type" class="renter-detail-val"></span></div>
+                <div class="renter-detail-row"><span class="renter-detail-key">Square Footage:</span><span id="prop-sqft" class="renter-detail-val"></span></div>
+                <div class="renter-detail-row"><span class="renter-detail-key">Bedrooms:</span><span id="prop-beds" class="renter-detail-val"></span></div>
+                <div class="renter-detail-row"><span class="renter-detail-key">Bathrooms:</span><span id="prop-baths" class="renter-detail-val"></span></div>
+                <div class="renter-detail-row"><span class="renter-detail-key">Parking:</span><span id="prop-parking" class="renter-detail-val"></span></div>
               </div>
-              <div class="form-actions"><button id="maintenance-submit-btn" class="btn-primary" type="submit">Submit Request</button></div>
-              <div id="maintenance-form-status" class="form-status" aria-live="polite"></div>
-            </form>
-          </div>
-
-          <nav class="portal-tab-bar workflow-tab-bar" aria-label="Maintenance history workflow">
-            <button class="portal-tab active" data-workflow-group="client-maintenance" data-workflow-target="active" type="button">Active Maintenance</button>
-            <button class="portal-tab" data-workflow-group="client-maintenance" data-workflow-target="completed" type="button">Completed Maintenance</button>
-          </nav>
-
-          <div class="table-card workflow-panel" data-workflow-panel="client-maintenance-active">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Created</th>
-                  <th scope="col">Property</th>
-                  <th scope="col">Account</th>
-                  <th scope="col">Title</th>
-                  <th scope="col">Priority</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Admin Comments</th>
-                  <th scope="col">Files</th>
-                </tr>
-              </thead>
-              <tbody id="maintenance-active-tbody"></tbody>
-            </table>
-            <div id="maintenance-active-empty" class="admin-empty-state" hidden>No active maintenance requests submitted yet.</div>
-          </div>
-
-          <div class="table-card workflow-panel" data-workflow-panel="client-maintenance-completed" hidden>
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Created</th>
-                  <th scope="col">Property</th>
-                  <th scope="col">Account</th>
-                  <th scope="col">Title</th>
-                  <th scope="col">Priority</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Admin Comments</th>
-                  <th scope="col">Files</th>
-                </tr>
-              </thead>
-              <tbody id="maintenance-completed-tbody"></tbody>
-            </table>
-            <div id="maintenance-completed-empty" class="admin-empty-state" hidden>No completed maintenance requests yet.</div>
-          </div>
-        </div>
-
-        <!-- Messages / Inquiries tab (shown to buyers and other roles) -->
-        <div id="tab-messages" class="tab-panel" hidden>
-          <div class="admin-panel" style="margin-bottom:1.5rem">
-            <h2>Messages &amp; Property Inquiries</h2>
-            <p class="table-hint">Submit questions, property inquiries, or general messages to your agent.</p>
-          </div>
-          <div class="form-card" style="margin-bottom:1.5rem">
-            <form id="inquiry-form" novalidate>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="inquiry-type">Message Type</label>
-                  <select id="inquiry-type" name="message_type" required>
-                    <option value="">Select type…</option>
-                    <option value="Property Inquiry">Property Inquiry</option>
-                    <option value="Showing Request">Showing Request</option>
-                    <option value="Buyer Question">Buyer Question</option>
-                    <option value="General Message">General Message</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="inquiry-account">Account (optional)</label>
-                  <select id="inquiry-account" name="account_id"><option value="">Select account…</option></select>
-                </div>
-                <div class="form-group">
-                  <label for="inquiry-property">Property (optional)</label>
-                  <select id="inquiry-property" name="property_id"><option value="">Select property…</option></select>
-                </div>
-                <div class="form-group full-width">
-                  <label for="inquiry-subject">Subject</label>
-                  <input id="inquiry-subject" name="subject" type="text" required>
-                </div>
-                <div class="form-group full-width">
-                  <label for="inquiry-body">Message</label>
-                  <textarea id="inquiry-body" name="message_body" required></textarea>
-                </div>
+              <div class="property-notes-wrap">
+                <div class="renter-detail-key" style="margin-bottom:0.5rem">Additional Notes:</div>
+                <textarea id="prop-notes" class="prop-notes-textarea" readonly aria-label="Property additional notes"></textarea>
               </div>
-              <div class="form-actions"><button id="inquiry-submit-btn" class="btn-primary" type="submit">Send Message</button></div>
-              <div id="inquiry-form-status" class="form-status" aria-live="polite"></div>
-            </form>
-          </div>
-
-          <nav class="portal-tab-bar workflow-tab-bar" aria-label="Client messages workflow">
-            <button class="portal-tab active" data-workflow-group="client-messages" data-workflow-target="active" type="button">Active Messages</button>
-            <button class="portal-tab" data-workflow-group="client-messages" data-workflow-target="completed" type="button">Completed Messages</button>
-          </nav>
-          <div class="table-card workflow-panel" data-workflow-panel="client-messages-active">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Date</th>
-                  <th scope="col">Type</th>
-                  <th scope="col">Subject</th>
-                  <th scope="col">Priority</th>
-                  <th scope="col">Status</th>
-                </tr>
-              </thead>
-              <tbody id="client-messages-active-tbody"></tbody>
-            </table>
-            <div id="client-messages-active-empty" class="admin-empty-state" hidden>No active messages submitted yet.</div>
-          </div>
-          <div class="table-card workflow-panel" data-workflow-panel="client-messages-completed" hidden>
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Date</th>
-                  <th scope="col">Type</th>
-                  <th scope="col">Subject</th>
-                  <th scope="col">Priority</th>
-                  <th scope="col">Status</th>
-                </tr>
-              </thead>
-              <tbody id="client-messages-completed-tbody"></tbody>
-            </table>
-            <div id="client-messages-completed-empty" class="admin-empty-state" hidden>No completed messages yet.</div>
+            </div>
           </div>
         </div>
 
-        <!-- Tasks tab (shown to sellers) -->
-        <div id="tab-tasks" class="tab-panel" hidden>
-          <div class="admin-panel" style="margin-bottom:1.5rem">
-            <h2>Your Tasks</h2>
-            <p class="table-hint">View tasks assigned to you by your agent. Complete required uploads, forms, or approvals here.</p>
-          </div>
-          <nav class="portal-tab-bar workflow-tab-bar" aria-label="Client tasks workflow">
-            <button class="portal-tab active" data-workflow-group="client-tasks" data-workflow-target="active" type="button">Active Tasks</button>
-            <button class="portal-tab" data-workflow-group="client-tasks" data-workflow-target="completed" type="button">Completed Tasks</button>
-          </nav>
-          <div class="table-card workflow-panel" data-workflow-panel="client-tasks-active">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Title</th>
-                  <th scope="col">Type</th>
-                  <th scope="col">Account</th>
-                  <th scope="col">Priority</th>
-                  <th scope="col">Due Date</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Agent Notes</th>
-                </tr>
-              </thead>
-              <tbody id="client-tasks-active-tbody"></tbody>
-            </table>
-            <div id="client-tasks-active-empty" class="admin-empty-state" hidden>No active tasks have been assigned to you yet.</div>
-          </div>
-          <div class="table-card workflow-panel" data-workflow-panel="client-tasks-completed" hidden>
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Title</th>
-                  <th scope="col">Type</th>
-                  <th scope="col">Account</th>
-                  <th scope="col">Priority</th>
-                  <th scope="col">Due Date</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Agent Notes</th>
-                </tr>
-              </thead>
-              <tbody id="client-tasks-completed-tbody"></tbody>
-            </table>
-            <div id="client-tasks-completed-empty" class="admin-empty-state" hidden>No completed tasks yet.</div>
+        <!-- Action item detail -->
+        <div id="action-item-detail-panel" class="renter-detail-panel" hidden>
+          <div class="renter-detail-card">
+            <div class="renter-detail-header">
+              <button class="renter-back-btn" data-back="main" type="button" aria-label="Back to dashboard">&#8592;</button>
+              <span id="action-item-detail-heading" class="renter-detail-heading"></span>
+            </div>
+            <div id="action-item-detail-body" class="renter-detail-body action-item-detail-body"></div>
           </div>
         </div>
 
-      </div>
+        <!-- ── BOTTOM ROW: Photos + Documents (always visible) ── -->
+        <div class="renter-bottom-row">
+
+          <!-- Photos -->
+          <div class="renter-section-card">
+            <h2 class="renter-section-title renter-gold">Photos:</h2>
+            <div id="photos-grid" class="renter-photos-grid"></div>
+            <div id="photos-empty" class="renter-empty-msg" hidden>No photos available for your account.</div>
+            <div id="photos-loading" class="renter-loading-msg">Loading photos…</div>
+          </div>
+
+          <!-- Documents -->
+          <div class="renter-section-card">
+            <h2 class="renter-section-title renter-gold">Documents:</h2>
+            <div id="documents-scroll-list" class="renter-docs-list"></div>
+            <div id="documents-empty" class="renter-empty-msg" hidden>No documents available for your account.</div>
+            <div id="documents-loading" class="renter-loading-msg">Loading documents…</div>
+          </div>
+
+        </div>
+
+      </div><!-- /.container -->
     </section>
+
   </main>
   <div id="site-footer"></div>
 

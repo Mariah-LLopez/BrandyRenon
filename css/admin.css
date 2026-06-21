@@ -622,3 +622,713 @@
 .summary-card-link:hover {
   text-decoration: underline;
 }
+
+/* ==========================================================================
+   Renter / Client Dashboard — Redesigned layout
+   ========================================================================== */
+
+/* ── Hero / Header card ── */
+.renter-hero-section {
+  padding: 2rem 0 1.5rem;
+}
+
+.renter-hero-card {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(27, 58, 92, 0.08);
+  padding: 2rem 2.5rem;
+}
+
+.renter-eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.renter-welcome-heading {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 0.3rem;
+  line-height: 1.15;
+}
+
+.renter-signed-in {
+  color: var(--color-muted);
+  font-size: 0.92rem;
+  margin-bottom: 1rem;
+}
+
+.renter-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.renter-logout-btn {
+  background: var(--color-primary);
+  color: var(--color-white);
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background var(--transition), transform var(--transition);
+}
+
+.renter-logout-btn:hover {
+  background: #122a45;
+  transform: translateY(-1px);
+}
+
+/* Role badges for all portal roles */
+.role-renter  { background: rgba(23, 162, 184, 0.12); color: #0d6674; }
+.role-buyer   { background: rgba(40, 167, 69, 0.12);  color: #146c2e; }
+.role-seller  { background: rgba(200, 150, 62, 0.12); color: #7a5300; }
+.role-owner   { background: rgba(27, 58, 92, 0.12);   color: var(--color-primary); }
+
+/* ── Content shell ── */
+.renter-content-section {
+  padding: 0 0 3rem;
+}
+
+.renter-content-shell {
+  display: grid;
+  gap: 1.75rem;
+}
+
+/* ── 3-card row ── */
+.renter-cards-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .renter-cards-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Individual card ── */
+.renter-card {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(27, 58, 92, 0.08);
+  padding: 1.5rem;
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+  min-height: 280px;
+}
+
+.renter-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.renter-gold {
+  color: var(--color-accent);
+}
+
+/* ── Account card rows ── */
+.renter-info-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(27, 58, 92, 0.06);
+  padding-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.renter-info-key {
+  font-weight: 600;
+  color: var(--color-primary);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.renter-info-value {
+  color: var(--color-text);
+  flex: 1;
+  word-break: break-word;
+}
+
+.renter-person-link {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: underline dotted;
+  cursor: pointer;
+  transition: color var(--transition);
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+}
+
+.renter-person-link:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+/* ── Maintenance form ── */
+.renter-form-group {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.renter-form-group label {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--color-primary);
+}
+
+.renter-helper-text {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  margin-top: 0.2rem;
+}
+
+.renter-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.maintenance-submitted-banner {
+  background: rgba(27, 58, 92, 0.05);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1rem;
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.maintenance-submitted-text {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.3;
+}
+
+.maintenance-status-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.maintenance-status-item {
+  background: rgba(27, 58, 92, 0.03);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(27, 58, 92, 0.08);
+}
+
+.maintenance-status-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.maintenance-status-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+/* ── Action items ── */
+.renter-sub-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--color-primary);
+  margin-bottom: 0.35rem;
+}
+
+.renter-task-list {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.renter-task-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: rgba(27, 58, 92, 0.03);
+  border: 1px solid rgba(27, 58, 92, 0.07);
+}
+
+.renter-task-title-btn {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  flex: 1;
+  text-decoration: underline dotted;
+  transition: color var(--transition);
+}
+
+.renter-task-title-btn:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.renter-complete-btn {
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+  border: none;
+  flex-shrink: 0;
+  transition: background var(--transition);
+}
+
+.renter-complete-btn:hover {
+  background: #122a45;
+}
+
+.renter-admin-msg {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  background: rgba(27, 58, 92, 0.03);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--color-accent);
+  min-height: 2.5rem;
+  word-break: break-word;
+}
+
+.renter-toggle-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.renter-toggle-btn {
+  padding: 0.45rem 1.1rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  border: 2px solid var(--color-primary);
+  background: transparent;
+  color: var(--color-primary);
+  transition: background var(--transition), color var(--transition);
+}
+
+.renter-toggle-btn.renter-toggle-selected {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.renter-toggle-btn:hover:not(.renter-toggle-selected) {
+  background: rgba(27, 58, 92, 0.07);
+}
+
+/* ── Misc ── */
+.renter-loading-msg {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.renter-empty-msg {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  padding: 0.75rem 0;
+}
+
+.renter-file-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: underline dotted;
+  cursor: pointer;
+  padding: 0;
+}
+
+.renter-file-btn:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+/* ── Detail panels ── */
+.renter-detail-panel {
+  display: grid;
+  gap: 0;
+}
+
+.renter-detail-panel[hidden] {
+  display: none;
+}
+
+.renter-detail-card {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(27, 58, 92, 0.08);
+  padding: 1.75rem 2rem;
+}
+
+.renter-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(27, 58, 92, 0.1);
+}
+
+.renter-back-btn {
+  background: rgba(27, 58, 92, 0.08);
+  color: var(--color-primary);
+  font-size: 1.3rem;
+  border: none;
+  border-radius: 50%;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition), transform var(--transition);
+}
+
+.renter-back-btn:hover {
+  background: rgba(27, 58, 92, 0.16);
+  transform: translateX(-2px);
+}
+
+.renter-detail-heading {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.renter-detail-body {
+  display: grid;
+  gap: 0;
+}
+
+.renter-detail-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid rgba(27, 58, 92, 0.06);
+  font-size: 0.95rem;
+}
+
+.renter-detail-key {
+  font-weight: 600;
+  color: var(--color-primary);
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.renter-detail-val {
+  color: var(--color-text);
+  flex: 1;
+  word-break: break-word;
+}
+
+/* Person detail — two-column with avatar */
+.person-detail-body {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.person-detail-fields {
+  flex: 1;
+  display: grid;
+  gap: 0;
+}
+
+.person-avatar-wrap {
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.person-avatar-svg {
+  width: 100%;
+  height: auto;
+}
+
+/* Property detail — two-column with notes */
+.property-detail-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.property-detail-fields {
+  display: grid;
+  gap: 0;
+}
+
+.property-notes-wrap {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.prop-notes-textarea {
+  width: 100%;
+  min-height: 130px;
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  background: var(--color-white);
+  resize: none;
+}
+
+/* Action item detail */
+.action-item-detail-body {
+  display: grid;
+  gap: 0;
+}
+
+.action-item-sig-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(27, 58, 92, 0.1);
+}
+
+.action-item-sig-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.action-item-sig-link {
+  display: inline-block;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-sm);
+}
+
+.renter-detail-note {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  font-style: italic;
+  margin: 0.5rem 0;
+}
+
+/* Priority badges */
+.priority-badge {
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.priority-low    { background: rgba(40, 167, 69, 0.12);  color: #146c2e; }
+.priority-medium { background: rgba(255, 193, 7, 0.18);  color: #856404; }
+.priority-high   { background: rgba(220, 53, 69, 0.12);  color: #831226; }
+.priority-urgent { background: rgba(192, 57, 43, 0.18);  color: #6d1e13; }
+
+/* ── Bottom row: Photos + Documents ── */
+.renter-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .renter-bottom-row {
+    grid-template-columns: 1fr;
+  }
+
+  .property-detail-body {
+    grid-template-columns: 1fr;
+  }
+
+  .person-detail-body {
+    flex-direction: column;
+  }
+
+  .person-avatar-wrap {
+    width: 80px;
+  }
+}
+
+.renter-section-card {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(27, 58, 92, 0.08);
+  padding: 1.5rem;
+}
+
+.renter-section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+/* Photos grid */
+.renter-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.renter-photo-thumb {
+  display: grid;
+  gap: 0.2rem;
+  cursor: pointer;
+}
+
+.renter-photo-img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(27, 58, 92, 0.1);
+  transition: opacity var(--transition), transform var(--transition);
+}
+
+.renter-photo-img:hover {
+  opacity: 0.85;
+  transform: scale(1.02);
+}
+
+.renter-photo-caption {
+  font-size: 0.7rem;
+  color: var(--color-muted);
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Documents list */
+.renter-docs-list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.renter-doc-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(27, 58, 92, 0.07);
+  background: rgba(27, 58, 92, 0.02);
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+  transition: background var(--transition);
+}
+
+.renter-doc-item:hover {
+  background: rgba(27, 58, 92, 0.05);
+}
+
+.renter-doc-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.renter-doc-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  text-decoration: underline dotted;
+  transition: color var(--transition);
+}
+
+.renter-doc-name:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.renter-doc-date {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.renter-doc-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+/* Scrollbar styling for lists */
+.renter-photos-grid::-webkit-scrollbar,
+.renter-docs-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.renter-photos-grid::-webkit-scrollbar-track,
+.renter-docs-list::-webkit-scrollbar-track {
+  background: rgba(27, 58, 92, 0.05);
+  border-radius: 999px;
+}
+
+.renter-photos-grid::-webkit-scrollbar-thumb,
+.renter-docs-list::-webkit-scrollbar-thumb {
+  background: rgba(27, 58, 92, 0.2);
+  border-radius: 999px;
+}
+
+/* Status pills used in the renter portal */
+.status-pill {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.status-pill.review   { background: rgba(255, 193, 7, 0.18); color: #856404; }
+.status-pill.progress { background: rgba(23, 162, 184, 0.14); color: #0d6674; }
+.status-pill.success  { background: rgba(40, 167, 69, 0.12); color: #146c2e; }
+.status-pill.active   { background: rgba(27, 58, 92, 0.1); color: var(--color-primary); }
+.status-pill.archived { background: rgba(108, 117, 125, 0.12); color: #495057; }
