@@ -18,27 +18,61 @@
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'image/jpeg', 'image/png', 'image/webp'
   ];
-  const ALLOWED_IMAGE_MIME_TYPES = window.SUPABASE_FILE_RULES?.allowedImageMimeTypes || ['image/jpeg', 'image/png', 'image/webp'];
   const USER_ROLES = ['admin', 'client'];
+
   const USER_STATUSES = ['active', 'inactive'];
-  const USER_TYPES = ['Buyer', 'Seller', 'Renter', 'Rental Owner', 'Renovation Client', 'Other'];
-  const LEAD_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
-  const ITEM_PRIORITIES = ['Low', 'Medium', 'High'];
-  const ACCOUNT_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Active', 'Pending Signature', 'Completed', 'Archived'];
-  const ACCOUNT_TYPES = ['Buyer Account', 'Seller Account', 'Rental Account', 'Rental Owner Account', 'Renovation Account', 'Property Management Account', 'Other'];
-  const MAINTENANCE_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
-  const MAINTENANCE_PRIORITIES = ['Low', 'Medium', 'High'];
-  const TASK_TYPES = ['Maintenance Request', 'Property Inquiry', 'Showing Request', 'Document Upload', 'Signature Request', 'Seller Task', 'Buyer Task', 'Admin Follow-Up', 'General Message'];
-  const TASK_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
-  const TASK_PRIORITIES = ['Low', 'Medium', 'High'];
-  const SIG_REQUEST_STATUSES = ['Signature Needed', 'Sent for Signature', 'Signed', 'Declined', 'Expired', 'Completed'];
-  const MESSAGE_STATUSES = ['Not Reviewed Yet', 'In Progress', 'Completed'];
-  const SIGNATURE_STATUS_LABELS = {
-    available: 'Available',
-    pending_signature: 'Pending Signature',
-    signed: 'Signed',
-    uploaded: 'Uploaded'
-  };
+  
+  const USER_TYPES = [
+    'Buyer',
+    'Seller',
+    'Renter',
+    'Rental Owner',
+    'Renovation Client',
+    'Other'
+  ];
+  
+  const LEAD_STATUSES = [
+    'Not Reviewed Yet',
+    'In Progress',
+    'Completed'
+  ];
+  
+  const ITEM_PRIORITIES = [
+    'Low',
+    'Medium',
+    'High'
+  ];
+  
+  const ACCOUNT_STATUSES = [
+    'Not Reviewed Yet',
+    'In Progress',
+    'Active',
+    'Pending Signature',
+    'Completed',
+    'Archived'
+  ];
+  
+  const ACCOUNT_TYPES = [
+    'Buyer Account',
+    'Seller Account',
+    'Rental Account',
+    'Rental Owner Account',
+    'Renovation Account',
+    'Property Management Account',
+    'Other'
+  ];
+  
+  const MAINTENANCE_STATUSES = [
+    'Not Reviewed Yet',
+    'In Progress',
+    'Completed'
+  ];
+  
+  const MAINTENANCE_PRIORITIES = [
+    'Low',
+    'Medium',
+    'High'
+  ];
   const LEAD_SECTIONS = {
     contact: {
       table: 'contact_requests',
@@ -526,7 +560,7 @@
     const normalized = status || 'Not Reviewed Yet';
     const lower = normalized.toLowerCase();
     let type = 'active';
-    if (lower.includes('not reviewed')) type = 'review';
+    if (lower.includes('Not Reviewed Yet')) type = 'review';
     else if (lower.includes('progress') || lower.includes('pending')) type = 'progress';
     else if (lower.includes('completed') || lower.includes('signed')) type = 'success';
     else if (lower.includes('archived')) type = 'archived';
