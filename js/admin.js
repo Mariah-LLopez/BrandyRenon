@@ -1057,7 +1057,7 @@
         <td class="dashboard-cell-wrap">${linkedUsers.length ? linkedUsers.map((user) => escapeHtml(user.full_name || user.email)).join('<br>') : 'Unassigned'}</td>
         <td class="dashboard-cell-wrap">${accountTypes.length ? accountTypes.map((type) => escapeHtml(type)).join('<br>') : '—'}</td>
         <td>${photoDocs.length ? `<button class="action-link" data-action="open-doc" data-id="${escapeHtml(photoDocs[0].id)}" type="button">Photos (${photoDocs.length})</button>` : '<span class="table-hint">No photos</span>'}</td>
-        <td>${propertyDocs.length ? renderFileSummaryButtons(propertyDocs, 'No documents') : '<span class="table-hint">No documents</span>'}</td>
+        <td>${renderFileSummaryButtons(propertyDocs, 'No documents')}</td>
         <td><textarea class="dashboard-inline-notes dashboard-notes-sm" data-prop-notes rows="3" aria-label="Property notes">${escapeHtml(property.notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></td>
       </tr>`;
     }).join('');
