@@ -26,9 +26,8 @@
     'Buyer',
     'Seller',
     'Renter',
-    'Rental Owner',
-    'Renovation Client',
-    'Other'
+    'Owner',
+    'Client'
   ];
   
   const LEAD_STATUSES = [
@@ -268,8 +267,8 @@
       file_type: file.file_type,
       file_size: file.file_size,
       category: 'Property Photo',
-      visibility: 'admin_only',
-      can_client_view: false,
+      visibility: 'client_visible',
+      can_client_view: true,
       can_client_edit: false,
       requires_signature: false,
       signature_provider: null,
@@ -336,12 +335,19 @@
 
   function normalizeUserType(value) {
     const map = {
-      owner: 'Rental Owner',
-      'property owner': 'Rental Owner',
-      'property management client': 'Rental Owner',
-      'rental owner': 'Rental Owner'
+      owner: 'Owner',
+      'property owner': 'Owner',
+      'property management client': 'Owner',
+      'rental owner': 'Owner',
+      'renovation client': 'Client',
+      other: 'Client',
+      renter: 'Renter',
+      tenant: 'Renter',
+      buyer: 'Buyer',
+      seller: 'Seller',
+      client: 'Client'
     };
-    return map[String(value || '').toLowerCase()] || (USER_TYPES.includes(value) ? value : 'Other');
+    return map[String(value || '').toLowerCase()] || (USER_TYPES.includes(value) ? value : 'Client');
   }
 
   function normalizeAccountType(value) {
@@ -1031,7 +1037,7 @@
     });
   }
 
-  async function renderProperties() {
+  function renderProperties() {
     const tbody = document.getElementById('properties-tbody');
     const empty = document.getElementById('properties-empty');
     if (!allProperties.length) {
@@ -1040,31 +1046,19 @@
       return;
     }
     empty.hidden = true;
-    const photoUrls = await Promise.all(allProperties.map((property) => getPrimaryPropertyPhoto(property)));
-    tbody.innerHTML = allProperties.map((property, i) => {
-      const statusOptions = ['Active', 'Pending', 'Sold', 'Coming Soon'].map((s) => `<option value="${s}"${(property.property_status || 'Active') === s ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
-      const visibilityOptions = [
-        `<option value="internal"${property.visibility !== 'public' ? ' selected' : ''}>Internal Property</option>`,
-        `<option value="public"${property.visibility === 'public' ? ' selected' : ''}>Public Listing</option>`
-      ].join('');
-      const photoUrl = photoUrls[i];
+    tbody.innerHTML = allProperties.map((property) => {
       const linkedUsers = getUsersForProperty(property.id);
       const linkedAccounts = getAccountsForProperty(property.id);
       const propertyDocs = getDocumentsForProperty(property.id);
       const photoDocs = getDocumentsForProperty(property.id, { includePhotos: true }).filter((doc) => doc.category === 'Property Photo');
-      const photoCount = photoDocs.length;
       const accountTypes = Array.from(new Set(linkedAccounts.map((account) => normalizeAccountType(account.account_type || 'Other'))));
       return `<tr data-property-id="${escapeHtml(property.id)}">
-        <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-prop-visibility>${visibilityOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
-        <td class="dashboard-cell-wrap"><div class="property-summary-stack">${photoUrl ? `<img class="property-photo-preview" src="${escapeHtml(photoUrl)}" alt="Photo of ${escapeHtml(property.property_address)}">` : '<div class="property-photo-preview property-photo-placeholder">No Photo</div>'}<div class="property-photo-meta"><strong>${escapeHtml(property.property_address)}</strong><span class="property-photo-count">${photoCount} photo${photoCount === 1 ? '' : 's'}</span><span class="table-hint">${property.visibility === 'public' ? 'Public website listing' : 'Internal portal record'}</span></div></div></td>
-        <td class="dashboard-editor-cell"><select class="dashboard-inline-select" data-prop-status>${statusOptions}</select><span class="autosave-indicator" aria-live="polite"></span></td>
+        <td class="dashboard-cell-wrap"><strong>${escapeHtml(property.property_address)}</strong><div class="table-actions table-actions-stack" style="margin-top:0.5rem"><button class="action-link" data-action="edit-property" data-id="${escapeHtml(property.id)}" type="button">Edit / Photos</button><button class="action-link" data-action="delete-property" data-id="${escapeHtml(property.id)}" type="button">Delete</button></div></td>
         <td class="dashboard-cell-wrap">${linkedUsers.length ? linkedUsers.map((user) => escapeHtml(user.full_name || user.email)).join('<br>') : 'Unassigned'}</td>
-        <td class="dashboard-cell-wrap">${linkedAccounts.length ? linkedAccounts.map((account) => escapeHtml(account.account_name)).join('<br>') : 'No accounts'}</td>
-        <td class="dashboard-cell-wrap">${accountTypes.length ? accountTypes.map((type) => escapeHtml(type)).join('<br>') : 'No account types'}</td>
-        <td>${photoDocs.length ? `<div class="mini-asset-stack"><span class="table-hint">${escapeHtml(formatCountLabel(photoDocs.length, 'photo'))}</span><div class="inline-file-actions"><button class="action-link" data-action="open-doc" data-id="${escapeHtml(photoDocs[0].id)}" type="button">Open Photo</button><button class="action-link" data-action="download-doc" data-id="${escapeHtml(photoDocs[0].id)}" type="button">Download</button></div></div>` : '<span class="table-hint">No photos</span>'}</td>
-        <td>${renderFileSummaryButtons(propertyDocs, 'No documents')}</td>
+        <td class="dashboard-cell-wrap">${accountTypes.length ? accountTypes.map((type) => escapeHtml(type)).join('<br>') : '—'}</td>
+        <td>${photoDocs.length ? `<button class="action-link" data-action="open-doc" data-id="${escapeHtml(photoDocs[0].id)}" type="button">Photos (${photoDocs.length})</button>` : '<span class="table-hint">No photos</span>'}</td>
+        <td>${propertyDocs.length ? renderFileSummaryButtons(propertyDocs, 'No documents') : '<span class="table-hint">No documents</span>'}</td>
         <td><textarea class="dashboard-inline-notes dashboard-notes-sm" data-prop-notes rows="3" aria-label="Property notes">${escapeHtml(property.notes || '')}</textarea><span class="autosave-indicator" aria-live="polite"></span></td>
-        <td><div class="table-actions table-actions-stack"><button class="action-link" data-action="edit-property" data-id="${escapeHtml(property.id)}" type="button">Edit / Photos</button><button class="action-link" data-action="delete-property" data-id="${escapeHtml(property.id)}" type="button">Delete</button></div></td>
       </tr>`;
     }).join('');
   }

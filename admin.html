@@ -47,6 +47,75 @@
                 <p class="table-hint">Welcome to the Admin Portal. Use the tabs above to manage users, properties, accounts, maintenance, and leads.</p>
               </div>
             </div>
+
+            <div class="table-card">
+              <div class="workspace-section-heading">
+                <h3 class="dashboard-section-title"><span class="dashboard-section-label dashboard-section-label--orange">Maintenance</span> <span class="dashboard-section-label--gray">Request</span></h3>
+              </div>
+              <div class="dashboard-table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Email</th>
+                      <th scope="col">Current Role</th>
+                      <th scope="col">User Type</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Request Date</th>
+                      <th scope="col">Properties</th>
+                      <th scope="col">Request</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboard-maintenance-tbody"></tbody>
+                </table>
+              </div>
+              <div id="dashboard-maintenance-empty" class="admin-empty-state" hidden>No active maintenance requests.</div>
+            </div>
+
+            <div class="table-card">
+              <div class="workspace-section-heading">
+                <h3 class="dashboard-section-title"><span class="dashboard-section-label--blue">Action Items</span></h3>
+              </div>
+              <div class="dashboard-table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Email</th>
+                      <th scope="col">Current Role</th>
+                      <th scope="col">User Type</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Request Date</th>
+                      <th scope="col">Properties</th>
+                      <th scope="col">Request</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboard-action-items-tbody"></tbody>
+                </table>
+              </div>
+              <div id="dashboard-action-items-empty" class="admin-empty-state" hidden>No active action items.</div>
+            </div>
+
+            <div class="table-card dashboard-completed-section">
+              <div class="workspace-section-heading">
+                <h3 class="dashboard-section-title"><span class="dashboard-section-label dashboard-section-label--orange">Completed</span> <span class="dashboard-section-label--gray">Task</span></h3>
+              </div>
+              <div class="dashboard-table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Type</th>
+                      <th scope="col">Email</th>
+                      <th scope="col">Current Role</th>
+                      <th scope="col">User Type</th>
+                      <th scope="col">Completed</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboard-completed-tasks-tbody"></tbody>
+                </table>
+              </div>
+              <div id="dashboard-completed-tasks-empty" class="admin-empty-state" hidden>No completed tasks.</div>
+            </div>
           </div>
 
         <div id="tab-users" class="tab-panel" hidden>
@@ -126,10 +195,8 @@
               <table>
                 <thead>
                   <tr>
-                    <th scope="col">Property Address</th>
-                    <th scope="col">Workflow Status</th>
-                    <th scope="col">Users</th>
-                    <th scope="col">Accounts</th>
+                    <th scope="col">Properties</th>
+                    <th scope="col">Users Assigned to Property</th>
                     <th scope="col">Account Type</th>
                     <th scope="col">Photos</th>
                     <th scope="col">Documents</th>

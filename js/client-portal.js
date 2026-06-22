@@ -250,7 +250,9 @@
         .from('documents')
         .select('id, property_id, file_path, bucket_name, file_name')
         .in('property_id', allProperties.map(function (p) { return p.id; }))
-        .eq('category', 'Property Photo');
+        .eq('category', 'Property Photo')
+        .eq('can_client_view', true)
+        .eq('hidden', false);
       allPropertyPhotoDocs = photoDocs || [];
     } else {
       allPropertyPhotoDocs = [];
@@ -788,8 +790,9 @@
       renter: { label: 'Renter', eyebrow: 'RENTER DASHBOARD', css: 'role-renter' },
       buyer: { label: 'Buyer', eyebrow: 'BUYER DASHBOARD', css: 'role-buyer' },
       seller: { label: 'Seller', eyebrow: 'SELLER DASHBOARD', css: 'role-seller' },
-      'rental owner': { label: 'Rental Owner', eyebrow: 'RENTAL OWNER DASHBOARD', css: 'role-rental-owner' },
-      'renovation client': { label: 'Renovation Client', eyebrow: 'RENOVATION CLIENT DASHBOARD', css: 'role-renovation-client' },
+      owner: { label: 'Owner', eyebrow: 'OWNER DASHBOARD', css: 'role-owner' },
+      'rental owner': { label: 'Owner', eyebrow: 'OWNER DASHBOARD', css: 'role-owner' },
+      'renovation client': { label: 'Client', eyebrow: 'CLIENT DASHBOARD', css: 'role-client' },
       client: { label: 'Client', eyebrow: 'CLIENT DASHBOARD', css: 'role-client' },
       admin: { label: 'Admin', eyebrow: 'CLIENT DASHBOARD', css: 'role-admin' }
     };

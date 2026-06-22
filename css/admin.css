@@ -1567,3 +1567,36 @@ th {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   Dashboard workspace section title labels
+   ========================================================================== */
+
+.dashboard-section-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.dashboard-section-label {
+  text-transform: uppercase;
+}
+
+.dashboard-section-label--orange {
+  color: var(--color-accent, #c9882b);
+  text-transform: uppercase;
+}
+
+.dashboard-section-label--gray {
+  color: var(--color-muted, #6b7280);
+  text-transform: uppercase;
+}
+
+.dashboard-section-label--blue {
+  color: var(--color-primary, #1b3a5c);
+}
+
+.dashboard-completed-section tbody tr {
+  opacity: 0.65;
+}
