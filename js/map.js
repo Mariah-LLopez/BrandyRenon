@@ -14,7 +14,12 @@
 
   function geocodeAddress(address) {
     const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address);
-    return fetch(url, { headers: { 'Accept-Language': 'en' } })
+    return fetch(url, {
+      headers: {
+        'Accept-Language': 'en',
+        'User-Agent': 'BrandyRenonRealEstate/1.0 (propertiesinco@gmail.com)'
+      }
+    })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (data && data.length > 0) {
@@ -22,7 +27,27 @@
         }
         return null;
       })
-      .catch(function () { return null; });
+      .catch(function (err) {
+        console.warn('Geocoding failed for address:', address, err);
+        return null;
+      });
+  }
+
+  function delay(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  function geocodeSequential(properties) {
+    return properties.reduce(function (chain, property, index) {
+      return chain.then(function (results) {
+        return (index === 0 ? Promise.resolve() : delay(1100))
+          .then(function () { return resolveCoords(property); })
+          .then(function (coords) {
+            results.push(coords ? { coords: coords, property: property } : null);
+            return results;
+          });
+      });
+    }, Promise.resolve([]));
   }
 
   function resolveCoords(property) {
@@ -47,13 +72,7 @@
     }).addTo(map);
 
     const bounds = [];
-    const geocodePromises = window.PROPERTIES.map(function (property) {
-      return resolveCoords(property).then(function (coords) {
-        return coords ? { coords: coords, property: property } : null;
-      });
-    });
-
-    Promise.all(geocodePromises).then(function (results) {
+    geocodeSequential(window.PROPERTIES).then(function (results) {
       results.forEach(function (result) {
         if (!result) return;
         const marker = L.marker([result.coords.lat, result.coords.lng]).addTo(map);
@@ -62,6 +81,8 @@
       });
       if (bounds.length > 1) {
         map.fitBounds(bounds, { padding: [35, 35] });
+      } else if (bounds.length === 1) {
+        map.setView(bounds[0], 15);
       }
     });
 
