@@ -12,6 +12,51 @@
     `;
   }
 
+  function geocodeAddress(address) {
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address);
+    return fetch(url, {
+      headers: {
+        'Accept-Language': 'en',
+        'User-Agent': 'BrandyRenonRealEstate/1.0 (propertiesinco@gmail.com)'
+      }
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.length > 0) {
+          return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        }
+        return null;
+      })
+      .catch(function (err) {
+        console.warn('Geocoding failed for address:', address, err);
+        return null;
+      });
+  }
+
+  function delay(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  function geocodeSequential(properties) {
+    return properties.reduce(function (chain, property, index) {
+      return chain.then(function (results) {
+        return (index === 0 ? Promise.resolve() : delay(1100))
+          .then(function () { return resolveCoords(property); })
+          .then(function (coords) {
+            results.push(coords ? { coords: coords, property: property } : null);
+            return results;
+          });
+      });
+    }, Promise.resolve([]));
+  }
+
+  function resolveCoords(property) {
+    if (property.lat && property.lng) {
+      return Promise.resolve({ lat: property.lat, lng: property.lng });
+    }
+    return geocodeAddress(property.address);
+  }
+
   function initializeMap(containerId, options) {
     const container = document.getElementById(containerId);
     if (!container || typeof L === 'undefined' || !window.PROPERTIES) return;
@@ -27,33 +72,37 @@
     }).addTo(map);
 
     const bounds = [];
-    window.PROPERTIES.forEach((property) => {
-      const marker = L.marker([property.lat, property.lng]).addTo(map);
-      marker.bindPopup(createPopupContent(property));
-      bounds.push([property.lat, property.lng]);
+    geocodeSequential(window.PROPERTIES).then(function (results) {
+      results.forEach(function (result) {
+        if (!result) return;
+        const marker = L.marker([result.coords.lat, result.coords.lng]).addTo(map);
+        marker.bindPopup(createPopupContent(result.property));
+        bounds.push([result.coords.lat, result.coords.lng]);
+      });
+      if (bounds.length > 1) {
+        map.fitBounds(bounds, { padding: [35, 35] });
+      } else if (bounds.length === 1) {
+        map.setView(bounds[0], 15);
+      }
     });
-
-    if (bounds.length > 1) {
-      map.fitBounds(bounds, { padding: [35, 35] });
-    }
 
     return map;
   }
 
-  function initializeSinglePropertyMap(containerId, property) {
+  function initializeSinglePropertyMap(containerId, lat, lng, property) {
     const container = document.getElementById(containerId);
-    if (!container || typeof L === 'undefined' || !property) return;
+    if (!container || typeof L === 'undefined') return;
 
-    const map = L.map(containerId, { scrollWheelZoom: false }).setView([property.lat, property.lng], 15);
+    const map = L.map(containerId, { scrollWheelZoom: false }).setView([lat, lng], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    L.marker([property.lat, property.lng])
+    L.marker([lat, lng])
       .addTo(map)
-      .bindPopup(`<strong>${property.title}</strong><br>${property.address}`)
+      .bindPopup('<strong>' + property.title + '</strong><br>' + property.address)
       .openPopup();
 
     return map;
@@ -61,8 +110,15 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     initializeMap('homepage-map', { zoom: 7, scrollWheelZoom: false });
-    if (document.getElementById('property-detail-map') && window.currentDetailProperty) {
-      initializeSinglePropertyMap('property-detail-map', window.currentDetailProperty);
+
+    const detailContainer = document.getElementById('property-detail-map');
+    const property = window.currentDetailProperty;
+    if (detailContainer && property) {
+      resolveCoords(property).then(function (coords) {
+        if (coords) {
+          initializeSinglePropertyMap('property-detail-map', coords.lat, coords.lng, property);
+        }
+      });
     }
   });
 })();
