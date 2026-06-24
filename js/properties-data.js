@@ -1,24 +1,119 @@
-// DEVELOPER NOTE: Replace all property data below with actual property details.
-// Update property address, price, descriptions, photos, agent info, etc.
-// Photo URLs should be replaced with actual hosted images before launch.
 const PROPERTIES = [
   {
     id: "prop-001",
-    title: "Colorado Springs Family Home",
-    address: "6390 Tranters Creek Way, Colorado Springs, Colorado 80925",
-    lat: 39.7392,
-    lng: -104.9903,
-    status: "Active",
-    price: 625000,
-    sqft: 2850,
-    bedrooms: 4,
-    bathrooms: 3,
-    lotSize: "0.25 acres",
-    description: "Spacious two-story home featuring an open-concept layout, generous living spaces, and a large fenced backyard. The main level offers a bright kitchen with granite countertops, stainless steel appliances, abundant cabinetry, and a center island overlooking the dining area. Multiple living areas provide flexibility for entertaining, relaxing, or working from home. The private backyard includes ample outdoor space for recreation, gatherings, and play.",
-    renovationDetails: "Features include granite countertops, stainless steel appliances, hardwood flooring in main living areas, and well-maintained interior finishes. Contact listing agent for a complete list of upgrades and improvements.",
-    permitInfo: "Buyer to verify any permits, improvements, and property information with the appropriate local authorities.",
-    hoaInfo: "Contact listing agent for HOA information, fees, covenants, and community details.",
-    zoningInfo: "Buyer to verify zoning and permitted uses with El Paso County and local authorities.",
+    title: "Mountain View Corner-Lot Home in The Meadows at Lorson Ranch",
+    address: "Colorado Springs, CO 80925",
+    mls: "#6172562",
+    clip: "#3826355043",
+  
+    status: "For Sale",
+    price: 495000,
+  
+    sqft: 3316,
+  
+    bedrooms: 5,
+    bathrooms: 4,
+    fullBathrooms: 3,
+    halfBathrooms: 1,
+  
+    lotSize: "0.202 acres",
+    yearBuilt: 2011,
+  
+    propertyType: "Single Family Residence",
+    additionalPropertyType: "Single Family Residence",
+    style: "Two Story",
+  
+    subdivision: "The Meadows At Lorson Ranch",
+    county: "El Paso",
+  
+    heating: "Forced Air",
+    cooling: "Central Air, Ceiling Fan(s)",
+  
+    parkingSpots: 2,
+    garageSpaces: "Yes",
+  
+    description:
+      "Welcome to this spacious 5-bedroom, 4-bathroom home located in The Meadows at Lorson Ranch in Colorado Springs. Situated on a desirable corner lot with beautiful mountain views, this two-story residence offers approximately 3,316 finished square feet of living space and a nearly fully finished basement. The open-concept layout features natural wood flooring, a large kitchen island, granite countertops, stainless steel appliances, a pantry, and multiple gathering spaces designed for comfortable living and entertaining. The upper level includes the primary suite, additional bedrooms, and a versatile loft area, while the finished basement provides even more space for recreation, guests, or home office needs.",
+  
+    renovationDetails:
+      "Features include granite countertops, natural wood flooring, stainless steel appliances, a breakfast bar, pantry, radon mitigation system, upper-level laundry hookups, and a basement that is approximately 95% finished. Buyer to verify all upgrades, finishes, and included appliances.",
+  
+    permitInfo:
+      "Buyer to verify permits, square footage, basement finish, improvements, and property information with the appropriate local authorities.",
+  
+    hoaInfo:
+      "Contact listing agent or governing association for HOA fees, covenants, restrictions, and community information.",
+  
+    zoningInfo: "PUD",
+  
+    taxInfo:
+      "Tax ID: 5514313001 | Tax Year: 2024 | Annual Taxes: $4,872",
+  
+    legalDescription:
+      "LOT 75 THE MEADOWS AT LORSON RANCH FIL NO 2",
+  
+    utilities:
+      "Public water, public sewer, electricity connected, phone available, high-speed internet available, forced air heating, and central air conditioning.",
+  
+    exteriorDetails:
+      "Corner lot with rolling slope topography, concrete driveway, attached garage with opener, back-yard fencing, frame and Masonite construction, and shingle roof.",
+  
+    locationDetails:
+      "Located in The Meadows at Lorson Ranch near schools, parks, and neighborhood amenities. Convenient access to Marksheffel Road, Fontaine Boulevard, and surrounding Colorado Springs communities.",
+  
+    securityFeatures: [
+      "Radon Mitigation System"
+    ],
+  
+    appliances: [
+      "Dishwasher",
+      "Disposal",
+      "Range",
+      "Refrigerator"
+    ],
+  
+    flooring: [
+      "Carpet",
+      "Tile",
+      "Wood"
+    ],
+  
+    interiorFeatures: [
+      "Five Piece Bathroom",
+      "Breakfast Bar",
+      "Pantry"
+    ],
+  
+    listingTerms: [
+      "Cash",
+      "Conventional",
+      "FHA",
+      "VA Loan"
+    ],
+  
+    possession: "Delivery Of Deed",
+  
+    restrictions: "No Restrictions",
+  
+    disclosures: "None",
+  
+    highlights: [
+      "Mountain views",
+      "Corner lot location",
+      "5 bedrooms",
+      "4 bathrooms",
+      "Approximately 3,316 finished square feet",
+      "Granite countertops",
+      "Large kitchen island",
+      "Stainless steel appliances",
+      "Walk-in pantry",
+      "Natural wood flooring",
+      "Finished basement",
+      "Upper-level loft space",
+      "Upper-level laundry",
+      "Attached 2-car garage",
+      "Near schools and parks"
+    ],
     photos: [
       "Prop-01/1.jpg",
       "Prop-01/2.jpg",
@@ -104,21 +199,113 @@ const PROPERTIES = [
   },
   {
     id: "prop-002",
-    title: "Charming Highlands Bungalow",
-    address: "5678 Aspen Lane, Boulder, CO 80302",
-    lat: 40.0150,
-    lng: -105.2705,
-    status: "Pending",
-    price: 489000,
-    sqft: 1650,
-    bedrooms: 3,
-    bathrooms: 2,
-    lotSize: "0.18 acres",
-    description: "Charming bungalow nestled in a quiet neighborhood with easy access to hiking trails, local dining, and Boulder lifestyle amenities.",
-    renovationDetails: "Fresh exterior paint, new roof (2022), updated electrical panel.",
-    permitInfo: "Roof replacement and electrical update completed with permits. Contact agent for details.",
-    hoaInfo: "No HOA.",
-    zoningInfo: "Zoned R-2 Low-Density Residential.",
+    title: "Ranch Home in The Meadows at Lorson Ranch",
+    address: "Colorado Springs, CO 80925",
+    mls: "#6499574",
+    clip: "#7699390314",
+  
+    status: "For Sale",
+    price: 483000,
+  
+    sqft: 2972,
+    bedrooms: 5,
+    bathrooms: 3,
+    fullBathrooms: 3,
+    halfBathrooms: 0,
+  
+    lotSize: "8,454 sqft",
+    yearBuilt: 2011,
+  
+    propertyType: "Single Family Residence",
+    additionalPropertyType: "Single Family Residence",
+    style: "Ranch",
+  
+    subdivision: "The Meadows At Lorson Ranch",
+    county: "El Paso",
+  
+    heating: "Forced Air",
+    cooling: "Central Air, Ceiling Fan(s)",
+  
+    parkingSpots: 2,
+    garageSpaces: "Yes",
+  
+    description:
+      "Located in The Meadows at Lorson Ranch, this spacious ranch-style home offers 5 bedrooms, 3 full bathrooms, and approximately 2,972 finished square feet. The main level features an open kitchen and dining layout with stone counters, a breakfast bar, pantry, and walk-out living room. The primary suite includes a walk-in closet, while additional bedrooms provide flexibility for guests, work, or hobbies. A mostly finished basement expands the living space with a large family room, additional bedrooms, a full bathroom, and laundry area.",
+ 
+    renovationDetails:
+      "Features include stone countertops, breakfast bar, pantry, ceramic tile, wood flooring, vinyl windows, central air conditioning, ceiling fans, and a full basement that is approximately 90% finished. Buyer to verify all improvements, finishes, and included appliances.",
+  
+    permitInfo:
+      "Buyer to verify permits, square footage, basement finish, improvements, and property information with the appropriate local authorities.",
+  
+    hoaInfo:
+      "Contact listing agent or governing association for HOA fees, covenants, restrictions, and community information.",
+    
+    zoningInfo: "PUD",
+    
+    taxInfo:
+      "Tax ID: 5514311009 | Tax Year: 2024 | Annual Taxes: $4,586.79",
+  
+    legalDescription:
+      "LOT 57 THE MEADOWS AT LORSON RANCH FIL NO 2",
+  
+    utilities:
+      "Public water, public sewer, electricity connected, forced air heating, central air conditioning, and ceiling fans.",
+  
+    exteriorDetails:
+      "Level lot with automatic sprinklers, back-yard fencing, concrete driveway, attached garage with opener, frame, Masonite and stone construction, and shingle roof.",
+  
+    locationDetails:
+      "Located near schools and parks within The Meadows at Lorson Ranch community. Convenient access to Marksheffel Boulevard, Fontaine Boulevard, and surrounding Colorado Springs amenities.",
+  
+    appliances: [
+      "Dishwasher",
+      "Disposal",
+      "Microwave"
+    ],
+  
+    flooring: [
+      "Carpet",
+      "Ceramic Tile",
+      "Wood"
+    ],
+  
+    interiorFeatures: [
+      "Bedroom On Main Level",
+      "Breakfast Bar",
+      "Pantry"
+    ],
+  
+    listingTerms: [
+      "Cash",
+      "Conventional",
+      "FHA",
+      "VA Loan"
+    ],
+  
+    possession: "Delivery Of Deed",
+  
+    restrictions: [
+      "Architectural"
+    ],
+  
+    highlights: [
+      "Ranch-style floor plan",
+      "5 bedrooms",
+      "3 full bathrooms",
+      "Approximately 2,972 finished square feet",
+      "Main-level primary suite",
+      "Walk-in closet",
+      "Stone countertops",
+      "Breakfast bar",
+      "Pantry",
+      "Walk-out living room",
+      "Large basement family room",
+      "90% finished basement",
+      "Automatic sprinkler system",
+      "Attached 2-car garage",
+      "Near schools and parks"
+    ],
     photos: [
       "Prop-02/0.jpg",
       "Prop-02/2.jpg",
@@ -200,21 +387,114 @@ const PROPERTIES = [
   },
   {
     id: "prop-003",
-    title: "Spacious Suburban Family Home",
-    address: "910 Ponderosa Drive, Colorado Springs, CO 80903",
-    lat: 38.8339,
-    lng: -104.8214,
-    status: "Active",
-    price: 545000,
-    sqft: 3200,
-    bedrooms: 5,
-    bathrooms: 3.5,
-    lotSize: "0.35 acres",
-    description: "Spacious family home in a desirable Colorado Springs neighborhood with generous gathering spaces, mature landscaping, and a flexible floor plan.",
-    renovationDetails: "Primary suite added in 2021 with spa-like bathroom. Open-concept main floor remodel.",
-    permitInfo: "Addition built with full permits and inspections. Available upon request.",
-    hoaInfo: "HOA fee: $85/month. Covers community pool, tennis courts, and park maintenance.",
-    zoningInfo: "Zoned R-1 Single Family Residential.",
+    title: "Two-Story Home in Mule Deer Crossing",
+    address: "3976 Reindeer Circle, Colorado Springs, CO 80922-3186",
+    mls: "#5502976",
+    clip: "#9154370342",
+  
+    status: "For Sale",
+    price: 425000,
+  
+    sqft: 1651,
+  
+    bedrooms: 3,
+    bathrooms: 3,
+    fullBathrooms: 2,
+    halfBathrooms: 1,
+  
+    lotSize: "3,850 sqft",
+    yearBuilt: 2012,
+  
+    propertyType: "Single Family Residence",
+    additionalPropertyType: "Single Family Residence",
+    style: "Two Story",
+  
+    subdivision: "Mule Deer Crossing",
+    county: "El Paso",
+  
+    heating: "Forced Air",
+    cooling: "Central Air",
+  
+    parkingSpots: 2,
+    garageSpaces: "Yes",
+  
+    description:
+      "Welcome to this two-story home located in the desirable Mule Deer Crossing community of Colorado Springs. Ideally situated near shopping, dining, growing new developments, Powers Boulevard, District 49 schools, Peterson Space Force Base, and Schriever Space Force Base, this home offers convenience and everyday comfort. The main level features an inviting open-concept layout with a spacious living area that flows into the kitchen and dining space, creating an easy setting for relaxing, gathering, and entertaining. Upstairs, the primary bedroom includes a walk-in closet, with additional bedrooms, full bathrooms, and upper-level laundry nearby.",
+  
+    renovationDetails:
+      "Interior features include ceramic tile and carpet flooring, a kitchen island, solid surface counters, pantry, forced air heating, central air conditioning, upper-level laundry, and attached parking. Buyer to verify all finishes, improvements, included appliances, and property condition.",
+  
+    permitInfo:
+      "Buyer to verify permits, improvements, square footage, and property information with the appropriate local authorities.",
+  
+    hoaInfo:
+      "HOA Fee: $59 monthly. Association Name: Ascent Community Partners. Association fee includes association management and trash. Pets allowed: Yes.",
+  
+    zoningInfo: "PUD",
+  
+    taxInfo:
+      "Tax ID: 5329409008 | Tax Year: 2024 | Annual Taxes: $1,786.95",
+  
+    legalDescription:
+      "LOT 8 BLK 4 MULE DEER CROSSING",
+  
+    utilities:
+      "Public water, public sewer, electricity connected, forced air heating, and central air conditioning.",
+  
+    exteriorDetails:
+      "Level 3,850 sqft lot with attached parking, frame and wood siding construction, shingle roof, slab foundation, and resale property condition.",
+  
+    locationDetails:
+      "Located in Mule Deer Crossing with convenient access to Powers Boulevard, North Carefree Circle, Akers Drive, Running Deer Way, shopping, dining, schools, and nearby military installations.",
+  
+  
+    appliances: [
+      "Dishwasher",
+      "Oven",
+      "Refrigerator"
+    ],
+  
+    flooring: [
+      "Carpet",
+      "Ceramic Tile"
+    ],
+  
+    interiorFeatures: [
+      "Bedroom On Main Level",
+      "Pantry",
+      "Kitchen Island",
+      "Solid Surface Counters"
+    ],
+  
+    listingTerms: [
+      "Cash",
+      "Conventional",
+      "FHA",
+      "VA Loan"
+    ],
+  
+    possession: "Negotiable",
+  
+    pricePerSqft: 257,
+  
+    highlights: [
+      "3 bedrooms and 3 bathrooms",
+      "2 full bathrooms and 1 half bathroom",
+      "Approximately 1,651 square feet",
+      "Two-story single family residence",
+      "Open-concept main level",
+      "Kitchen island",
+      "Solid surface counters",
+      "Pantry",
+      "Upper-level laundry",
+      "Primary bedroom with walk-in closet",
+      "Attached parking",
+      "HOA includes association management and trash",
+      "Pets allowed",
+      "Convenient access to Powers Boulevard",
+      "Near shopping, dining, and District 49 schools"
+    ],
+
     photos: [
       "Prop-03/6.jpg",
       "Prop-03/0.jpg",
