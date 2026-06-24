@@ -503,16 +503,97 @@
               <h2>Renovations & Improvements</h2>
               <p>${property.renovationDetails}</p>
             </div>
-            <div class="info-card">
-              <h2>Permits, HOA & Zoning</h2>
-              <ul class="legal-list">
-                <li><strong>Permit Information:</strong> ${property.permitInfo}</li>
-                <li><strong>HOA Information:</strong> ${property.hoaInfo}</li>
-                <li><strong>Zoning:</strong> ${property.zoningInfo}</li>
-              </ul>
-            </div>
-            <div class="info-card">
-              <h2>Schedule a Showing</h2>
+              <div class="info-card">
+                <h2>Permits, HOA & Zoning</h2>
+                <ul class="legal-list">
+                  <li><strong>Permit Information:</strong> ${property.permitInfo}</li>
+                  <li><strong>HOA Information:</strong> ${property.hoaInfo}</li>
+                  <li><strong>Zoning:</strong> ${property.zoningInfo}</li>
+                </ul>
+              </div>
+              
+              <div class="info-card">
+                <h2>Property Details</h2>
+                <ul class="legal-list">
+                  <li><strong>MLS:</strong> ${property.mls || ''}</li>
+                  <li><strong>CLIP:</strong> ${property.clip || ''}</li>
+                  <li><strong>Property Type:</strong> ${property.propertyType || ''}</li>
+                  <li><strong>Style:</strong> ${property.style || ''}</li>
+                  <li><strong>Subdivision:</strong> ${property.subdivision || ''}</li>
+                  <li><strong>County:</strong> ${property.county || ''}</li>
+                  <li><strong>Year Built:</strong> ${property.yearBuilt || ''}</li>
+                  <li><strong>Lot Size:</strong> ${property.lotSize || ''}</li>
+                  <li><strong>Heating:</strong> ${property.heating || ''}</li>
+                  <li><strong>Cooling:</strong> ${property.cooling || ''}</li>
+                  <li><strong>Parking:</strong> ${property.parkingSpots || ''}</li>
+                </ul>
+              </div>
+              
+              <div class="info-card">
+                <h2>Utilities & Exterior</h2>
+              
+                <p><strong>Utilities</strong></p>
+                <p>${property.utilities || ''}</p>
+              
+                <p><strong>Exterior Details</strong></p>
+                <p>${property.exteriorDetails || ''}</p>
+              
+                <p><strong>Location Details</strong></p>
+                <p>${property.locationDetails || ''}</p>
+              </div>
+              
+              <div class="info-card">
+                <h2>Tax & Legal Information</h2>
+                <ul class="legal-list">
+                  <li><strong>Tax Information:</strong> ${property.taxInfo || ''}</li>
+                  <li><strong>Legal Description:</strong> ${property.legalDescription || ''}</li>
+                  <li><strong>Possession:</strong> ${property.possession || ''}</li>
+                  <li><strong>Restrictions:</strong> ${
+                    Array.isArray(property.restrictions)
+                      ? property.restrictions.join(', ')
+                      : property.restrictions || ''
+                  }</li>
+                  <li><strong>Disclosures:</strong> ${property.disclosures || ''}</li>
+                </ul>
+              </div>
+              
+              <div class="info-card">
+                <h2>Interior Features</h2>
+                <ul class="legal-list">
+                  ${(property.interiorFeatures || []).map(item => `<li>${item}</li>`).join('')}
+                </ul>
+              </div>
+              
+              <div class="info-card">
+                <h2>Appliances</h2>
+                <ul class="legal-list">
+                  ${(property.appliances || []).map(item => `<li>${item}</li>`).join('')}
+                </ul>
+              </div>
+              
+              <div class="info-card">
+                <h2>Flooring</h2>
+                <ul class="legal-list">
+                  ${(property.flooring || []).map(item => `<li>${item}</li>`).join('')}
+                </ul>
+              </div>
+              
+              <div class="info-card">
+                <h2>Highlights</h2>
+                <ul class="legal-list">
+                  ${(property.highlights || []).map(item => `<li>${item}</li>`).join('')}
+                </ul>
+              </div>
+              
+              <div class="info-card">
+                <h2>Listing Terms</h2>
+                <ul class="legal-list">
+                  ${(property.listingTerms || []).map(item => `<li>${item}</li>`).join('')}
+                </ul>
+              </div>
+              
+              <div class="info-card">
+                <h2>Schedule a Showing</h2>
               <p>Interested in touring this property? Request a private showing and a representative will follow up promptly.</p>
               <div class="detail-actions" style="margin-top:1rem;">
                 <button type="button" class="btn-primary" data-open-showing-modal data-property-id="${property.id}">Book a Showing</button>
@@ -526,8 +607,7 @@
                 <span class="eyebrow">Listing representation</span>
                 <h3>${property.listingAgent}</h3>
                 <ul class="agent-contact-list">
-                  <li>License: ${property.agentLicense}</li>
-                  <li>Brokerage: ${property.brokerageName}</li>
+                  <li>${property.licensingDisclosure || ''}</li>
                   <li>${window.AGENT_INFO?.phone || ''}</li>
                   <li>${window.AGENT_INFO?.email || ''}</li>
                 </ul>
