@@ -2,7 +2,7 @@ const PROPERTIES = [
   {
     id: "prop-001",
     title: "Mountain View Corner-Lot Home in The Meadows at Lorson Ranch",
-    address: "Colorado Springs, CO 80925",
+    address: "6390 Tranters Creek Way, Colorado Springs, CO 80925",
     mls: "#6172562",
     clip: "#3826355043",
   
@@ -200,7 +200,7 @@ const PROPERTIES = [
   {
     id: "prop-002",
     title: "Ranch Home in The Meadows at Lorson Ranch",
-    address: "Colorado Springs, CO 80925",
+    address: "6309 Tranters Creek Way, Colorado Springs, CO 80925",
     mls: "#6499574",
     clip: "#7699390314",
   
