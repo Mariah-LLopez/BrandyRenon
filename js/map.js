@@ -109,16 +109,18 @@
   }
 
   function initializeDetailMapEmbed(container, property) {
-    var encodedAddress = encodeURIComponent(property.address);
+    var mapUrl = new URL('https://maps.google.com/maps');
+    mapUrl.searchParams.set('q', property.address);
+    mapUrl.searchParams.set('output', 'embed');
+    mapUrl.searchParams.set('z', '15');
     var iframe = document.createElement('iframe');
     iframe.width = '100%';
     iframe.height = '380';
     iframe.style.border = '0';
-    iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allowfullscreen', '');
     iframe.setAttribute('loading', 'lazy');
     iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
-    iframe.src = 'https://maps.google.com/maps?q=' + encodedAddress + '&output=embed&z=15';
+    iframe.src = mapUrl.toString();
     container.style.padding = '0';
     container.style.minHeight = '380px';
     container.appendChild(iframe);
