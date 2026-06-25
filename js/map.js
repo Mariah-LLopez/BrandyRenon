@@ -108,17 +108,29 @@
     return map;
   }
 
+  function initializeDetailMapEmbed(container, property) {
+    var encodedAddress = encodeURIComponent(property.address);
+    var iframe = document.createElement('iframe');
+    iframe.width = '100%';
+    iframe.height = '380';
+    iframe.style.border = '0';
+    iframe.setAttribute('frameborder', '0');
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.setAttribute('loading', 'lazy');
+    iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+    iframe.src = 'https://maps.google.com/maps?q=' + encodedAddress + '&output=embed&z=15';
+    container.style.padding = '0';
+    container.style.minHeight = '380px';
+    container.appendChild(iframe);
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initializeMap('homepage-map', { zoom: 7, scrollWheelZoom: false });
 
-    const detailContainer = document.getElementById('property-detail-map');
-    const property = window.currentDetailProperty;
+    var detailContainer = document.getElementById('property-detail-map');
+    var property = window.currentDetailProperty;
     if (detailContainer && property) {
-      resolveCoords(property).then(function (coords) {
-        if (coords) {
-          initializeSinglePropertyMap('property-detail-map', coords.lat, coords.lng, property);
-        }
-      });
+      initializeDetailMapEmbed(detailContainer, property);
     }
   });
 })();

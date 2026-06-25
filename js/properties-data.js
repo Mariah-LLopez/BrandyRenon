@@ -1,6 +1,8 @@
 const PROPERTIES = [
   {
     id: "prop-001",
+    lat: 38.7345,
+    lng: -104.6312,
     title: "Mountain View Corner-Lot Home in The Meadows at Lorson Ranch",
     address: "6390 Tranters Creek Way, Colorado Springs, CO 80925",
     mls: "#6172562",
@@ -199,6 +201,8 @@ const PROPERTIES = [
   },
   {
     id: "prop-002",
+    lat: 38.7309,
+    lng: -104.6362,
     title: "Ranch Home in The Meadows at Lorson Ranch",
     address: "6309 Tranters Creek Way, Colorado Springs, CO 80925",
     mls: "#6499574",
@@ -387,6 +391,8 @@ const PROPERTIES = [
   },
   {
     id: "prop-003",
+    lat: 38.8810,
+    lng: -104.6925,
     title: "Two-Story Home in Mule Deer Crossing",
     address: "3976 Reindeer Circle, Colorado Springs, CO 80922-3186",
     mls: "#5502976",
