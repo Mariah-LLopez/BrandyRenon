@@ -1109,6 +1109,9 @@
   function renderDocuments() {
     const tbody = document.getElementById('documents-tbody');
     const empty = document.getElementById('documents-empty');
+  
+    if (!tbody || !empty) return;
+  
     const visibilityFilter = document.getElementById('admin-filter-visibility')?.value || '';
     const signatureFilter = document.getElementById('admin-filter-signed')?.value || '';
     let filtered = allDocuments.slice();
