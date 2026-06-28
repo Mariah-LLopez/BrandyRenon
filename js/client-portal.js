@@ -509,26 +509,26 @@
     await loadTasks(activeUserId);
   }
 
-  /* ── RENDER: Photos grid ── */
-  async function renderPhotosGrid() {
-    const grid    = document.getElementById('photos-grid');
-    const empty   = document.getElementById('photos-empty');
-    const loading = document.getElementById('photos-loading');
-    if (!grid) return;
-
-    // Determine which property photos to show: properties linked to user's accounts
-      const visiblePropertyIds = allProperties.map(function (property) { return property.id; }).filter(Boolean);
-      const visiblePhotoDocs = allPropertyPhotoDocs.filter(function (doc) {
-        return visiblePropertyIds.includes(doc.property_id) && doc.file_path;
-      });
-
-    if (loading) loading.hidden = true;
-
-    if (!visiblePhotoDocs.length) {
-      grid.innerHTML = '';
-      if (empty) empty.hidden = false;
-      return;
-    }
+   /* ── RENDER: Photos grid ── */
+   async function renderPhotosGrid() {
+     const grid    = document.getElementById('photos-grid');
+     const empty   = document.getElementById('photos-empty');
+     const loading = document.getElementById('photos-loading');
+     if (!grid) return;
+   
+     // Determine which property photos to show: properties assigned to this client
+     const visiblePropertyIds = allProperties.map(function (property) { return property.id; }).filter(Boolean);
+     const visiblePhotoDocs = allPropertyPhotoDocs.filter(function (doc) {
+       return visiblePropertyIds.includes(doc.property_id) && doc.file_path;
+     });
+   
+     if (loading) loading.hidden = true;
+   
+     if (!visiblePhotoDocs.length) {
+         grid.innerHTML = '';
+         if (empty) empty.hidden = false;
+         return;
+       }
     if (empty) empty.hidden = true;
 
     // Get signed/public URLs
