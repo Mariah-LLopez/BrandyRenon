@@ -38,7 +38,7 @@ const STORAGE_BUCKETS = Object.freeze({
   LEGACY_PROPERTY_DOCUMENTS: 'property-documents'
 });
 
-const PUBLIC_STORAGE_BUCKETS = new Set([STORAGE_BUCKETS.PROPERTY_IMAGES]);
+const PUBLIC_STORAGE_BUCKETS = new Set([]);
 const PORTAL_ALLOWED_EXTENSIONS = Object.freeze(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.webp']);
 const PORTAL_ALLOWED_IMAGE_EXTENSIONS = Object.freeze(['.jpg', '.jpeg', '.png', '.webp']);
 const DEFAULT_SIGNED_URL_EXPIRATION = 3600;
