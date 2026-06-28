@@ -749,7 +749,8 @@
       ? allPropertyAssignments.filter((assignment) => assignment.client_id === userId).map((assignment) => assignment.property_id)
       : allAccountAssignments.filter((assignment) => assignment.client_id === userId).map((assignment) => assignment.account_id));
     const ariaLabel = isPropertyGroup ? 'Assigned properties' : 'Assigned accounts';
-    return `<select class="dashboard-inline-select dashboard-inline-multiselect" data-user-assignments data-assignment-group="${escapeHtml(group)}" data-user-id="${escapeHtml(userId)}" multiple aria-label="${escapeHtml(ariaLabel)}">
+    return `<select class="dashboard-inline-select" data-user-assignments data-assignment-group="${escapeHtml(group)}" data-user-id="${escapeHtml(userId)}" aria-label="${escapeHtml(ariaLabel)}">
+      <option value="">None assigned</option>
       ${options.length ? options.map((option) => `<option value="${escapeHtml(option.id)}"${selectedIds.has(option.id) ? ' selected' : ''}>${escapeHtml(option.label)}</option>`).join('') : '<option value="" disabled>No options available.</option>'}
     </select><span class="autosave-indicator" aria-live="polite"></span>`;
   }
@@ -2152,7 +2153,7 @@
     const assignmentGroup = group || inputEl.getAttribute('data-assignment-group');
     if (!userId || !assignmentGroup) return;
     const indicatorEl = inputEl.closest('td')?.querySelector('.autosave-indicator');
-    const selectedIds = Array.from(inputEl.selectedOptions || []).map((option) => option.value).filter(Boolean);
+    const selectedIds = inputEl.value ? [inputEl.value] : [];
     setAutosaveState(indicatorEl, 'saving');
     if (assignmentGroup === 'properties') {
       const { error: deleteError } = await supabaseClient.from('client_property_assignments').delete().eq('client_id', userId);
