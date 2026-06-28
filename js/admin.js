@@ -1070,9 +1070,8 @@
       completed: { tbody: document.getElementById('accounts-completed-tbody'), empty: document.getElementById('accounts-completed-empty'), rows: allAccounts.filter((account) => account.status === 'Completed') }
     };
     Object.entries(groups).forEach(([groupKey, config]) => {
-      
       if (!config.tbody || !config.empty) return;
-      
+    
       if (!config.rows.length) {
         config.tbody.innerHTML = '';
         config.empty.hidden = false;
