@@ -1745,16 +1745,12 @@
     const visibility = form.querySelector('[name="visibility"]').value;
     const isPublicPropertyImage = document.getElementById('upload-public-image')?.checked;
     const requiresSignature = !isPublicPropertyImage && document.getElementById('upload-requires-sig').checked;
-    const property = propertyId ? getPropertyById(propertyId) : null;
-    const isPublicProperty = property ? (property.visibility === 'public' || property.is_public === true) : false;
     if (isPublicPropertyImage && !propertyId) {
-      return setFormStatus(statusEl, 'error-message', 'Select a property before marking a file as a public property image.');
+      return setFormStatus(statusEl, 'error-message', 'Select a property before saving files as property photos.');
     }
-    if (isPublicPropertyImage && property && !isPublicProperty) {
-      return setFormStatus(statusEl, 'error-message', 'Only public properties can receive public listing images.');
-    }
+    
     const canClientEdit = !isPublicPropertyImage && (document.getElementById('upload-client-edit').checked || requiresSignature);
-    const canClientView = !isPublicPropertyImage && visibility !== 'admin_only';
+    const canClientView = isPublicPropertyImage ? true : visibility !== 'admin_only';
     const bucketName = isPublicPropertyImage
       ? STORAGE_BUCKETS.PROPERTY_IMAGES
       : (accountId ? STORAGE_BUCKETS.ACCOUNT_FILES : STORAGE_BUCKETS.CLIENT_DOCUMENTS);
@@ -1787,7 +1783,7 @@
           file_type: file.type,
           file_size: file.size,
           category: isPublicPropertyImage ? 'Property Photo' : (form.querySelector('[name="category"]').value || 'Other'),
-          visibility: isPublicPropertyImage ? 'admin_only' : visibility,
+          visibility: isPublicPropertyImage ? 'client_visible' : visibility,
           can_client_view: canClientView,
           can_client_edit: canClientEdit,
           requires_signature: requiresSignature,
