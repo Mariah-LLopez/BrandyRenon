@@ -237,43 +237,97 @@
   }
 
   /* ── Load properties ── */
-  async function loadProperties(userId) {
-    const { data, error } = await supabaseClient
-      .from('properties')
-      .select('*')
-      .order('updated_at', { ascending: false });
-    if (error) { console.error('loadProperties error:', error); allProperties = []; }
-    allProperties = data || [];
-
-    if (allProperties.length) {
-      const { data: photoDocs } = await supabaseClient
-        .from('documents')
-        .select('id, property_id, file_path, bucket_name, file_name')
-        .in('property_id', allProperties.map(function (p) { return p.id; }))
-        .eq('category', 'Property Photo')
-        .eq('can_client_view', true)
-        .eq('hidden', false);
-      allPropertyPhotoDocs = photoDocs || [];
-    } else {
-      allPropertyPhotoDocs = [];
-    }
-
-    renderPhotosGrid();
-  }
+   async function loadProperties(userId) {
+       const { data: assignments, error: assignError } = await supabaseClient
+         .from('client_property_assignments')
+         .select('property_id')
+         .eq('client_id', userId);
+   
+       if (assignError) {
+         console.error('loadProperties assignment error:', assignError);
+         allProperties = [];
+         allPropertyPhotoDocs = [];
+         renderPhotosGrid();
+         return;
+       }
+   
+       const assignedPropertyIds = (assignments || [])
+         .map(function (row) { return row.property_id; })
+         .filter(Boolean);
+   
+       const accountPropertyIds = allAccounts
+         .map(function (account) { return account.property_id; })
+         .filter(Boolean);
+   
+       const propertyIds = Array.from(new Set(assignedPropertyIds.concat(accountPropertyIds)));
+   
+       if (!propertyIds.length) {
+         allProperties = [];
+         allPropertyPhotoDocs = [];
+         renderPhotosGrid();
+         return;
+       }
+   
+       const { data, error } = await supabaseClient
+         .from('properties')
+         .select('*')
+         .in('id', propertyIds)
+         .order('updated_at', { ascending: false });
+   
+       if (error) {
+         console.error('loadProperties error:', error);
+         allProperties = [];
+         allPropertyPhotoDocs = [];
+         renderPhotosGrid();
+         return;
+       }
+   
+       allProperties = data || [];
+   
+       const { data: photoDocs, error: photoError } = await supabaseClient
+         .from('documents')
+         .select('id, property_id, file_path, bucket_name, file_name')
+         .in('property_id', propertyIds)
+         .eq('category', 'Property Photo')
+         .eq('can_client_view', true)
+         .eq('hidden', false);
+   
+       if (photoError) console.error('load property photos error:', photoError);
+   
+       allPropertyPhotoDocs = photoDocs || [];
+       renderPhotosGrid();
+     }
 
   /* ── Load documents ── */
-  async function loadDocuments(userId) {
-    const { data, error } = await supabaseClient
-      .from('documents')
-      .select('*')
-      .eq('client_id', userId)
-      .eq('can_client_view', true)
-      .eq('hidden', false)
-      .order('created_at', { ascending: false });
-    if (error) { console.error('loadDocuments error:', error); allDocuments = []; }
-    allDocuments = data || [];
-    renderDocumentsList();
-  }
+   async function loadDocuments(userId) {
+       const propertyIds = allProperties
+         .map(function (property) { return property.id; })
+         .filter(Boolean);
+   
+       let query = supabaseClient
+         .from('documents')
+         .select('*')
+         .eq('can_client_view', true)
+         .eq('hidden', false)
+         .order('created_at', { ascending: false });
+   
+       if (propertyIds.length) {
+         query = query.or('client_id.eq.' + userId + ',property_id.in.(' + propertyIds.join(',') + ')');
+       } else {
+         query = query.eq('client_id', userId);
+       }
+   
+       const { data, error } = await query;
+   
+       if (error) {
+         console.error('loadDocuments error:', error);
+         allDocuments = [];
+       } else {
+         allDocuments = data || [];
+       }
+   
+       renderDocumentsList();
+     }
 
   /* ── Load maintenance requests ── */
   async function loadMaintenance(userId) {
@@ -463,10 +517,10 @@
     if (!grid) return;
 
     // Determine which property photos to show: properties linked to user's accounts
-    const accountPropertyIds = allAccounts.map(function (a) { return a.property_id; }).filter(Boolean);
-    const visiblePhotoDocs = allPropertyPhotoDocs.filter(function (d) {
-      return accountPropertyIds.includes(d.property_id) && d.file_path;
-    });
+      const visiblePropertyIds = allProperties.map(function (property) { return property.id; }).filter(Boolean);
+      const visiblePhotoDocs = allPropertyPhotoDocs.filter(function (doc) {
+        return visiblePropertyIds.includes(doc.property_id) && doc.file_path;
+      });
 
     if (loading) loading.hidden = true;
 
@@ -878,9 +932,9 @@
     initDelegatedClicks();
 
     // Load all data in parallel
+    await loadAccounts(activeUserId);
+    await loadProperties(activeUserId);
     await Promise.all([
-      loadProperties(activeUserId),
-      loadAccounts(activeUserId),
       loadDocuments(activeUserId),
       loadMaintenance(activeUserId),
       loadTasks(activeUserId)
