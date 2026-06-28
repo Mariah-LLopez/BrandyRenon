@@ -1,4 +1,4 @@
-// auth.js - Login, register, and reset-password page logic.
+// auth.js - Login and reset-password page logic.
 // This file is used by login.html and reset-password.html.
 // It does NOT run on admin.html or client-portal.html.
 
@@ -49,33 +49,6 @@
     }
     window.location.replace(getPortalDestination(profile));
     return true;
-  }
-
-  function initLoginTabs() {
-    const tabSignin = document.getElementById('tab-signin');
-    const tabRegister = document.getElementById('tab-register');
-    const panelSignin = document.getElementById('panel-signin');
-    const panelRegister = document.getElementById('panel-register');
-
-    if (!tabSignin || !tabRegister) return;
-
-    tabSignin.addEventListener('click', function () {
-      tabSignin.classList.add('active');
-      tabSignin.setAttribute('aria-selected', 'true');
-      tabRegister.classList.remove('active');
-      tabRegister.setAttribute('aria-selected', 'false');
-      if (panelSignin) panelSignin.hidden = false;
-      if (panelRegister) panelRegister.hidden = true;
-    });
-
-    tabRegister.addEventListener('click', function () {
-      tabRegister.classList.add('active');
-      tabRegister.setAttribute('aria-selected', 'true');
-      tabSignin.classList.remove('active');
-      tabSignin.setAttribute('aria-selected', 'false');
-      if (panelRegister) panelRegister.hidden = false;
-      if (panelSignin) panelSignin.hidden = true;
-    });
   }
 
   function initLoginForm() {
@@ -137,117 +110,6 @@
         if (errorBox) { errorBox.className = 'form-status error-message'; errorBox.textContent = 'Unable to sign in. Please try again.'; }
         loginBtn.disabled = false;
         loginBtn.textContent = 'Sign In';
-      }
-    });
-  }
-
-  function initRegisterForm() {
-    const registerForm = document.getElementById('register-form');
-    const registerBtn = document.getElementById('register-button');
-    if (!registerForm || !registerBtn) return;
-
-    registerForm.addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const fullName = registerForm.querySelector('[name="full_name"]').value.trim();
-      const email = registerForm.querySelector('[name="email"]').value.trim();
-      const phone = registerForm.querySelector('[name="phone"]')?.value.trim() || null;
-      const userType = registerForm.querySelector('[name="user_type"]')?.value || '';
-      const password = registerForm.querySelector('[name="password"]').value;
-      const confirmPassword = registerForm.querySelector('[name="confirm_password"]')?.value || '';
-      const statusEl = document.getElementById('register-status');
-      if (statusEl) { statusEl.textContent = ''; statusEl.className = 'form-status'; }
-
-      if (!email) {
-        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Email is required.'; }
-        return;
-      }
-      if (!password) {
-        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Password is required.'; }
-        return;
-      }
-      if (password.length < 8) {
-        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Password must be at least 8 characters.'; }
-        return;
-      }
-      if (password !== confirmPassword) {
-        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Confirm password must match password.'; }
-        return;
-      }
-      if (!userType) {
-        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Please select your user type.'; }
-        return;
-      }
-      if (typeof supabaseClient === 'undefined' || !supabaseClient) {
-        if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = 'Registration is temporarily unavailable.'; }
-        return;
-      }
-
-      registerBtn.disabled = true;
-      registerBtn.textContent = 'Creating account…';
-
-      try {
-        const { data, error } = await supabaseClient.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { user_type: userType, full_name: fullName || null, phone },
-            emailRedirectTo: 'https://propertiesbybrandy.com/login.html'
-          }
-        });
-
-        if (error) {
-          console.error('Create account signUp error:', error);
-          if (statusEl) { statusEl.className = 'form-status error-message'; statusEl.textContent = error?.message || 'Unable to create account.'; }
-          return;
-        }
-
-        if (!data?.user) {
-          if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Account created. Please check your email to confirm your account.'; }
-          registerForm.reset();
-          return;
-        }
-
-        const profilePayload = {
-          id: data.user.id,
-          email,
-          full_name: fullName || null,
-          phone,
-          role: 'client',
-          user_type: userType,
-          status: 'active',
-          updated_at: new Date().toISOString()
-        };
-        const { error: profileError } = await supabaseClient
-          .from('profiles')
-          .upsert([profilePayload], { onConflict: 'id' });
-
-        if (profileError) {
-          console.error('Create account profile upsert error:', profileError);
-          const { data: existingProfile } = await supabaseClient.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
-          if (existingProfile?.id) {
-            console.warn('Profile upsert failed but profile exists, continuing sign-up flow.', { userId: data.user.id, profileError });
-            if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Account created. Please check your email to confirm your account.'; }
-            registerForm.reset();
-            return;
-          }
-          if (statusEl) {
-            statusEl.className = 'form-status error-message';
-            statusEl.textContent = profileError?.message || 'Account created, but profile setup failed.';
-          }
-          return;
-        }
-
-        if (statusEl) { statusEl.className = 'form-status success-message'; statusEl.textContent = 'Account created. Please check your email to confirm your account.'; }
-        registerForm.reset();
-      } catch (err) {
-        console.error('Create account unexpected error:', err);
-        if (statusEl) {
-          statusEl.className = 'form-status error-message';
-          statusEl.textContent = err?.message || 'Registration failed. Please try again.';
-        }
-      } finally {
-        registerBtn.disabled = false;
-        registerBtn.textContent = 'Create Account';
       }
     });
   }
@@ -328,9 +190,7 @@
     initLoginPageMessage();
     const redirected = await redirectIfLoggedIn();
     if (redirected) return;
-    initLoginTabs();
     initLoginForm();
-    initRegisterForm();
     initResetPasswordForm();
   });
 })();
